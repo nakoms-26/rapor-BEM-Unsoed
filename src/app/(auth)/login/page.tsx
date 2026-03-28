@@ -1,6 +1,8 @@
 import { LoginForm } from "@/components/auth/login-form";
 import { getSignUpOptions } from "@/app/(auth)/login/actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   const { roleOptions, unitOptions } = await getSignUpOptions();
 

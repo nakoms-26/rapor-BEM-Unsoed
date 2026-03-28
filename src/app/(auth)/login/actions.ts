@@ -64,17 +64,24 @@ function isUnitAllowedForRole(
 }
 
 export async function getSignUpOptions() {
-  const supabase = createAdminSupabaseClient();
-  const { data: units } = await supabase
-    .from("ref_units")
-    .select("id, nama_unit, kategori")
-    .order("kategori")
-    .order("nama_unit");
+  try {
+    const supabase = createAdminSupabaseClient();
+    const { data: units } = await supabase
+      .from("ref_units")
+      .select("id, nama_unit, kategori")
+      .order("kategori")
+      .order("nama_unit");
 
-  return {
-    roleOptions: SIGN_UP_ROLE_OPTIONS,
-    unitOptions: (units ?? []) as SignUpUnitOption[],
-  };
+    return {
+      roleOptions: SIGN_UP_ROLE_OPTIONS,
+      unitOptions: (units ?? []) as SignUpUnitOption[],
+    };
+  } catch {
+    return {
+      roleOptions: SIGN_UP_ROLE_OPTIONS,
+      unitOptions: [] as SignUpUnitOption[],
+    };
+  }
 }
 
 export async function signInWithTableAccount(payload: { nim: string; password: string }) {
