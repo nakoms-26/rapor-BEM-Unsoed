@@ -1,10 +1,43 @@
 import { LoginForm } from "@/components/auth/login-form";
-import { getSignUpOptions } from "@/app/(auth)/login/actions";
+import type { SignUpRoleOption, SignUpUnitOption } from "@/types/app";
 
 export const dynamic = "force-dynamic";
 
+const FALLBACK_ROLE_OPTIONS: SignUpRoleOption[] = [
+  {
+    value: "admin",
+    label: "Admin",
+    description: "Akses input rapor lintas unit (unit: Biro PPM / Biro Pengendali & Penjamin Mutu).",
+  },
+  {
+    value: "menko",
+    label: "Menko",
+    description: "Melihat rekap seluruh kementerian di bawah koordinasi kemenko.",
+  },
+  {
+    value: "menteri",
+    label: "Menteri / Kepala Biro",
+    description: "Melihat rekap untuk 1 kementerian atau biro miliknya.",
+  },
+  {
+    value: "staff",
+    label: "Staff",
+    description: "Melihat rapor pribadi.",
+  },
+];
+
 export default async function LoginPage() {
-  const { roleOptions, unitOptions } = await getSignUpOptions();
+  let roleOptions: SignUpRoleOption[] = FALLBACK_ROLE_OPTIONS;
+  let unitOptions: SignUpUnitOption[] = [];
+
+  const hasSupabaseEnv = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  if (hasSupabaseEnv) {
+    const { getSignUpOptions } = await import("@/app/(auth)/login/actions");
+    const options = await getSignUpOptions();
+    roleOptions = options.roleOptions;
+    unitOptions = options.unitOptions;
+  }
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-100 px-4 py-12">
