@@ -7,6 +7,25 @@ import { RaporDocument } from "@/components/dashboard/rapor-document";
 
 export const dynamic = "force-dynamic";
 
+const BULAN_LABEL: Record<number, string> = {
+  1: "Januari",
+  2: "Februari",
+  3: "Maret",
+  4: "April",
+  5: "Mei",
+  6: "Juni",
+  7: "Juli",
+  8: "Agustus",
+  9: "September",
+  10: "Oktober",
+  11: "November",
+  12: "Desember",
+};
+
+function formatPeriode(bulan: number, tahun: number) {
+  return `${BULAN_LABEL[bulan] ?? `Bulan ${bulan}`}/${tahun}`;
+}
+
 export default async function MenteriPage() {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
@@ -25,12 +44,6 @@ export default async function MenteriPage() {
       .eq("report_type", "menteri_kepala_biro")
       .order("created_at", { ascending: false }),
   ]);
-
-  const { data: profileMeta } = await supabase
-    .from("profiles")
-    .select("nim, nama_lengkap, unit_id")
-    .eq("nim", profile.nim)
-    .single();
 
   const periodById = new Map((periods ?? []).map((period) => [period.id, period]));
   const rows = (selfScores ?? []).map((score) => {
@@ -84,14 +97,15 @@ export default async function MenteriPage() {
             rows.map((row, index) => (
               <details key={row.id} open={index === 0} className="rounded-lg border border-slate-200 bg-slate-50/50">
                 <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-700">{row.bulan}/{row.tahun} ({row.status})</span>
+                  <span className="font-medium text-slate-700">{formatPeriode(row.bulan, row.tahun)} ({row.status})</span>
                   <span className="font-semibold text-slate-900">{row.total_avg.toFixed(2)}</span>
                 </summary>
                 <div className="px-3 pb-3">
                   <RaporDocument
+                    reportId={`rapor-${row.id}`}
                     title="Rapor BEM UNSOED 2025"
-                    periodLabel={`${row.bulan}/${row.tahun}`}
-                    name={profileMeta?.nama_lengkap ?? profile.nama_lengkap}
+                    periodLabel={formatPeriode(row.bulan, row.tahun)}
+                    name={profile.nama_lengkap}
                     jurusan={null}
                     tahunAngkatan={null}
                     unitName={ownedUnit?.nama_unit ?? "-"}

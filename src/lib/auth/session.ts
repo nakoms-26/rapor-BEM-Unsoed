@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { APP_ROLES, type AppRole } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -67,13 +68,18 @@ export async function clearAppSession() {
 }
 
 export async function getCurrentSessionProfile(): Promise<SessionProfile | null> {
-  const supabase = createAdminSupabaseClient();
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!sessionToken) {
     return null;
   }
+
+  return getCurrentSessionProfileByToken(sessionToken);
+}
+
+const getCurrentSessionProfileByToken = cache(async (sessionToken: string): Promise<SessionProfile | null> => {
+  const supabase = createAdminSupabaseClient();
 
   const now = new Date().toISOString();
   const { data: session } = await supabase
@@ -105,7 +111,7 @@ export async function getCurrentSessionProfile(): Promise<SessionProfile | null>
     role: normalizeProfileRole(String(profile.role ?? "staff")),
     unit_id: profile.unit_id,
   };
-}
+});
 
 export async function requireSessionProfile() {
   const profile = await getCurrentSessionProfile();
