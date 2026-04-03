@@ -1,7 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { randomBytes, scryptSync } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -54,12 +53,6 @@ function parseArgs(argv) {
 
 function normalizeNim(nim) {
   return String(nim ?? "").replace(/\s+/g, "").toUpperCase();
-}
-
-function hashPassword(password) {
-  const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(password, salt, 64).toString("hex");
-  return `${salt}:${hash}`;
 }
 
 loadEnvFile(".env.local");
@@ -133,7 +126,7 @@ if (profileError) {
 const { error: accountError } = await supabase.from("app_accounts").upsert(
   {
     nim,
-    password_hash: hashPassword(password),
+    password_hash: password,
   },
   { onConflict: "nim" },
 );
