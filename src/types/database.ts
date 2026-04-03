@@ -7,6 +7,8 @@ export type Database = {
         Row: {
           nim: string;
           nama_lengkap: string;
+          jurusan: string | null;
+          tahun_angkatan: number | null;
           unit_id: string;
           role: "admin" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
           created_at: string;
@@ -15,6 +17,8 @@ export type Database = {
         Insert: {
           nim: string;
           nama_lengkap: string;
+          jurusan?: string | null;
+          tahun_angkatan?: number | null;
           unit_id: string;
           role?: "admin" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
           created_at?: string;
@@ -94,6 +98,7 @@ export type Database = {
           user_nim: string;
           periode_id: string;
           penilai_nim: string;
+          report_type: "staf_unit" | "menteri_kepala_biro";
           total_avg: number;
           catatan: string | null;
           created_at: string;
@@ -103,11 +108,31 @@ export type Database = {
           user_nim: string;
           periode_id: string;
           penilai_nim: string;
+          report_type?: "staf_unit" | "menteri_kepala_biro";
           total_avg?: number;
           catatan?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["rapor_scores"]["Insert"]>;
+      };
+      evaluator_unit_assignments: {
+        Row: {
+          id: string;
+          evaluator_nim: string;
+          target_unit_id: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          evaluator_nim: string;
+          target_unit_id: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["evaluator_unit_assignments"]["Insert"]>;
       };
       rapor_details: {
         Row: {
@@ -135,6 +160,7 @@ export type Database = {
       app_role: "admin" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
       unit_kategori: "kemenko" | "kementerian" | "biro";
       period_status: "draft" | "published";
+      rapor_type: "staf_unit" | "menteri_kepala_biro";
     };
     CompositeTypes: Record<string, never>;
   };

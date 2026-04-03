@@ -14,6 +14,7 @@ Internal BEM Management System untuk pelaporan performa bulanan dengan struktur 
 
 - src/app/(auth)/login: halaman login NIM + password
 - src/app/(dashboard)/admin: form input rapor dinamis untuk Admin
+- src/app/(dashboard)/pres_wapres: dashboard Presiden & Wakil Presiden (read-only)
 - src/app/(dashboard)/menko: dashboard rekap unit koordinasi
 - src/app/(dashboard)/menteri: dashboard rekap 1 kementerian/biro milik menteri
 - src/app/(dashboard)/staff: tampilan rapor personal staf
@@ -47,6 +48,8 @@ Eksekusi file berikut di SQL Editor Supabase secara berurutan:
 - supabase/migrations/20260328004000_seed_rapor_periods_2026.sql
 - supabase/migrations/20260328005000_add_catatan_to_rapor_scores.sql
 - supabase/migrations/20260328006000_hardening_constraints_indexes_cleanup.sql
+- supabase/migrations/20260404090000_report_type_and_evaluator_assignments.sql
+- supabase/migrations/20260404103000_add_profile_academic_fields.sql
 
 5. Jalankan aplikasi
 
@@ -68,17 +71,30 @@ Contoh NIM yang valid: H1D024096.
 
 - Klik tombol Sign Up di halaman login.
 - Isi Nama Lengkap, NIM, Role/Jabatan, Unit, Password, dan Konfirmasi Password.
+- Isi juga Jurusan/Prodi dan Tahun Angkatan agar lembar rapor tampil lengkap.
+- Role yang bisa dipilih saat registrasi publik: Admin, Menko, Menteri / Kepala Biro, dan Staff.
+- Validasi unit mengikuti role yang dipilih, misalnya Admin hanya untuk unit Biro PPM / Biro Pengendali & Penjamin Mutu, Menko hanya untuk unit kategori kemenko, dan Presiden & Wakil Presiden hanya untuk unit Lingkar Presiden.
 - Sistem akan membuat profil awal jika NIM belum ada, lalu menyimpan hash password di `app_accounts`.
 - Setelah berhasil, sistem membuat sesi login di `app_sessions` dan langsung mengarahkan ke dashboard sesuai role.
 - Untuk bootstrap akun admin pertama, gunakan script `npm run create:admin` agar hash password cocok dengan aplikasi.
 
 ## Model Role
 
-- admin: input rapor dan akses lintas unit
-- pres_wapres: akses pemantauan lintas unit
-- menko: rekap seluruh unit kementerian di bawah koordinasi kemenko-nya
-- menteri: rekap 1 unit kementerian/biro miliknya
-- staff: hanya melihat rapor pribadi
+- admin: CRUD seluruh rapor (staff + menteri/kepala biro), serta assignment unit penilai
+- pres_wapres: baca seluruh rapor lintas unit (tanpa akses input). Label tampilan: Presiden & Wakil Presiden.
+- menko: lihat rapor menteri yang dibawahi + recap 1 kemenko-an
+- menteri: lihat rapor diri + rapor staff unit + recap bulanan (nilai tertinggi & growth tertinggi)
+- staff: lihat rapor pribadi; staf Biro PPM/Pengendali Mutu dapat input rapor unit sesuai assignment
+
+## Jenis Rapor
+
+- `staf_unit`: rapor untuk staff kementerian/biro
+- `menteri_kepala_biro`: rapor untuk menteri/kepala biro
+
+## Assignment Penilai
+
+- Setiap staf penilai Biro PPM/Pengendali Mutu hanya boleh memegang 1 unit target.
+- Assignment disimpan di tabel `evaluator_unit_assignments` dan dikelola dari dashboard admin.
 
 ## Catatan Legacy
 

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { RaporDocument } from "@/components/dashboard/rapor-document";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +22,15 @@ export default async function MenteriPage() {
       .from("rapor_scores")
       .select("id, periode_id, total_avg, catatan, created_at")
       .eq("user_nim", profile.nim)
+      .eq("report_type", "menteri_kepala_biro")
       .order("created_at", { ascending: false }),
   ]);
+
+  const { data: profileMeta } = await supabase
+    .from("profiles")
+    .select("nim, nama_lengkap, unit_id")
+    .eq("nim", profile.nim)
+    .single();
 
   const periodById = new Map((periods ?? []).map((period) => [period.id, period]));
   const rows = (selfScores ?? []).map((score) => {
@@ -36,6 +44,26 @@ export default async function MenteriPage() {
       status: period?.status ?? "draft",
     };
   });
+
+  const raporIds = rows.map((row) => row.id);
+  const { data: detailRows } = raporIds.length
+    ? await supabase
+        .from("rapor_details")
+        .select("rapor_id, main_indicator_name, sub_indicator_name, score")
+        .in("rapor_id", raporIds)
+    : { data: [] as { rapor_id: string; main_indicator_name: string; sub_indicator_name: string; score: number }[] };
+
+  const detailsByRapor = new Map<string, { main_indicator_name: string; sub_indicator_name: string; score: number }[]>();
+  for (const item of detailRows ?? []) {
+    if (!detailsByRapor.has(item.rapor_id)) {
+      detailsByRapor.set(item.rapor_id, []);
+    }
+    detailsByRapor.get(item.rapor_id)!.push({
+      main_indicator_name: item.main_indicator_name,
+      sub_indicator_name: item.sub_indicator_name,
+      score: item.score,
+    });
+  }
 
   return (
     <section className="space-y-4">
@@ -53,16 +81,27 @@ export default async function MenteriPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {rows.length ? (
-            rows.map((row) => (
-              <div key={row.id} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-700">
-                    {row.bulan}/{row.tahun} ({row.status})
-                  </span>
+            rows.map((row, index) => (
+              <details key={row.id} open={index === 0} className="rounded-lg border border-slate-200 bg-slate-50/50">
+                <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <span className="font-medium text-slate-700">{row.bulan}/{row.tahun} ({row.status})</span>
                   <span className="font-semibold text-slate-900">{row.total_avg.toFixed(2)}</span>
+                </summary>
+                <div className="px-3 pb-3">
+                  <RaporDocument
+                    title="Rapor BEM UNSOED 2025"
+                    periodLabel={`${row.bulan}/${row.tahun}`}
+                    name={profileMeta?.nama_lengkap ?? profile.nama_lengkap}
+                    jurusan={null}
+                    tahunAngkatan={null}
+                    unitName={ownedUnit?.nama_unit ?? "-"}
+                    categoryLabel={row.total_avg >= 4 ? "SANGAT BAIK" : row.total_avg >= 3 ? "BAIK" : "CUKUP"}
+                    totalScore={Number(row.total_avg)}
+                    catatan={row.catatan}
+                    details={detailsByRapor.get(row.id) ?? []}
+                  />
                 </div>
-                {row.catatan ? <p className="mt-1 text-xs text-slate-600">Catatan: {row.catatan}</p> : null}
-              </div>
+              </details>
             ))
           ) : (
             <p className="text-sm text-slate-600">Belum ada data rapor pribadi.</p>

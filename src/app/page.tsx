@@ -12,7 +12,7 @@ export default function Home() {
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700">Internal System</p>
         <h1 className="mt-3 text-3xl font-bold text-slate-900 md:text-5xl">Rapor BEM Bulanan</h1>
         <p className="mt-4 max-w-2xl text-slate-600">
-          Sistem manajemen performa untuk Pres & Wapres, Menko, Menteri/Kepala Biro, dan Staff dengan input indikator dinamis berbasis Supabase.
+          Sistem manajemen performa untuk Presiden & Wakil Presiden, Menko, Menteri/Kepala Biro, dan Staff dengan input indikator dinamis berbasis Supabase.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">

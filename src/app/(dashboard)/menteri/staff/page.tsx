@@ -21,7 +21,7 @@ export default async function MenteriStaffPage() {
       .from("profiles")
       .select("nim, nama_lengkap")
       .eq("unit_id", profile.unit_id)
-      .in("role", ["staff", "user"])
+      .eq("role", "staff")
       .order("nama_lengkap"),
   ]);
 
@@ -32,10 +32,60 @@ export default async function MenteriStaffPage() {
   const { data: scores } = staffNims.length
     ? await supabase
         .from("rapor_scores")
-        .select("id, user_nim, periode_id, total_avg, catatan, created_at")
+        .select("id, user_nim, periode_id, total_avg, catatan, report_type, created_at")
         .in("user_nim", staffNims)
+        .eq("report_type", "staf_unit")
         .order("created_at", { ascending: false })
-    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null }[] };
+    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null; report_type: "staf_unit" | "menteri_kepala_biro" }[] };
+
+  const publishedPeriods = (periods ?? [])
+    .filter((period) => period.status === "published")
+    .sort((a, b) => {
+      if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+      return b.bulan - a.bulan;
+    });
+
+  const latestPublished = publishedPeriods[0];
+  const previousPublished = publishedPeriods[1];
+
+  const latestByNim = new Map<string, number>();
+  const previousByNim = new Map<string, number>();
+
+  for (const item of scores ?? []) {
+    if (latestPublished && item.periode_id === latestPublished.id) {
+      latestByNim.set(item.user_nim, Number(item.total_avg));
+    }
+    if (previousPublished && item.periode_id === previousPublished.id) {
+      previousByNim.set(item.user_nim, Number(item.total_avg));
+    }
+  }
+
+  let highestScoreName = "-";
+  let highestScoreValue = 0;
+  let highestGrowthName = "-";
+  let highestGrowthValue = Number.NEGATIVE_INFINITY;
+
+  for (const nim of staffNims) {
+    const current = latestByNim.get(nim);
+    if (typeof current !== "number") {
+      continue;
+    }
+
+    const name = staffByNim.get(nim) ?? nim;
+    if (current > highestScoreValue) {
+      highestScoreValue = current;
+      highestScoreName = name;
+    }
+
+    const prev = previousByNim.get(nim) ?? current;
+    const growth = Number((current - prev).toFixed(2));
+    if (growth > highestGrowthValue) {
+      highestGrowthValue = growth;
+      highestGrowthName = name;
+    }
+  }
+
+  const growthLabel = Number.isFinite(highestGrowthValue) ? highestGrowthValue.toFixed(2) : "0.00";
 
   const rows = (scores ?? []).map((score) => {
     const period = periodById.get(score.periode_id);
@@ -56,6 +106,29 @@ export default async function MenteriStaffPage() {
         <h2 className="text-2xl font-bold text-slate-900">Rapor Staff Unit</h2>
         <p className="text-sm text-slate-600">Seluruh rapor staff untuk unit {ownedUnit?.nama_unit ?? "-"}.</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recap 1 Bulan Terbaru (Published)</CardTitle>
+          <CardDescription>
+            {latestPublished
+              ? `Periode ${latestPublished.bulan}/${latestPublished.tahun}`
+              : "Belum ada periode published"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 px-3 py-2">
+            <p className="text-xs text-slate-500">Nilai Tertinggi</p>
+            <p className="text-sm font-semibold text-slate-900">{highestScoreName}</p>
+            <p className="text-xs text-slate-600">{highestScoreValue.toFixed(2)}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 px-3 py-2">
+            <p className="text-xs text-slate-500">Growth Tertinggi</p>
+            <p className="text-sm font-semibold text-slate-900">{highestGrowthName}</p>
+            <p className="text-xs text-slate-600">{growthLabel}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

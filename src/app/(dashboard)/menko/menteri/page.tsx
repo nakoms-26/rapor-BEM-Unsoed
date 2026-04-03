@@ -43,17 +43,19 @@ export default async function MenkoMenteriPage() {
         .from("rapor_scores")
         .select("id, user_nim, periode_id, total_avg, catatan, created_at")
         .in("user_nim", menteriNims)
+        .eq("report_type", "menteri_kepala_biro")
         .order("created_at", { ascending: false })
     : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null }[] };
 
   const rows = (scores ?? []).map((score) => {
     const menteri = menteriByNim.get(score.user_nim);
     const period = periodById.get(score.periode_id);
+    const unitName = unitById.get(menteri?.unit_id ?? "") ?? "-";
 
     return {
       id: score.id,
       nama: menteri?.nama_lengkap ?? score.user_nim,
-      unit: unitById.get(menteri?.unit_id ?? "") ?? "-",
+      unit: unitName,
       total_avg: Number(score.total_avg),
       catatan: score.catatan,
       bulan: period?.bulan ?? 0,
@@ -61,6 +63,14 @@ export default async function MenkoMenteriPage() {
       status: period?.status ?? "draft",
     };
   });
+
+  const groupedByUnit = new Map<string, typeof rows>();
+  for (const row of rows) {
+    if (!groupedByUnit.has(row.unit)) {
+      groupedByUnit.set(row.unit, []);
+    }
+    groupedByUnit.get(row.unit)!.push(row);
+  }
 
   return (
     <section className="space-y-4">
@@ -71,25 +81,34 @@ export default async function MenkoMenteriPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Daftar Rapor Menteri</CardTitle>
-          <CardDescription>Urut dari data terbaru.</CardDescription>
+          <CardTitle>Daftar Rapor Menteri (Struktur Folder)</CardTitle>
+          <CardDescription>Pengelompokan: Kemenko Anda &gt; Kementerian/Biro.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {rows.length ? (
-            rows.map((row) => (
-              <div key={row.id} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-slate-700">{row.nama}</p>
-                    <p className="text-xs text-slate-500">{row.unit}</p>
-                  </div>
-                  <span className="font-semibold text-slate-900">{row.total_avg.toFixed(2)}</span>
+            [...groupedByUnit.entries()].map(([unitName, unitRows]) => (
+              <details key={unitName} open className="rounded-md border border-slate-200 bg-slate-50/50">
+                <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-700">
+                  {profile.nama_lengkap} (Menko) &gt; {unitName}
+                </summary>
+                <div className="space-y-2 px-3 pb-3">
+                  {unitRows.map((row) => (
+                    <div key={row.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-slate-700">{row.nama}</p>
+                          <p className="text-xs text-slate-500">{row.unit}</p>
+                        </div>
+                        <span className="font-semibold text-slate-900">{row.total_avg.toFixed(2)}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {row.bulan}/{row.tahun} ({row.status})
+                      </p>
+                      {row.catatan ? <p className="mt-1 text-xs text-slate-600">Catatan: {row.catatan}</p> : null}
+                    </div>
+                  ))}
                 </div>
-                <p className="mt-1 text-xs text-slate-600">
-                  {row.bulan}/{row.tahun} ({row.status})
-                </p>
-                {row.catatan ? <p className="mt-1 text-xs text-slate-600">Catatan: {row.catatan}</p> : null}
-              </div>
+              </details>
             ))
           ) : (
             <p className="text-sm text-slate-600">Belum ada data rapor menteri pada unit terkoordinasi.</p>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { BarChart3, ClipboardList, UserRoundCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ type FeatureCard = {
 
 export default async function DashboardLandingPage() {
   const profile = await requireSessionProfile();
+  const supabase = createAdminSupabaseClient();
 
   const featuresByRole: Record<string, FeatureCard[]> = {
     admin: [
@@ -27,10 +29,10 @@ export default async function DashboardLandingPage() {
     ],
     pres_wapres: [
       {
-        href: "/admin",
-        title: "Input Rapor",
-        description: "Input dan perbarui rapor bulanan untuk anggota.",
-        icon: ClipboardList,
+        href: "/pres_wapres",
+        title: "Pantau Seluruh Rapor",
+        description: "Lihat seluruh rapor lintas role dan unit tanpa akses input.",
+        icon: BarChart3,
       },
     ],
     staff: [
@@ -39,6 +41,12 @@ export default async function DashboardLandingPage() {
         title: "Rapor Diri Sendiri",
         description: "Lihat seluruh periode rapor pribadi.",
         icon: UserRoundCheck,
+      },
+      {
+        href: "/penilai",
+        title: "Input Unit Pegangan",
+        description: "Khusus staf Biro PPM/Pengendali Mutu yang mendapat assignment unit.",
+        icon: ClipboardList,
       },
     ],
     menteri: [
@@ -73,6 +81,25 @@ export default async function DashboardLandingPage() {
 
   const cards = featuresByRole[profile.role] ?? [];
 
+  if (profile.role === "staff") {
+    const { data: assignment } = await supabase
+      .from("evaluator_unit_assignments")
+      .select("id")
+      .eq("evaluator_nim", profile.nim)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!assignment) {
+      const withoutEvaluatorCard = cards.filter((card) => card.href !== "/penilai");
+      return renderCards(withoutEvaluatorCard, profile.role);
+    }
+  }
+
+  return renderCards(cards, profile.role);
+}
+
+function renderCards(cards: FeatureCard[], role: string) {
+
   if (!cards.length) {
     redirect("/login");
   }
@@ -81,7 +108,7 @@ export default async function DashboardLandingPage() {
     <section className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Pilih Fitur Dashboard</h2>
-        <p className="text-sm text-slate-600">Akses fitur berdasarkan role Anda: {profile.role}.</p>
+        <p className="text-sm text-slate-600">Akses fitur berdasarkan role Anda: {role}.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

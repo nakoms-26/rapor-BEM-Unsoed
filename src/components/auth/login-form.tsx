@@ -61,6 +61,8 @@ export function LoginForm({ roleOptions, unitOptions }: Props) {
     // NIM can be alphanumeric (e.g. H1D024096), so we normalize case and whitespace.
     const nim = rawNim.replace(/\s+/g, "").toUpperCase();
     const namaLengkap = String(formData.get("nama_lengkap") ?? "").trim();
+    const jurusan = String(formData.get("jurusan") ?? "").trim();
+    const tahunAngkatan = String(formData.get("tahun_angkatan") ?? "").trim();
     const role = String(formData.get("role") ?? "").trim();
     const unitId = String(formData.get("unit_id") ?? "").trim();
     const password = String(formData.get("password") ?? "");
@@ -75,6 +77,12 @@ export function LoginForm({ roleOptions, unitOptions }: Props) {
     if (mode === "signup") {
       if (!namaLengkap) {
         setErrorMessage("Nama lengkap wajib diisi untuk registrasi.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!jurusan || !tahunAngkatan) {
+        setErrorMessage("Jurusan/Prodi dan Tahun Angkatan wajib diisi untuk registrasi.");
         setIsLoading(false);
         return;
       }
@@ -100,6 +108,8 @@ export function LoginForm({ roleOptions, unitOptions }: Props) {
       const result = await signUpWithTableAccount({
         nim,
         namaLengkap,
+        jurusan,
+        tahunAngkatan,
         role,
         unitId,
         password,
@@ -152,6 +162,20 @@ export function LoginForm({ roleOptions, unitOptions }: Props) {
                   Nama Lengkap
                 </label>
                 <Input id="nama_lengkap" name="nama_lengkap" placeholder="contoh: Budi Santoso" autoComplete="name" />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="jurusan" className="text-sm font-medium text-slate-700">
+                  Jurusan / Prodi
+                </label>
+                <Input id="jurusan" name="jurusan" placeholder="contoh: Informatika" autoComplete="organization" />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="tahun_angkatan" className="text-sm font-medium text-slate-700">
+                  Tahun Angkatan
+                </label>
+                <Input id="tahun_angkatan" name="tahun_angkatan" type="number" min={2000} max={2100} placeholder="contoh: 2024" />
               </div>
 
               <div className="space-y-1">

@@ -33,6 +33,7 @@ const BULAN_LABEL: Record<number, string> = {
 
 export function AdminDynamicForm({ units, periods, staffs }: Props) {
   const [submitMessage, setSubmitMessage] = useState("");
+  const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
   const hasPeriods = periods.length > 0;
   const hasUnits = units.length > 0;
@@ -65,9 +66,11 @@ export function AdminDynamicForm({ units, periods, staffs }: Props) {
 
   async function onSubmit(values: AdminInputForm) {
     setSubmitMessage("");
+    setIsSubmitSuccess(false);
     startTransition(async () => {
       const result = await submitAdminRapor(values);
       setSubmitMessage(result.message);
+      setIsSubmitSuccess(Boolean(result.ok));
       if (result.ok) {
         form.reset({
           ...values,
@@ -82,6 +85,7 @@ export function AdminDynamicForm({ units, periods, staffs }: Props) {
   }
 
   function onInvalidSubmit() {
+    setIsSubmitSuccess(false);
     const firstError =
       form.formState.errors.periode_id?.message ||
       form.formState.errors.unit_id?.message ||
@@ -188,7 +192,9 @@ export function AdminDynamicForm({ units, periods, staffs }: Props) {
             />
           </div>
 
-          {submitMessage ? <p className="text-sm text-red-700">{submitMessage}</p> : null}
+          {submitMessage ? (
+            <p className={`text-sm ${isSubmitSuccess ? "text-emerald-700" : "text-red-700"}`}>{submitMessage}</p>
+          ) : null}
 
           <Button type="submit" disabled={isPending || !canSubmit}>
             {isPending ? "Menyimpan..." : "Simpan Rapor"}

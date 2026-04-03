@@ -7,7 +7,7 @@ const FALLBACK_ROLE_OPTIONS: SignUpRoleOption[] = [
   {
     value: "admin",
     label: "Admin",
-    description: "Akses input rapor lintas unit (unit: Biro PPM / Biro Pengendali & Penjamin Mutu).",
+    description: "CRUD seluruh rapor dan assignment penilai unit.",
   },
   {
     value: "menko",
@@ -17,12 +17,12 @@ const FALLBACK_ROLE_OPTIONS: SignUpRoleOption[] = [
   {
     value: "menteri",
     label: "Menteri / Kepala Biro",
-    description: "Melihat rekap untuk 1 kementerian atau biro miliknya.",
+    description: "Melihat rapor diri dan rapor staff unit.",
   },
   {
     value: "staff",
     label: "Staff",
-    description: "Melihat rapor pribadi.",
+    description: "Melihat rapor pribadi dan dapat ditugaskan sebagai penilai unit oleh admin.",
   },
 ];
 

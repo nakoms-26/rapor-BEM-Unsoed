@@ -13,7 +13,7 @@ const SIGN_UP_ROLE_OPTIONS: SignUpRoleOption[] = [
   {
     value: "admin",
     label: "Admin",
-    description: "Akses input rapor lintas unit (unit: Biro PPM / Biro Pengendali & Penjamin Mutu).",
+    description: "CRUD seluruh rapor dan assignment penilai unit.",
   },
   {
     value: "menko",
@@ -23,12 +23,12 @@ const SIGN_UP_ROLE_OPTIONS: SignUpRoleOption[] = [
   {
     value: "menteri",
     label: "Menteri / Kepala Biro",
-    description: "Melihat rekap untuk 1 kementerian atau biro miliknya.",
+    description: "Melihat rapor diri dan rapor staff unit.",
   },
   {
     value: "staff",
     label: "Staff",
-    description: "Melihat rapor pribadi.",
+    description: "Melihat rapor pribadi dan dapat ditugaskan sebagai penilai unit oleh admin.",
   },
 ];
 
@@ -124,6 +124,8 @@ export async function signInWithTableAccount(payload: { nim: string; password: s
 export async function signUpWithTableAccount(payload: {
   nim: string;
   namaLengkap: string;
+  jurusan: string;
+  tahunAngkatan: string;
   role: string;
   unitId: string;
   password: string;
@@ -131,13 +133,19 @@ export async function signUpWithTableAccount(payload: {
 }) {
   const nim = normalizeNim(payload.nim);
   const namaLengkap = payload.namaLengkap.trim();
+  const jurusan = payload.jurusan.trim();
+  const tahunAngkatan = Number.parseInt(payload.tahunAngkatan, 10);
   const requestedRole = payload.role.trim();
   const unitId = payload.unitId.trim();
   const password = payload.password;
   const confirmPassword = payload.confirmPassword;
 
-  if (!nim || !namaLengkap || !requestedRole || !unitId || !password || !confirmPassword) {
+  if (!nim || !namaLengkap || !jurusan || !payload.tahunAngkatan || !requestedRole || !unitId || !password || !confirmPassword) {
     return { ok: false, message: "Semua field wajib diisi." };
+  }
+
+  if (!Number.isFinite(tahunAngkatan) || tahunAngkatan < 2000 || tahunAngkatan > 2100) {
+    return { ok: false, message: "Tahun angkatan tidak valid." };
   }
 
   if (!isAppRole(requestedRole)) {
@@ -180,7 +188,7 @@ export async function signUpWithTableAccount(payload: {
         requestedRole === "admin"
           ? "Akun Admin hanya boleh menggunakan unit Biro PPM (Biro Pengendali & Penjamin Mutu)."
           : requestedRole === "pres_wapres"
-            ? "Akun Pres & Wapres hanya boleh menggunakan unit Lingkar Presiden."
+            ? "Akun Presiden & Wakil Presiden hanya boleh menggunakan unit Lingkar Presiden."
             : requestedRole === "menko"
               ? "Akun Menko wajib menggunakan unit kategori kemenko."
               : "Akun Menteri/Staff wajib menggunakan unit kategori kementerian atau biro.",
@@ -199,6 +207,8 @@ export async function signUpWithTableAccount(payload: {
       .insert({
         nim,
         nama_lengkap: namaLengkap,
+        jurusan,
+        tahun_angkatan: tahunAngkatan,
         unit_id: selectedUnit.id,
         role: requestedRole,
       })
@@ -213,7 +223,13 @@ export async function signUpWithTableAccount(payload: {
   } else {
     await supabase
       .from("profiles")
-      .update({ nama_lengkap: namaLengkap, role: requestedRole, unit_id: selectedUnit.id })
+      .update({
+        nama_lengkap: namaLengkap,
+        jurusan,
+        tahun_angkatan: tahunAngkatan,
+        role: requestedRole,
+        unit_id: selectedUnit.id,
+      })
       .eq("nim", nim);
 
     profile = {

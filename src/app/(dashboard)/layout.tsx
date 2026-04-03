@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { BarChart3, ClipboardList, Home, LogOut, UserRoundCheck } from "lucide-react";
 import { requireSessionProfile } from "@/lib/auth/session";
 import { signOutTableAccount } from "@/app/(auth)/login/actions";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const profile = await requireSessionProfile();
+  const supabase = createAdminSupabaseClient();
   const navItems: Array<{ href: string; label: string; icon: typeof ClipboardList }> = [];
 
   navItems.push({ href: "/dashboard", label: "Dashboard", icon: Home });
@@ -26,7 +28,7 @@ export default async function DashboardLayout({
   }
 
   if (profile.role === "pres_wapres") {
-    navItems.push({ href: "/admin", label: "Pres & Wapres", icon: ClipboardList });
+    navItems.push({ href: "/pres_wapres", label: "Presiden & Wakil Presiden", icon: ClipboardList });
   }
 
   if (profile.role === "menko") {
@@ -41,6 +43,16 @@ export default async function DashboardLayout({
 
   if (profile.role === "staff") {
     navItems.push({ href: "/staff", label: "Staff", icon: UserRoundCheck });
+    const { data: assignment } = await supabase
+      .from("evaluator_unit_assignments")
+      .select("id")
+      .eq("evaluator_nim", profile.nim)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (assignment) {
+      navItems.push({ href: "/penilai", label: "Input Unit Pegangan", icon: ClipboardList });
+    }
   }
 
   return (

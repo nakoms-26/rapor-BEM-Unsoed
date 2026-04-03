@@ -10,6 +10,8 @@ const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7;
 export type SessionProfile = {
   nim: string;
   nama_lengkap: string;
+  jurusan: string | null;
+  tahun_angkatan: number | null;
   role: AppRole;
   unit_id: string;
 };
@@ -82,7 +84,6 @@ export async function getCurrentSessionProfile(): Promise<SessionProfile | null>
     .single();
 
   if (!session) {
-    cookieStore.delete(SESSION_COOKIE_NAME);
     return null;
   }
 
@@ -93,13 +94,14 @@ export async function getCurrentSessionProfile(): Promise<SessionProfile | null>
     .single();
 
   if (!profile) {
-    cookieStore.delete(SESSION_COOKIE_NAME);
     return null;
   }
 
   return {
     nim: profile.nim,
     nama_lengkap: profile.nama_lengkap,
+    jurusan: null,
+    tahun_angkatan: null,
     role: normalizeProfileRole(String(profile.role ?? "staff")),
     unit_id: profile.unit_id,
   };
