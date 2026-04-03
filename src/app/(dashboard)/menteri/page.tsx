@@ -4,6 +4,7 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporDocument } from "@/components/dashboard/rapor-document";
+import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
 
 export const dynamic = "force-dynamic";
 
@@ -95,27 +96,26 @@ export default async function MenteriPage() {
         <CardContent className="space-y-3">
           {rows.length ? (
             rows.map((row, index) => (
-              <details key={row.id} open={index === 0} className="rounded-lg border border-slate-200 bg-slate-50/50">
-                <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-700">{formatPeriode(row.bulan, row.tahun)} ({row.status})</span>
-                  <span className="font-semibold text-slate-900">{row.total_avg.toFixed(2)}</span>
-                </summary>
-                <div className="px-3 pb-3">
-                  <RaporDocument
-                    reportId={`rapor-${row.id}`}
-                    title="Rapor BEM UNSOED 2025"
-                    periodLabel={formatPeriode(row.bulan, row.tahun)}
-                    name={profile.nama_lengkap}
-                    jurusan={null}
-                    tahunAngkatan={null}
-                    unitName={ownedUnit?.nama_unit ?? "-"}
-                    categoryLabel={row.total_avg >= 4 ? "SANGAT BAIK" : row.total_avg >= 3 ? "BAIK" : "CUKUP"}
-                    totalScore={Number(row.total_avg)}
-                    catatan={row.catatan}
-                    details={detailsByRapor.get(row.id) ?? []}
-                  />
-                </div>
-              </details>
+              <ReportPeriodItem
+                key={row.id}
+                defaultOpen={index === 0}
+                title={`${formatPeriode(row.bulan, row.tahun)} (${row.status})`}
+                scoreLabel={row.total_avg.toFixed(2)}
+              >
+                <RaporDocument
+                  reportId={`rapor-${row.id}`}
+                  title="Rapor BEM UNSOED 2025"
+                  periodLabel={formatPeriode(row.bulan, row.tahun)}
+                  name={profile.nama_lengkap}
+                  jurusan={null}
+                  tahunAngkatan={null}
+                  unitName={ownedUnit?.nama_unit ?? "-"}
+                  categoryLabel={row.total_avg >= 4 ? "SANGAT BAIK" : row.total_avg >= 3 ? "BAIK" : "CUKUP"}
+                  totalScore={Number(row.total_avg)}
+                  catatan={row.catatan}
+                  details={detailsByRapor.get(row.id) ?? []}
+                />
+              </ReportPeriodItem>
             ))
           ) : (
             <p className="text-sm text-slate-600">Belum ada data rapor pribadi.</p>
