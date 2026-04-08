@@ -15,7 +15,8 @@ type Props = {
   unitOptions: SignUpUnitOption[];
 };
 
-const ADMIN_ALLOWED_UNITS = new Set(["Biro PPM", "Biro Pengendali & Penjamin Mutu"]);
+const ADMIN_ALLOWED_UNITS = new Set(["Admin"]);
+const PJ_KEMENTERIAN_ALLOWED_UNITS = new Set(["Biro Pengendali & Penjamin Mutu"]);
 const PRES_WAPRES_ALLOWED_UNITS = new Set(["Lingkar Presiden"]);
 
 function isUnitEligibleForRole(
@@ -30,6 +31,9 @@ function isUnitEligibleForRole(
   }
   if (role === "admin") {
     return ADMIN_ALLOWED_UNITS.has(unit.nama_unit);
+  }
+  if (role === "pj_kementerian") {
+    return PJ_KEMENTERIAN_ALLOWED_UNITS.has(unit.nama_unit);
   }
   if (role === "menteri" || role === "staff") {
     return unit.kategori === "kementerian" || unit.kategori === "biro";

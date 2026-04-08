@@ -10,7 +10,9 @@ export type Database = {
           jurusan: string | null;
           tahun_angkatan: number | null;
           unit_id: string;
-          role: "admin" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
+          role: "admin" | "pj_kementerian" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
+          can_access_kemenko_report: boolean;
+          is_pj_kemenkoan: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -20,7 +22,9 @@ export type Database = {
           jurusan?: string | null;
           tahun_angkatan?: number | null;
           unit_id: string;
-          role?: "admin" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
+          role?: "admin" | "pj_kementerian" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
+          can_access_kemenko_report?: boolean;
+          is_pj_kemenkoan?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -157,7 +161,7 @@ export type Database = {
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
-      app_role: "admin" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
+      app_role: "admin" | "pj_kementerian" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
       unit_kategori: "kemenko" | "kementerian" | "biro";
       period_status: "draft" | "published";
       rapor_type: "staf_unit" | "menteri_kepala_biro";

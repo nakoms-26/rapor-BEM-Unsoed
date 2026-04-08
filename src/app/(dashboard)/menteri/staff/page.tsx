@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
+import Link from "next/link";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -61,9 +62,13 @@ export default async function MenteriStaffPage() {
   }
 
   let highestScoreName = "-";
-  let highestScoreValue = 0;
+  let highestScoreValue = Number.NEGATIVE_INFINITY;
+  let lowestScoreName = "-";
+  let lowestScoreValue = Number.POSITIVE_INFINITY;
   let highestGrowthName = "-";
   let highestGrowthValue = Number.NEGATIVE_INFINITY;
+  let lowestGrowthName = "-";
+  let lowestGrowthValue = Number.POSITIVE_INFINITY;
 
   for (const nim of staffNims) {
     const current = latestByNim.get(nim);
@@ -76,6 +81,10 @@ export default async function MenteriStaffPage() {
       highestScoreValue = current;
       highestScoreName = name;
     }
+    if (current < lowestScoreValue) {
+      lowestScoreValue = current;
+      lowestScoreName = name;
+    }
 
     const prev = previousByNim.get(nim) ?? current;
     const growth = Number((current - prev).toFixed(2));
@@ -83,9 +92,16 @@ export default async function MenteriStaffPage() {
       highestGrowthValue = growth;
       highestGrowthName = name;
     }
+    if (growth < lowestGrowthValue) {
+      lowestGrowthValue = growth;
+      lowestGrowthName = name;
+    }
   }
 
-  const growthLabel = Number.isFinite(highestGrowthValue) ? highestGrowthValue.toFixed(2) : "0.00";
+  const highestGrowthLabel = Number.isFinite(highestGrowthValue) ? highestGrowthValue.toFixed(2) : "0.00";
+  const lowestGrowthLabel = Number.isFinite(lowestGrowthValue) ? lowestGrowthValue.toFixed(2) : "0.00";
+  const highestScoreLabel = Number.isFinite(highestScoreValue) ? highestScoreValue.toFixed(2) : "0.00";
+  const lowestScoreLabel = Number.isFinite(lowestScoreValue) ? lowestScoreValue.toFixed(2) : "0.00";
 
   const rows = (scores ?? []).map((score) => {
     const period = periodById.get(score.periode_id);
@@ -116,16 +132,26 @@ export default async function MenteriStaffPage() {
               : "Belum ada periode published"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border border-slate-200 px-3 py-2">
             <p className="text-xs text-slate-500">Nilai Tertinggi</p>
             <p className="text-sm font-semibold text-slate-900">{highestScoreName}</p>
-            <p className="text-xs text-slate-600">{highestScoreValue.toFixed(2)}</p>
+            <p className="text-xs text-slate-600">{highestScoreLabel}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 px-3 py-2">
+            <p className="text-xs text-slate-500">Nilai Terendah</p>
+            <p className="text-sm font-semibold text-slate-900">{lowestScoreName}</p>
+            <p className="text-xs text-slate-600">{lowestScoreLabel}</p>
           </div>
           <div className="rounded-lg border border-slate-200 px-3 py-2">
             <p className="text-xs text-slate-500">Growth Tertinggi</p>
             <p className="text-sm font-semibold text-slate-900">{highestGrowthName}</p>
-            <p className="text-xs text-slate-600">{growthLabel}</p>
+            <p className="text-xs text-slate-600">{highestGrowthLabel}</p>
+          </div>
+          <div className="rounded-lg border border-slate-200 px-3 py-2">
+            <p className="text-xs text-slate-500">Growth Terendah</p>
+            <p className="text-sm font-semibold text-slate-900">{lowestGrowthName}</p>
+            <p className="text-xs text-slate-600">{lowestGrowthLabel}</p>
           </div>
         </CardContent>
       </Card>
@@ -136,6 +162,25 @@ export default async function MenteriStaffPage() {
           <CardDescription>Urut dari data terbaru.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div>
+            <Link
+              href="/menteri/staff-detail"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l5 5v11a2 2 0 0 1-2 2Z" />
+              </svg>
+              <span>Lihat Rincian Rapor</span>
+            </Link>
+          </div>
           {rows.length ? (
             rows.map((row) => (
               <div key={row.id} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">

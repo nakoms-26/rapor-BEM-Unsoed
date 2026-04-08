@@ -10,9 +10,9 @@ export default function Home() {
 
       <section className="relative w-full max-w-3xl rounded-2xl border border-slate-200 bg-white/95 p-8 shadow-xl md:p-10">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700">Internal System</p>
-        <h1 className="mt-3 text-3xl font-bold text-slate-900 md:text-5xl">Rapor BEM Bulanan</h1>
+        <h1 className="mt-3 text-3xl font-bold text-slate-900 md:text-5xl">Rapor BEM Ungsud</h1>
         <p className="mt-4 max-w-2xl text-slate-600">
-          Sistem manajemen performa untuk Presiden & Wakil Presiden, Menko, Menteri/Kepala Biro, dan Staff dengan input indikator dinamis berbasis Supabase.
+          Sistem Rapor BEM Unsoed 2026 buatan romi hehe
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -22,12 +22,12 @@ export default function Home() {
           >
             Sign In <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link
+          {/* <Link
             href="/menteri"
             className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
           >
             Lihat Dashboard Menteri
-          </Link>
+          </Link> */}
         </div>
       </section>
     </main>

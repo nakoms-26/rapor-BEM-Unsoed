@@ -11,9 +11,10 @@ type Props = {
   index: number;
   control: Control<AdminInputForm>;
   register: UseFormRegister<AdminInputForm>;
+  readOnlyNames?: boolean;
 };
 
-export function AdminIndicatorBlock({ indicatorName, index, control, register }: Props) {
+export function AdminIndicatorBlock({ indicatorName, index, control, register, readOnlyNames }: Props) {
   const fieldArray = useFieldArray({
     control,
     name: `indicators.${index}.items`,
@@ -27,6 +28,7 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register }:
           type="button"
           size="sm"
           variant="outline"
+          disabled={readOnlyNames}
           onClick={() => fieldArray.append({ sub_indicator_name: "", score: 0 })}
         >
           <CirclePlus className="mr-2 h-4 w-4" /> Tambah Sub
@@ -36,10 +38,14 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register }:
       <input type="hidden" {...register(`indicators.${index}.main_indicator_name`)} value={indicatorName} />
 
       <div className="space-y-3">
+        {fieldArray.fields.length === 0 ? (
+          <p className="text-xs text-slate-500">Belum ada sub-indikator.</p>
+        ) : null}
         {fieldArray.fields.map((field, itemIndex) => (
           <div key={field.id} className="grid gap-3 md:grid-cols-[1fr_130px_56px]">
             <Input
-              placeholder="Nama sub-indikator"
+              placeholder={readOnlyNames ? "Sub-indikator (tetap)" : "Nama sub-indikator"}
+              disabled={readOnlyNames}
               {...register(`indicators.${index}.items.${itemIndex}.sub_indicator_name`)}
             />
             <Input
@@ -52,8 +58,7 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register }:
             <Button
               type="button"
               variant="ghost"
-              onClick={() => fieldArray.fields.length > 1 && fieldArray.remove(itemIndex)}
-              disabled={fieldArray.fields.length <= 1}
+              onClick={() => fieldArray.remove(itemIndex)}
               aria-label="Hapus sub-indikator"
             >
               <Trash2 className="h-4 w-4" />

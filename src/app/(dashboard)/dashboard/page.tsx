@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { BarChart3, ClipboardList, UserRoundCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
+import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,20 @@ export default async function DashboardLandingPage() {
         href: "/admin",
         title: "Input Rapor",
         description: "Input dan perbarui rapor bulanan untuk anggota.",
+        icon: ClipboardList,
+      },
+    ],
+    pj_kementerian: [
+      {
+        href: "/pj-kementerian",
+        title: "Rapor Diri Sendiri",
+        description: "Lihat seluruh periode rapor pribadi PJ Kementerian.",
+        icon: UserRoundCheck,
+      },
+      {
+        href: "/admin",
+        title: "Input Kementerian Diampu",
+        description: "Input rapor untuk kementerian yang diampu sesuai batasan role.",
         icon: ClipboardList,
       },
     ],
@@ -79,7 +94,11 @@ export default async function DashboardLandingPage() {
     ],
   };
 
-  const cards = featuresByRole[profile.role] ?? [];
+  const cards = [...(featuresByRole[profile.role] ?? [])];
+
+  if (canAccessKemenkoReports(profile) && profile.role !== "menko") {
+    cards.push(...featuresByRole.menko);
+  }
 
   if (profile.role === "staff") {
     const { data: assignment } = await supabase

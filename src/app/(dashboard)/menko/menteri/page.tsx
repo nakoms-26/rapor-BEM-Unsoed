@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
+import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -10,7 +11,7 @@ export default async function MenkoMenteriPage() {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (profile.role !== "menko") {
+  if (!canAccessKemenkoReports(profile)) {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { MAIN_INDICATORS } from "@/lib/constants";
 import { adminInputSchema, type AdminInputForm, type PeriodOption, type StaffOption, type UnitOption } from "@/types/app";
 import { submitAdminRapor } from "@/app/(dashboard)/admin/actions";
+import { canInputDetailKegiatan, getAdminTypeLabel } from "@/lib/auth/permissions";
 import { AdminIndicatorBlock } from "@/components/dashboard/admin-indicator-block";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,7 @@ type Props = {
   units: UnitOption[];
   periods: PeriodOption[];
   staffs: StaffOption[];
+  adminType?: "pj_kementerian" | "pj_kemenkoan";
 };
 
 const BULAN_LABEL: Record<number, string> = {
@@ -31,12 +33,14 @@ const BULAN_LABEL: Record<number, string> = {
   12: "Desember",
 };
 
-export function AdminDynamicForm({ units, periods, staffs }: Props) {
+export function AdminDynamicForm({ units, periods, staffs, adminType }: Props) {
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
   const hasPeriods = periods.length > 0;
   const hasUnits = units.length > 0;
+  const isPjKemenkoan = adminType === "pj_kemenkoan";
+  const PRESTASI_INDICATOR = "Nilai Prestasi";
 
   const form = useForm<AdminInputForm>({
     resolver: zodResolver(adminInputSchema),
@@ -47,7 +51,7 @@ export function AdminDynamicForm({ units, periods, staffs }: Props) {
       catatan: "",
       indicators: MAIN_INDICATORS.map((name) => ({
         main_indicator_name: name,
-        items: [{ sub_indicator_name: "", score: 0 }],
+        items: name === PRESTASI_INDICATOR ? [] : [],
       })),
     },
   });
@@ -77,7 +81,7 @@ export function AdminDynamicForm({ units, periods, staffs }: Props) {
           catatan: "",
           indicators: values.indicators.map((indicator) => ({
             ...indicator,
-            items: [{ sub_indicator_name: "", score: 0 }],
+            items: [],
           })),
         });
       }
@@ -91,7 +95,7 @@ export function AdminDynamicForm({ units, periods, staffs }: Props) {
       form.formState.errors.unit_id?.message ||
       form.formState.errors.user_nim?.message ||
       form.formState.errors.indicators?.message ||
-      "Form belum lengkap. Pastikan staf dipilih dan setiap sub-indikator memiliki nama minimal 2 karakter.";
+      "Form belum lengkap. Pastikan staf dipilih dan nama sub-indikator yang diisi minimal 2 karakter.";
 
     setSubmitMessage(String(firstError));
   }
@@ -101,7 +105,10 @@ export function AdminDynamicForm({ units, periods, staffs }: Props) {
       <CardHeader>
         <CardTitle>Input Rapor Dinamis</CardTitle>
         <CardDescription>
-          Tambahkan sub-indikator per indikator utama menggunakan pola EAV.
+          {isPjKemenkoan
+            ? "Tambahkan sub-indikator (rincian kegiatan) per indikator utama."
+            : "Input skala penilaian per indikator utama (rincian kegiatan diisi oleh PJ Kemenkoan)."
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -179,6 +186,7 @@ export function AdminDynamicForm({ units, periods, staffs }: Props) {
               index={index}
               control={form.control}
               register={form.register}
+              readOnlyNames={!isPjKemenkoan && indicatorName !== PRESTASI_INDICATOR}
             />
           ))}
 

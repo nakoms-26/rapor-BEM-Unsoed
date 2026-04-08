@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSessionProfile } from "@/lib/auth/session";
+import { canInputDetailKegiatan } from "@/lib/auth/permissions";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { adminInputSchema, type AdminInputForm } from "@/types/app";
 
 function canInputAsAdmin(role: string) {
-  return role === "admin";
+  return role === "admin" || role === "pj_kementerian";
 }
 
 async function canInputAsEvaluator(
@@ -45,8 +46,12 @@ export async function submitAdminRapor(payload: AdminInputForm) {
   }
 
   const isAdmin = canInputAsAdmin(evaluatorProfile.role);
+  const isPjKementerian = evaluatorProfile.role === "pj_kementerian";
   const isEvaluatorStaff = evaluatorProfile.role === "staff";
-  const allowedEvaluatorTarget = targetProfile.role === "staff" || targetProfile.role === "user";
+  const allowedEvaluatorTarget =
+    targetProfile.role === "staff" ||
+    targetProfile.role === "user" ||
+    targetProfile.role === "pj_kementerian";
 
   if (!isAdmin) {
     if (!isEvaluatorStaff) {
@@ -63,11 +68,51 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     }
   }
 
-  if (isAdmin && (targetProfile.role !== "staff" && targetProfile.role !== "user" && targetProfile.role !== "menteri")) {
-    return { ok: false, message: "Admin hanya dapat menilai akun staff atau menteri/kepala biro." };
+  if (
+    isAdmin &&
+    targetProfile.role !== "staff" &&
+    targetProfile.role !== "user" &&
+    targetProfile.role !== "menteri" &&
+    targetProfile.role !== "pj_kementerian"
+  ) {
+    return { ok: false, message: "Admin hanya dapat menilai akun staff, PJ Kementerian, atau menteri/kepala biro." };
+  }
+
+  if (isPjKementerian) {
+    if (!allowedEvaluatorTarget) {
+      return { ok: false, message: "PJ Kementerian hanya boleh menilai staf/PJ Kementerian pada unit pegangan." };
+    }
+
+    const { data: pjAssignment } = await supabase
+      .from("evaluator_unit_assignments")
+      .select("target_unit_id, is_active")
+      .eq("evaluator_nim", evaluatorProfile.nim)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (!pjAssignment) {
+      return { ok: false, message: "Assignment PJ Kementerian belum ditetapkan. Hubungi admin untuk menetapkan 1 kementerian pegangan." };
+    }
+
+    if (targetProfile.unit_id !== pjAssignment.target_unit_id || parsed.data.unit_id !== pjAssignment.target_unit_id) {
+      return { ok: false, message: "PJ Kementerian hanya dapat input rapor pada 1 kementerian yang ditetapkan." };
+    }
   }
 
   const reportType = targetProfile.role === "menteri" ? "menteri_kepala_biro" : "staf_unit";
+  const PRESTASI_INDICATOR = "Nilai Prestasi";
+
+  // PJ Kementerian only allowed to edit detail on "Nilai Prestasi".
+  if (evaluatorProfile.role === "pj_kementerian") {
+    const hasNonPrestasiDetail = parsed.data.indicators.some((indicator) =>
+      indicator.main_indicator_name !== PRESTASI_INDICATOR &&
+      indicator.items.some((item) => item.sub_indicator_name && item.sub_indicator_name.trim().length > 0),
+    );
+    if (hasNonPrestasiDetail) {
+      return { ok: false, message: "PJ Kementerian hanya dapat mengubah sub-indikator pada Nilai Prestasi." };
+    }
+  }
 
   const scoreList = parsed.data.indicators.flatMap((indicator) =>
     indicator.items.map((item) => Number(item.score)),
@@ -132,18 +177,22 @@ export async function submitAdminRapor(payload: AdminInputForm) {
   }
 
   const detailRows = parsed.data.indicators.flatMap((indicator) =>
-    indicator.items.map((item) => ({
-      rapor_id: rapor.id,
-      main_indicator_name: indicator.main_indicator_name,
-      sub_indicator_name: item.sub_indicator_name,
-      score: item.score,
-    })),
+    indicator.items
+      .filter((item) => item.sub_indicator_name.trim().length > 0)
+      .map((item) => ({
+        rapor_id: rapor.id,
+        main_indicator_name: indicator.main_indicator_name,
+        sub_indicator_name: item.sub_indicator_name.trim(),
+        score: item.score,
+      })),
   );
 
-  const { error: detailError } = await supabase.from("rapor_details").insert(detailRows);
+  if (detailRows.length > 0) {
+    const { error: detailError } = await supabase.from("rapor_details").insert(detailRows);
 
-  if (detailError) {
-    return { ok: false, message: `Gagal menyimpan detail rapor: ${detailError.message}` };
+    if (detailError) {
+      return { ok: false, message: `Gagal menyimpan detail rapor: ${detailError.message}` };
+    }
   }
 
   if (!canPersistCatatan) {

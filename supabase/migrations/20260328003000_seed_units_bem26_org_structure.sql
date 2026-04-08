@@ -2,6 +2,14 @@
 -- Hierarchy:
 -- Lingkar Presiden -> Kemenko -> Kementerian/Biro
 
+-- 0) Admin unit (system-level, no parent)
+insert into public.ref_units (nama_unit, kategori, parent_id)
+values ('Admin', 'biro', null)
+on conflict (nama_unit) do update
+set
+  kategori = excluded.kategori,
+  parent_id = excluded.parent_id;
+
 -- 1) Top-level: Lingkar Presiden
 insert into public.ref_units (nama_unit, kategori, parent_id)
 values ('Lingkar Presiden', 'kemenko', null)

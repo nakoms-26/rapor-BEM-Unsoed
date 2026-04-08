@@ -15,6 +15,8 @@ export type SessionProfile = {
   tahun_angkatan: number | null;
   role: AppRole;
   unit_id: string;
+  can_access_kemenko_report: boolean;
+  is_pj_kemenkoan: boolean;
 };
 
 function getSessionExpiryDate() {
@@ -39,12 +41,19 @@ export async function createAppSession(nim: string) {
   const sessionToken = randomBytes(32).toString("hex");
   const expiresAt = getSessionExpiryDate().toISOString();
 
-  await supabase.from("app_sessions").delete().eq("nim", nim);
-  await supabase.from("app_sessions").insert({
+  const { error: deleteError } = await supabase.from("app_sessions").delete().eq("nim", nim);
+  if (deleteError) {
+    throw new Error(`Gagal membersihkan session lama: ${deleteError.message}`);
+  }
+
+  const { error: insertError } = await supabase.from("app_sessions").insert({
     nim,
     session_token: sessionToken,
     expires_at: expiresAt,
   });
+  if (insertError) {
+    throw new Error(`Gagal membuat session baru: ${insertError.message}`);
+  }
 
   cookieStore.set(SESSION_COOKIE_NAME, sessionToken, {
     httpOnly: true,
@@ -93,9 +102,11 @@ const getCurrentSessionProfileByToken = cache(async (sessionToken: string): Prom
     return null;
   }
 
+  // Use select("*") to avoid hard dependency on recently added columns
+  // when local/dev DB migrations are not yet fully applied.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("nim, nama_lengkap, role, unit_id")
+    .select("*")
     .eq("nim", session.nim)
     .single();
 
@@ -110,6 +121,8 @@ const getCurrentSessionProfileByToken = cache(async (sessionToken: string): Prom
     tahun_angkatan: null,
     role: normalizeProfileRole(String(profile.role ?? "staff")),
     unit_id: profile.unit_id,
+    can_access_kemenko_report: Boolean(profile.can_access_kemenko_report),
+    is_pj_kemenkoan: Boolean(profile.is_pj_kemenkoan),
   };
 });
 

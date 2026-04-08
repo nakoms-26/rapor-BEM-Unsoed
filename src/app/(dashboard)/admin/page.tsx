@@ -61,14 +61,20 @@ export default async function AdminPage() {
     revalidatePath("/admin");
   }
 
-  if (profile?.role !== "admin") {
+  if (profile?.role !== "admin" && profile?.role !== "pj_kementerian") {
     redirect(ROLE_HOME[profile.role] ?? "/login");
   }
 
-  const [{ data: units }, { data: periods }, { data: staffs }, { data: reportRows }, { data: allProfiles }, { data: assignments }] = await Promise.all([
+  const isPjKemenkoan = profile.is_pj_kemenkoan === true;
+
+  const [{ data: units }, { data: periods }, { data: staffs }, { data: reportRows }, { data: allProfiles }, { data: assignments }, { data: pjAssignment }] = await Promise.all([
     supabase.from("ref_units").select("id, nama_unit, kategori, parent_id").order("nama_unit"),
     supabase.from("rapor_periods").select("id, bulan, tahun, status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
-    supabase.from("profiles").select("nim, nama_lengkap, unit_id").in("role", ["staff", "menteri"]).order("nama_lengkap"),
+    supabase
+      .from("profiles")
+      .select("nim, nama_lengkap, unit_id")
+      .in("role", ["staff", "menteri", "pj_kementerian"])
+      .order("nama_lengkap"),
     supabase
       .from("rapor_scores")
       .select("id, user_nim, penilai_nim, periode_id, report_type, total_avg, catatan, created_at")
@@ -76,6 +82,15 @@ export default async function AdminPage() {
       .limit(120),
     supabase.from("profiles").select("nim, nama_lengkap, role, unit_id"),
     supabase.from("evaluator_unit_assignments").select("evaluator_nim, target_unit_id, is_active"),
+    profile.role === "pj_kementerian"
+      ? supabase
+          .from("evaluator_unit_assignments")
+          .select("target_unit_id, is_active")
+          .eq("evaluator_nim", profile.nim)
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const unitById = new Map((units ?? []).map((unit) => [unit.id, unit]));
@@ -141,7 +156,16 @@ export default async function AdminPage() {
     is_active: item.is_active,
   }));
 
-  const noReferenceData = !(units ?? []).length || !(periods ?? []).length;
+  const scopedUnits = profile.role === "pj_kementerian"
+    ? (units ?? []).filter((unit) => unit.id === pjAssignment?.target_unit_id)
+    : (units ?? []);
+
+  const scopedStaffs = profile.role === "pj_kementerian"
+    ? (staffs ?? []).filter((staff) => staff.unit_id === pjAssignment?.target_unit_id)
+    : (staffs ?? []);
+
+  const noReferenceData = !scopedUnits.length || !(periods ?? []).length;
+  const missingPjAssignment = profile.role === "pj_kementerian" && !pjAssignment;
 
   return (
     <section className="space-y-4">
@@ -149,17 +173,24 @@ export default async function AdminPage() {
         <h2 className="text-2xl font-bold text-slate-900">Dashboard Admin</h2>
         <p className="text-sm text-slate-600">Input rapor bulanan staf berdasarkan unit.</p>
       </div>
+      {missingPjAssignment ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Assignment PJ Kementerian belum ditetapkan. Hubungi admin untuk menetapkan 1 kementerian pegangan Anda.
+        </p>
+      ) : null}
       {noReferenceData ? (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Dropdown tidak akan terisi jika data unit atau bulan/periode belum ada di database.
         </p>
       ) : null}
       <AdminDynamicForm
-        units={units ?? []}
+        units={scopedUnits}
         periods={periods ?? []}
-        staffs={staffs ?? []}
+        staffs={scopedStaffs}
+        adminType={profile.role === "pj_kementerian" ? "pj_kementerian" : "pj_kemenkoan"}
       />
 
+      {profile.role === "admin" ? (
       <Card>
         <CardHeader>
           <CardTitle>Assignment Penilai Unit</CardTitle>
@@ -228,6 +259,7 @@ export default async function AdminPage() {
           </div>
         </CardContent>
       </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

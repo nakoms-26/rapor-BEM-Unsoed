@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BarChart3, ClipboardList, Home, LogOut, UserRoundCheck } from "lucide-react";
 import { requireSessionProfile } from "@/lib/auth/session";
+import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { signOutTableAccount } from "@/app/(auth)/login/actions";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -23,17 +24,22 @@ export default async function DashboardLayout({
 
   navItems.push({ href: "/dashboard", label: "Dashboard", icon: Home });
 
-  if (profile.role === "admin") {
-    navItems.push({ href: "/admin", label: "Admin", icon: ClipboardList });
+  if (profile.role === "admin" || profile.role === "pj_kementerian") {
+    navItems.push({ href: "/admin", label: profile.role === "pj_kementerian" ? "Input Kementerian" : "Admin", icon: ClipboardList });
+  }
+
+  if (profile.role === "pj_kementerian") {
+    navItems.push({ href: "/pj-kementerian", label: "Rapor Diri", icon: UserRoundCheck });
   }
 
   if (profile.role === "pres_wapres") {
     navItems.push({ href: "/pres_wapres", label: "Presiden & Wakil Presiden", icon: ClipboardList });
   }
 
-  if (profile.role === "menko") {
-    navItems.push({ href: "/menko", label: "Menko", icon: BarChart3 });
-    navItems.push({ href: "/menko/menteri", label: "Rapor Menteri", icon: BarChart3 });
+  if (canAccessKemenkoReports(profile)) {
+    const kemenkoLabel = profile.role === "menko" ? "Menko" : "PJ Kemenkoan";
+    navItems.push({ href: "/menko", label: kemenkoLabel, icon: BarChart3 });
+    navItems.push({ href: "/menko/menteri", label: `${kemenkoLabel} - Rapor Menteri`, icon: BarChart3 });
   }
 
   if (profile.role === "menteri") {

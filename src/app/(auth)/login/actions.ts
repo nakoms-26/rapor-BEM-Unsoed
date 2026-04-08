@@ -6,7 +6,8 @@ import { APP_ROLES, ROLE_HOME, type AppRole } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { SignUpRoleOption, SignUpUnitOption } from "@/types/app";
 
-const ADMIN_ALLOWED_UNITS = new Set(["Biro PPM", "Biro Pengendali & Penjamin Mutu"]);
+const ADMIN_ALLOWED_UNITS = new Set(["Admin"]);
+const PJ_KEMENTERIAN_ALLOWED_UNITS = new Set(["Biro Pengendali & Penjamin Mutu"]);
 const PRES_WAPRES_ALLOWED_UNITS = new Set(["Lingkar Presiden"]);
 
 const SIGN_UP_ROLE_OPTIONS: SignUpRoleOption[] = [
@@ -14,6 +15,11 @@ const SIGN_UP_ROLE_OPTIONS: SignUpRoleOption[] = [
     value: "admin",
     label: "Admin",
     description: "CRUD seluruh rapor dan assignment penilai unit.",
+  },
+  {
+    value: "pj_kementerian",
+    label: "PJ Kementerian",
+    description: "Input rapor untuk kementerian, terbatas pada Biro Pengendali & Penjamin Mutu.",
   },
   {
     value: "menko",
@@ -58,6 +64,10 @@ function isUnitAllowedForRole(
 
   if (role === "admin") {
     return ADMIN_ALLOWED_UNITS.has(unit.nama_unit);
+  }
+
+  if (role === "pj_kementerian") {
+    return PJ_KEMENTERIAN_ALLOWED_UNITS.has(unit.nama_unit);
   }
 
   return false;
@@ -113,7 +123,14 @@ export async function signInWithTableAccount(payload: { nim: string; password: s
     return { ok: false, message: "Profil pengguna tidak ditemukan." };
   }
 
-  await createAppSession(nim);
+  try {
+    await createAppSession(nim);
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Gagal membuat session login.",
+    };
+  }
 
   return {
     ok: true,
@@ -186,12 +203,14 @@ export async function signUpWithTableAccount(payload: {
       ok: false,
       message:
         requestedRole === "admin"
-          ? "Akun Admin hanya boleh menggunakan unit Biro PPM (Biro Pengendali & Penjamin Mutu)."
-          : requestedRole === "pres_wapres"
-            ? "Akun Presiden & Wakil Presiden hanya boleh menggunakan unit Lingkar Presiden."
-            : requestedRole === "menko"
-              ? "Akun Menko wajib menggunakan unit kategori kemenko."
-              : "Akun Menteri/Staff wajib menggunakan unit kategori kementerian atau biro.",
+          ? "Akun Admin hanya boleh menggunakan unit Admin."
+          : requestedRole === "pj_kementerian"
+            ? "Akun PJ Kementerian hanya boleh menggunakan unit Biro Pengendali & Penjamin Mutu."
+            : requestedRole === "pres_wapres"
+              ? "Akun Presiden & Wakil Presiden hanya boleh menggunakan unit Lingkar Presiden."
+              : requestedRole === "menko"
+                ? "Akun Menko wajib menggunakan unit kategori kemenko."
+                : "Akun Menteri/Staff wajib menggunakan unit kategori kementerian atau biro.",
     };
   }
 

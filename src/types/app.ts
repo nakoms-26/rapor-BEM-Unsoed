@@ -2,13 +2,13 @@ import { z } from "zod";
 import type { AppRole } from "@/lib/constants";
 
 export const subIndicatorSchema = z.object({
-  sub_indicator_name: z.string().min(2, "Nama sub-indikator minimal 2 karakter"),
+  sub_indicator_name: z.string().trim().min(2, "Nama sub-indikator minimal 2 karakter"),
   score: z.number().min(0).max(5),
 });
 
 export const indicatorBlockSchema = z.object({
   main_indicator_name: z.string(),
-  items: z.array(subIndicatorSchema).min(1, "Tambahkan minimal 1 sub-indikator"),
+  items: z.array(subIndicatorSchema),
 });
 
 export const adminInputSchema = z.object({
