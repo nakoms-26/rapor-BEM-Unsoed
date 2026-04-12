@@ -6,11 +6,25 @@
 
 BEGIN;
 
+-- Daftar NIM dummy dari seed 20260405003000_seed_dummy_data.sql
+WITH dummy_nims AS (
+  SELECT unnest(ARRAY[
+    'A0001',
+    'M0001', 'M0002',
+    'K0001', 'K0002', 'K0003',
+    'MK0001', 'MK0002',
+    'MT0001', 'MT0002', 'MT0003',
+    'S0001', 'S0002', 'S0003', 'S0004',
+    'P0001'
+  ]::text[]) AS nim
+)
+SELECT COUNT(*) FROM dummy_nims;
+
 -- ============================================================================
 -- 1. DELETE RAPOR DETAILS (paling dalam dalam hierarchy)
 -- ============================================================================
 DELETE FROM public.rapor_details
-WHERE rapor_score_id IN (
+WHERE rapor_id IN (
   SELECT id FROM public.rapor_scores
   WHERE catatan = 'Penilaian dummy untuk testing'
 );
@@ -25,15 +39,16 @@ WHERE catatan = 'Penilaian dummy untuk testing';
 -- 3. DELETE APP SESSIONS (references profiles)
 -- ============================================================================
 DELETE FROM public.app_sessions
-WHERE app_account_id IN (
-  SELECT id FROM public.app_accounts
-  WHERE username LIKE 'admin%'
-    OR username LIKE 'pj_kemenkoan%'
-    OR username LIKE 'pj_kementerian%'
-    OR username LIKE 'menko%'
-    OR username LIKE 'menteri%'
-    OR username LIKE 'staff%'
-    OR username LIKE 'pres_wapres%'
+WHERE nim IN (
+  SELECT unnest(ARRAY[
+    'A0001',
+    'M0001', 'M0002',
+    'K0001', 'K0002', 'K0003',
+    'MK0001', 'MK0002',
+    'MT0001', 'MT0002', 'MT0003',
+    'S0001', 'S0002', 'S0003', 'S0004',
+    'P0001'
+  ]::text[])
 );
 
 -- ============================================================================
@@ -41,62 +56,47 @@ WHERE app_account_id IN (
 -- ============================================================================
 DELETE FROM public.pj_assignments
 WHERE nim IN (
-  SELECT nim FROM public.profiles
-  WHERE nama_lengkap IN (
-    'Admin Sistem',
-    'Hendra Wijaya',
-    'Siti Nurhaliza',
-    'Budi Santoso',
-    'Maya Kusuma',
-    'Rafi Harahap',
-    'Dwi Prasetyo',
-    'Eka Wijaksana',
-    'Arif Setiawan',
-    'Putri Handoko',
-    'Gandi Surya',
-    'Hendri Kusuma',
-    'Lina Suhendra',
-    'Ratna Widiastuti',
-    'Yoga Permana',
-    'Pratama Wiranto'
-  )
+  SELECT unnest(ARRAY[
+    'A0001',
+    'M0001', 'M0002',
+    'K0001', 'K0002', 'K0003',
+    'MK0001', 'MK0002',
+    'MT0001', 'MT0002', 'MT0003',
+    'S0001', 'S0002', 'S0003', 'S0004',
+    'P0001'
+  ]::text[])
 );
 
 -- ============================================================================
--- 5. DELETE PROFILES
--- ============================================================================
-DELETE FROM public.profiles
-WHERE nama_lengkap IN (
-  'Admin Sistem',
-  'Hendra Wijaya',
-  'Siti Nurhaliza',
-  'Budi Santoso',
-  'Maya Kusuma',
-  'Rafi Harahap',
-  'Dwi Prasetyo',
-  'Eka Wijaksana',
-  'Arif Setiawan',
-  'Putri Handoko',
-  'Gandi Surya',
-  'Hendri Kusuma',
-  'Lina Suhendra',
-  'Ratna Widiastuti',
-  'Yoga Permana',
-  'Pratama Wiranto'
-);
-
--- ============================================================================
--- 6. DELETE APP ACCOUNTS (paling atas dalam hierarchy)
+-- 5. DELETE APP ACCOUNTS (harus sebelum profiles karena FK app_accounts -> profiles)
 -- ============================================================================
 DELETE FROM public.app_accounts
 WHERE nim IN (
-  'A0001',
-  'M0001', 'M0002',
-  'K0001', 'K0002', 'K0003',
-  'MK0001', 'MK0002',
-  'MT0001', 'MT0002', 'MT0003',
-  'S0001', 'S0002', 'S0003', 'S0004',
-  'P0001'
+  SELECT unnest(ARRAY[
+    'A0001',
+    'M0001', 'M0002',
+    'K0001', 'K0002', 'K0003',
+    'MK0001', 'MK0002',
+    'MT0001', 'MT0002', 'MT0003',
+    'S0001', 'S0002', 'S0003', 'S0004',
+    'P0001'
+  ]::text[])
+);
+
+-- ============================================================================
+-- 6. DELETE PROFILES
+-- ============================================================================
+DELETE FROM public.profiles
+WHERE nim IN (
+  SELECT unnest(ARRAY[
+    'A0001',
+    'M0001', 'M0002',
+    'K0001', 'K0002', 'K0003',
+    'MK0001', 'MK0002',
+    'MT0001', 'MT0002', 'MT0003',
+    'S0001', 'S0002', 'S0003', 'S0004',
+    'P0001'
+  ]::text[])
 );
 
 -- ============================================================================
@@ -120,7 +120,10 @@ WHERE catatan = 'Penilaian dummy untuk testing';
 
 SELECT 'Remaining Rapor Details (Dummy)' as check_name;
 SELECT COUNT(*) as count FROM public.rapor_details
-WHERE created_at > now() - INTERVAL '1 hour'; -- Dummy data created recently
+WHERE rapor_id IN (
+  SELECT id FROM public.rapor_scores
+  WHERE catatan = 'Penilaian dummy untuk testing'
+);
 
 COMMIT;
 
