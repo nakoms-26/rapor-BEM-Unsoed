@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rapor BEM Bulanan",
-  description: "Internal BEM Management System untuk rapor performa bulanan.",
+  title: "Rapor BEM Unsut 2026",
+  description: "Internal BEM Management System untuk rapotan",
 };
 
 export default function RootLayout({
