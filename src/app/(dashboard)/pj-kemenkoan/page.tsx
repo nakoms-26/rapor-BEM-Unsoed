@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -55,6 +56,21 @@ export default async function PjKemenkoPage() {
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Kelola Sub-Indikator Kemenko</h2>
         <p className="text-sm text-slate-600">Tambahkan, sunting, atau hapus rincian kegiatan (sub-indikator) untuk indikator utama.</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/admin"
+          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+        >
+          Input Kementerian Diampu
+        </Link>
+        <Link
+          href="/menko"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Recap Kementerian
+        </Link>
       </div>
 
       {(kemenkoUnits ?? []).map((kemenko) => (

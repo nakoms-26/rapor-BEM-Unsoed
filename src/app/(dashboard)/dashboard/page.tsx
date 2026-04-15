@@ -105,6 +105,18 @@ export default async function DashboardLandingPage() {
       description: "Atur sub-indikator untuk kemenko yang Anda pegang.",
       icon: ClipboardList,
     });
+    cards.push({
+      href: "/admin",
+      title: "Input Kementerian Diampu",
+      description: "Input rapor kementerian/biro yang berada di bawah kemenko Anda.",
+      icon: ClipboardList,
+    });
+    cards.push({
+      href: "/menko",
+      title: "Recap Kementerian",
+      description: "Lihat recap kementerian/biro yang berada di bawah kemenko Anda.",
+      icon: BarChart3,
+    });
   }
 
   if (canAccessKemenkoReports(profile) && profile.role !== "menko" && !isPjKemenkoan) {

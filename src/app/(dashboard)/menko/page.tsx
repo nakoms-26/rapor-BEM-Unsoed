@@ -12,14 +12,10 @@ export const dynamic = "force-dynamic";
 export default async function MenkoPage() {
   const supabase = createAdminSupabaseClient();
   const menkoProfile = await requireSessionProfile();
+  const isPjKemenkoan = menkoProfile.role === "pj_kementerian" && menkoProfile.is_pj_kemenkoan === true;
 
   if (!canAccessKemenkoReports(menkoProfile)) {
     redirect(ROLE_HOME[menkoProfile.role] ?? "/dashboard");
-  }
-
-  // PJ Kemenkoan should only access /pj-kemenkoan to manage sub-indicators
-  if (menkoProfile.is_pj_kemenkoan) {
-    redirect("/pj-kemenkoan");
   }
 
   const { data: activePeriod } = await supabase
@@ -31,10 +27,25 @@ export default async function MenkoPage() {
     .limit(1)
     .single();
 
-  const { data: coordinatedUnits } = await supabase
-    .from("ref_units")
-    .select("id, nama_unit")
-    .eq("parent_id", menkoProfile.unit_id);
+  const { data: coordinatedUnits } = isPjKemenkoan
+    ? await supabase
+        .from("ref_units")
+        .select("id, nama_unit")
+        .in(
+          "parent_id",
+          (
+            await supabase
+              .from("pj_assignments")
+              .select("target_unit_id")
+              .eq("nim", menkoProfile.nim)
+              .eq("scope", "kemenko")
+              .eq("is_active", true)
+          ).data?.map((item) => item.target_unit_id) ?? ["00000000-0000-0000-0000-000000000000"],
+        )
+    : await supabase
+        .from("ref_units")
+        .select("id, nama_unit")
+        .eq("parent_id", menkoProfile.unit_id);
 
   const unitIds = (coordinatedUnits ?? []).map((unit) => unit.id);
 
@@ -89,25 +100,27 @@ export default async function MenkoPage() {
         <p className="text-sm text-slate-600">Rekap rata-rata nilai per kementerian/biro di bawah koordinasi Anda.</p>
       </div>
       
-      <div className="flex gap-2">
-        <Link
-          href="/menko/menteri-detail"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="h-4 w-4"
-            aria-hidden="true"
+      {!isPjKemenkoan ? (
+        <div className="flex gap-2">
+          <Link
+            href="/menko/menteri-detail"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm-9 14a5 5 0 0 1 10 0M20 8a3 3 0 1 1-2.65 4.4M18 21a4 4 0 0 0-3-3.87" />
-          </svg>
-          <span>Lihat Rincian Rapor Menteri</span>
-        </Link>
-      </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-4 w-4"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm-9 14a5 5 0 0 1 10 0M20 8a3 3 0 1 1-2.65 4.4M18 21a4 4 0 0 0-3-3.87" />
+            </svg>
+            <span>Lihat Rincian Rapor Menteri</span>
+          </Link>
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader>
