@@ -58,6 +58,7 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, r
             <Button
               type="button"
               variant="ghost"
+              disabled={readOnlyNames}
               onClick={() => fieldArray.remove(itemIndex)}
               aria-label="Hapus sub-indikator"
             >

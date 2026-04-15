@@ -187,7 +187,8 @@ export default async function AdminPage() {
         units={scopedUnits}
         periods={periods ?? []}
         staffs={scopedStaffs}
-        adminType={profile.role === "pj_kementerian" ? "pj_kementerian" : "pj_kemenkoan"}
+        adminType={isPjKemenkoan ? "pj_kemenkoan" : "pj_kementerian"}
+        isAdmin={profile.role === "admin"}
       />
 
       {profile.role === "admin" ? (

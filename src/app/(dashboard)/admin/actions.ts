@@ -114,6 +114,20 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     }
   }
 
+  // Non-PJ Kemenkoan (non-admin) cannot add/remove sub-indikators, only edit scores.
+  const canEditDetailKegiatan = canInputDetailKegiatan(evaluatorProfile);
+  if (!canEditDetailKegiatan && !isAdmin) {
+    const hasAnyDetail = parsed.data.indicators.some((indicator) =>
+      indicator.items.some((item) => item.sub_indicator_name && item.sub_indicator_name.trim().length > 0),
+    );
+    if (hasAnyDetail) {
+      return {
+        ok: false,
+        message: "Anda hanya dapat mengubah nilai penilaian dari sub-indikator yang sudah ada. Penambahan/pengurangan sub-indikator hanya dapat dilakukan oleh PJ Kemenkoan atau Admin.",
+      };
+    }
+  }
+
   const scoreList = parsed.data.indicators.flatMap((indicator) =>
     indicator.items.map((item) => Number(item.score)),
   );

@@ -16,6 +16,7 @@ type Props = {
   periods: PeriodOption[];
   staffs: StaffOption[];
   adminType?: "pj_kementerian" | "pj_kemenkoan";
+  isAdmin?: boolean;
 };
 
 const BULAN_LABEL: Record<number, string> = {
@@ -33,7 +34,7 @@ const BULAN_LABEL: Record<number, string> = {
   12: "Desember",
 };
 
-export function AdminDynamicForm({ units, periods, staffs, adminType }: Props) {
+export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin }: Props) {
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -41,6 +42,10 @@ export function AdminDynamicForm({ units, periods, staffs, adminType }: Props) {
   const hasUnits = units.length > 0;
   const isPjKemenkoan = adminType === "pj_kemenkoan";
   const PRESTASI_INDICATOR = "Nilai Prestasi";
+  // Admin dan PJ Kemenkoan dapat menambah sub-indikator untuk semua indicator
+  // PJ Kementerian hanya untuk Nilai Prestasi
+  // Yang lain hanya dapat edit score
+  const canAddDetailAll = isAdmin || isPjKemenkoan;
 
   const form = useForm<AdminInputForm>({
     resolver: zodResolver(adminInputSchema),
@@ -105,9 +110,11 @@ export function AdminDynamicForm({ units, periods, staffs, adminType }: Props) {
       <CardHeader>
         <CardTitle>Input Rapor Dinamis</CardTitle>
         <CardDescription>
-          {isPjKemenkoan
-            ? "Tambahkan sub-indikator (rincian kegiatan) per indikator utama."
-            : "Input skala penilaian per indikator utama (rincian kegiatan diisi oleh PJ Kemenkoan)."
+          {canAddDetailAll
+            ? "Tambahkan, sunting, atau hapus rincian kegiatan (sub-indikator) per indikator utama."
+            : isPjKemenkoan === false && adminType === "pj_kementerian"
+            ? "Input skala penilaian per indikator. Hanya dapat menambah/mengurangi rincian kegiatan pada Nilai Prestasi."
+            : "Input skala penilaian per indikator yang sudah ada. Penambahan/pengurangan rincian kegiatan tidak diizinkan."
           }
         </CardDescription>
       </CardHeader>
@@ -186,9 +193,10 @@ export function AdminDynamicForm({ units, periods, staffs, adminType }: Props) {
               index={index}
               control={form.control}
               register={form.register}
-              readOnlyNames={!isPjKemenkoan && indicatorName !== PRESTASI_INDICATOR}
+              readOnlyNames={!canAddDetailAll && indicatorName !== PRESTASI_INDICATOR}
             />
           ))}
+          })}
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Catatan</label>
