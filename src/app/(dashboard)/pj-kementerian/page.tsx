@@ -36,7 +36,7 @@ export default async function PjKementerianPage() {
 
     // Block PJ Kemenkoan from accessing this page
     if (profile.is_pj_kemenkoan) {
-      redirect("/dashboard/pj-kemenkoan");
+      redirect("/pj-kemenkoan");
     }
   }
 

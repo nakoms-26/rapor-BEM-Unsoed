@@ -17,7 +17,7 @@ export default async function MenkoMenteriPage() {
 
   // PJ Kemenkoan should only access /pj-kemenkoan to manage sub-indicators
   if (profile.is_pj_kemenkoan) {
-    redirect("/dashboard/pj-kemenkoan");
+    redirect("/pj-kemenkoan");
   }
 
   const [{ data: coordinatedUnits }, { data: periods }] = await Promise.all([

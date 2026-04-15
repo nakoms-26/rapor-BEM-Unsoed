@@ -19,7 +19,7 @@ export default async function MenkoPage() {
 
   // PJ Kemenkoan should only access /pj-kemenkoan to manage sub-indicators
   if (menkoProfile.is_pj_kemenkoan) {
-    redirect("/dashboard/pj-kemenkoan");
+    redirect("/pj-kemenkoan");
   }
 
   const { data: activePeriod } = await supabase

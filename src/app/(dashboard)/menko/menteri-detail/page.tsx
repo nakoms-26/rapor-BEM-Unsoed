@@ -36,7 +36,7 @@ export default async function MenkoMenteriDetailPage() {
 
   // PJ Kemenkoan should only access /pj-kemenkoan to manage sub-indicators
   if (profile.is_pj_kemenkoan) {
-    redirect("/dashboard/pj-kemenkoan");
+    redirect("/pj-kemenkoan");
   }
 
   // Get all kementerian/biro under this kemenko

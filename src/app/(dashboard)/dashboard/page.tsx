@@ -18,6 +18,7 @@ type FeatureCard = {
 export default async function DashboardLandingPage() {
   const profile = await requireSessionProfile();
   const supabase = createAdminSupabaseClient();
+  const isPjKemenkoan = profile.role === "pj_kementerian" && profile.is_pj_kemenkoan === true;
 
   const featuresByRole: Record<string, FeatureCard[]> = {
     admin: [
@@ -96,7 +97,17 @@ export default async function DashboardLandingPage() {
 
   const cards = [...(featuresByRole[profile.role] ?? [])];
 
-  if (canAccessKemenkoReports(profile) && profile.role !== "menko") {
+  if (isPjKemenkoan) {
+    cards.length = 0;
+    cards.push({
+      href: "/pj-kemenkoan",
+      title: "Kelola Sub-Indikator",
+      description: "Atur sub-indikator untuk kemenko yang Anda pegang.",
+      icon: ClipboardList,
+    });
+  }
+
+  if (canAccessKemenkoReports(profile) && profile.role !== "menko" && !isPjKemenkoan) {
     cards.push(...featuresByRole.menko);
   }
 

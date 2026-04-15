@@ -67,7 +67,7 @@ export default async function AdminPage() {
 
   // Redirect PJ Kemenkoan to their dedicated sub-indicator management page
   if (profile.is_pj_kemenkoan && profile.role === "pj_kementerian") {
-    redirect("/dashboard/pj-kemenkoan");
+    redirect("/pj-kemenkoan");
   }
 
   const isPjKemenkoan = profile.is_pj_kemenkoan === true;
