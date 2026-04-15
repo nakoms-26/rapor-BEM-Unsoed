@@ -32,9 +32,6 @@ export default async function DashboardLayout({
       navItems.push({ href: "/menko", label: "Recap Kementerian", icon: BarChart3 });
     } else {
       navItems.push({ href: "/admin", label: profile.role === "pj_kementerian" ? "Input Kementerian" : "Admin", icon: ClipboardList });
-      if (profile.role === "pj_kementerian") {
-        navItems.push({ href: "/pj-kementerian/staff-detail", label: "Rapor Staff Unit", icon: BarChart3 });
-      }
     }
   }
 

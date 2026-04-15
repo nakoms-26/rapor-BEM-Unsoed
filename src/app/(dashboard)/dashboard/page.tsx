@@ -49,12 +49,6 @@ export default async function DashboardLandingPage() {
         icon: UserRoundCheck,
       },
       {
-        href: "/pj-kementerian/staff-detail",
-        title: "Rapor Staff Unit",
-        description: "Lihat detail isi rapor staff pada kementerian yang Anda ampu.",
-        icon: BarChart3,
-      },
-      {
         href: "/admin",
         title: "Input Kementerian Diampu",
         description: "Input rapor untuk kementerian yang diampu sesuai batasan role.",

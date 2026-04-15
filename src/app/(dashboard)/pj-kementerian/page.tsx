@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
@@ -92,15 +91,6 @@ export default async function PjKementerianPage() {
         <p className="text-sm text-slate-600">
           Riwayat rapor pribadi untuk unit {ownedUnit?.nama_unit ?? "-"}.
         </p>
-      </div>
-
-      <div>
-        <Link
-          href="/pj-kementerian/staff-detail"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Lihat Rapor Staff Unit
-        </Link>
       </div>
 
       <Card>
