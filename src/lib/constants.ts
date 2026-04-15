@@ -1,7 +1,6 @@
 export const MAIN_INDICATORS = [
   "Keaktifan",
   "Tanggung Jawab",
-  "Partisipasi Kegiatan",
   "Partisipasi Internal",
   "Partisipasi External",
   "Nilai Prestasi",

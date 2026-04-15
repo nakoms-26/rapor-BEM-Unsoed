@@ -111,6 +111,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
 
   const reportType = targetProfile.role === "menteri" ? "menteri_kepala_biro" : "staf_unit";
   const PRESTASI_INDICATOR = "Nilai Prestasi";
+  const INTERNAL_INDICATOR = "Partisipasi Internal";
 
   const parentKemenkoId = selectedUnit.kategori === "kemenko" ? selectedUnit.id : selectedUnit.parent_id;
 
@@ -131,8 +132,11 @@ export async function submitAdminRapor(payload: AdminInputForm) {
       expectedByIndicator.get(row.main_indicator_name)!.push(normalize(row.sub_indicator_name));
     }
 
-    const mismatchNonPrestasi = parsed.data.indicators.some((indicator) => {
-      if (indicator.main_indicator_name === PRESTASI_INDICATOR) {
+    const mismatchRestrictedIndicator = parsed.data.indicators.some((indicator) => {
+      if (
+        indicator.main_indicator_name === PRESTASI_INDICATOR ||
+        indicator.main_indicator_name === INTERNAL_INDICATOR
+      ) {
         return false;
       }
 
@@ -146,8 +150,8 @@ export async function submitAdminRapor(payload: AdminInputForm) {
       return submittedSorted.join("||") !== expectedSorted.join("||");
     });
 
-    if (mismatchNonPrestasi) {
-      return { ok: false, message: "PJ Kementerian hanya dapat mengubah sub-indikator pada Nilai Prestasi." };
+    if (mismatchRestrictedIndicator) {
+      return { ok: false, message: "PJ Kementerian hanya dapat mengubah sub-indikator pada Partisipasi Internal dan Nilai Prestasi." };
     }
   }
 
