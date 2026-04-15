@@ -104,21 +104,27 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
     if (!kemenkoId) return;
 
     const indicatorTemplate = templatesByKemenko.get(kemenkoId);
-    if (!indicatorTemplate) return;
-
-    form.setValue(
-      "indicators",
-      MAIN_INDICATORS.map((indicatorName) => ({
-        main_indicator_name: indicatorName,
-        items: (indicatorTemplate.get(indicatorName) ?? []).map((subName) => ({
-          sub_indicator_name: subName,
-          score: 0,
-        })),
+    const nextIndicators = MAIN_INDICATORS.map((indicatorName) => ({
+      main_indicator_name: indicatorName,
+      items: (indicatorTemplate?.get(indicatorName) ?? []).map((subName) => ({
+        sub_indicator_name: subName,
+        score: 0,
       })),
-      { shouldDirty: false, shouldValidate: false },
-    );
+    }));
 
-    form.setValue("user_nim", "", { shouldDirty: false, shouldValidate: false });
+    const current = form.getValues();
+    form.reset(
+      {
+        ...current,
+        unit_id: selectedUnit,
+        user_nim: "",
+        indicators: nextIndicators,
+      },
+      {
+        keepErrors: true,
+        keepTouched: true,
+      },
+    );
   }, [selectedUnit, unitById, templatesByKemenko, form]);
 
   const canSubmit = hasPeriods && hasUnits;
