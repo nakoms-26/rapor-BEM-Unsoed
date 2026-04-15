@@ -52,7 +52,7 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, r
               type="number"
               min={0}
               max={5}
-              step={0.1}
+              step={0.5}
               {...register(`indicators.${index}.items.${itemIndex}.score`, { valueAsNumber: true })}
             />
             <Button

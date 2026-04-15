@@ -112,19 +112,46 @@ export async function submitAdminRapor(payload: AdminInputForm) {
   const reportType = targetProfile.role === "menteri" ? "menteri_kepala_biro" : "staf_unit";
   const PRESTASI_INDICATOR = "Nilai Prestasi";
 
-  // PJ Kementerian (non-kemenkoan) only allowed to edit detail on "Nilai Prestasi".
+  const parentKemenkoId = selectedUnit.kategori === "kemenko" ? selectedUnit.id : selectedUnit.parent_id;
+
+  // PJ Kementerian (non-kemenkoan): non-Prestasi sub-indikator must follow period template.
   if (evaluatorProfile.role === "pj_kementerian" && evaluatorProfile.is_pj_kemenkoan !== true) {
-    const hasNonPrestasiDetail = parsed.data.indicators.some((indicator) =>
-      indicator.main_indicator_name !== PRESTASI_INDICATOR &&
-      indicator.items.some((item) => item.sub_indicator_name && item.sub_indicator_name.trim().length > 0),
-    );
-    if (hasNonPrestasiDetail) {
+    const { data: templateRows } = await supabase
+      .from("kemenko_sub_indicator_templates")
+      .select("main_indicator_name, sub_indicator_name")
+      .eq("kemenko_unit_id", parentKemenkoId ?? "00000000-0000-0000-0000-000000000000")
+      .eq("periode_id", parsed.data.periode_id);
+
+    const normalize = (value: string) => value.trim().toLowerCase();
+    const expectedByIndicator = new Map<string, string[]>();
+    for (const row of templateRows ?? []) {
+      if (!expectedByIndicator.has(row.main_indicator_name)) {
+        expectedByIndicator.set(row.main_indicator_name, []);
+      }
+      expectedByIndicator.get(row.main_indicator_name)!.push(normalize(row.sub_indicator_name));
+    }
+
+    const mismatchNonPrestasi = parsed.data.indicators.some((indicator) => {
+      if (indicator.main_indicator_name === PRESTASI_INDICATOR) {
+        return false;
+      }
+
+      const submitted = indicator.items
+        .map((item) => normalize(item.sub_indicator_name))
+        .filter((name) => name.length > 0);
+      const expected = expectedByIndicator.get(indicator.main_indicator_name) ?? [];
+      const submittedSorted = [...new Set(submitted)].sort();
+      const expectedSorted = [...new Set(expected)].sort();
+
+      return submittedSorted.join("||") !== expectedSorted.join("||");
+    });
+
+    if (mismatchNonPrestasi) {
       return { ok: false, message: "PJ Kementerian hanya dapat mengubah sub-indikator pada Nilai Prestasi." };
     }
   }
 
   if (evaluatorProfile.role === "pj_kementerian" && evaluatorProfile.is_pj_kemenkoan === true) {
-    const parentKemenkoId = selectedUnit.kategori === "kemenko" ? selectedUnit.id : selectedUnit.parent_id;
     const { data: ownedKemenko } = await supabase
       .from("pj_assignments")
       .select("id")

@@ -3,7 +3,11 @@ import type { AppRole } from "@/lib/constants";
 
 export const subIndicatorSchema = z.object({
   sub_indicator_name: z.string().trim().min(2, "Nama sub-indikator minimal 2 karakter"),
-  score: z.number().min(0).max(5),
+  score: z
+    .number()
+    .min(0, "Skor minimal 0")
+    .max(5, "Skor maksimal 5")
+    .refine((value) => Number.isInteger(value * 2), "Skor harus kelipatan 0.5"),
 });
 
 export const indicatorBlockSchema = z.object({
