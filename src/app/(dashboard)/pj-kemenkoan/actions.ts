@@ -14,7 +14,7 @@ const payloadSchema = z.object({
       main_indicator_name: z.string(),
       items: z.array(
         z.object({
-          sub_indicator_name: z.string().trim().min(1, "Nama sub-indikator wajib diisi."),
+          sub_indicator_name: z.string().trim().min(2, "Nama sub-indikator minimal 2 karakter."),
         }),
       ),
     }),
