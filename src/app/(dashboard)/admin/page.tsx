@@ -354,3 +354,7 @@ export default async function AdminPage() {
     </section>
   );
 }
+  // Block PJ Kemenkoan - they should use /pj-kemenkoan page instead
+  if (profile.is_pj_kemenkoan) {
+    redirect("/dashboard/pj-kemenkoan");
+  }

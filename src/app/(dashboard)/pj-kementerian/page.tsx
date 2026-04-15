@@ -33,6 +33,11 @@ export default async function PjKementerianPage() {
 
   if (profile.role !== "pj_kementerian") {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
+
+    // Block PJ Kemenkoan from accessing this page
+    if (profile.is_pj_kemenkoan) {
+      redirect("/dashboard/pj-kemenkoan");
+    }
   }
 
   const [{ data: ownedUnit }, { data: periods }, { data: selfScores }] = await Promise.all([
