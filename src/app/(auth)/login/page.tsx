@@ -25,7 +25,12 @@ export default async function LoginPage() {
   let roleOptions: SignUpRoleOption[] = FALLBACK_ROLE_OPTIONS;
   let unitOptions: SignUpUnitOption[] = [];
 
-  const hasSupabaseEnv = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const hasSupabaseEnv = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      (process.env.SUPABASE_SERVICE_ROLE_KEY ||
+        process.env.SUPABASE_SECRET_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
+  );
 
   if (hasSupabaseEnv) {
     const { getSignUpOptions } = await import("@/app/(auth)/login/actions");
