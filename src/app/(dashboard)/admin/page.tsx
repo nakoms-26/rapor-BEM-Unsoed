@@ -67,7 +67,7 @@ export default async function AdminPage() {
 
   const isPjKemenkoan = profile.is_pj_kemenkoan === true;
 
-  const [{ data: units }, { data: periods }, { data: staffs }, { data: reportRows }, { data: allProfiles }, { data: assignments }, { data: pjAssignment }, { data: pjKemenkoAssignments }, { data: kemenkoTemplates }] = await Promise.all([
+  const [{ data: units }, { data: periods }, { data: staffs }, { data: reportRows }, { data: allProfiles }, { data: assignments }, { data: pjAssignment }, { data: kemenkoTemplates }] = await Promise.all([
     supabase.from("ref_units").select("id, nama_unit, kategori, parent_id").order("nama_unit"),
     supabase.from("rapor_periods").select("id, bulan, tahun, status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
     supabase
@@ -91,14 +91,6 @@ export default async function AdminPage() {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    isPjKemenkoan
-      ? supabase
-          .from("pj_assignments")
-          .select("target_unit_id")
-          .eq("nim", profile.nim)
-          .eq("scope", "kemenko")
-          .eq("is_active", true)
-      : Promise.resolve({ data: [] as { target_unit_id: string }[] }),
     supabase
       .from("kemenko_sub_indicator_templates")
       .select("kemenko_unit_id, main_indicator_name, sub_indicator_name"),
@@ -167,17 +159,8 @@ export default async function AdminPage() {
     is_active: item.is_active,
   }));
 
-  const pjKemenkoUnitIds = new Set((pjKemenkoAssignments ?? []).map((item) => item.target_unit_id));
-
   const scopedUnits = profile.role === "pj_kementerian"
-    ? isPjKemenkoan
-      ? (units ?? []).filter((unit) => {
-          if (unit.kategori !== "kementerian" && unit.kategori !== "biro") {
-            return false;
-          }
-          return pjKemenkoUnitIds.has(unit.parent_id ?? "");
-        })
-      : (units ?? []).filter((unit) => unit.id === pjAssignment?.target_unit_id)
+    ? (units ?? []).filter((unit) => unit.id === pjAssignment?.target_unit_id)
     : (units ?? []);
 
   const scopedUnitIds = new Set(scopedUnits.map((unit) => unit.id));
@@ -187,7 +170,7 @@ export default async function AdminPage() {
     : (staffs ?? []);
 
   const noReferenceData = !scopedUnits.length || !(periods ?? []).length;
-  const missingPjAssignment = profile.role === "pj_kementerian" && !isPjKemenkoan && !pjAssignment;
+  const missingPjAssignment = profile.role === "pj_kementerian" && !pjAssignment;
 
   return (
     <section className="space-y-4">
