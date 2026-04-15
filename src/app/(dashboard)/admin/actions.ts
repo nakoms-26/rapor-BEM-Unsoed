@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { canInputDetailKegiatan } from "@/lib/auth/permissions";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { adminInputSchema, type AdminInputForm } from "@/types/app";
 
@@ -100,11 +99,21 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     }
   }
 
+  const { data: selectedUnit } = await supabase
+    .from("ref_units")
+    .select("id, kategori, parent_id")
+    .eq("id", parsed.data.unit_id)
+    .maybeSingle();
+
+  if (!selectedUnit) {
+    return { ok: false, message: "Unit yang dipilih tidak ditemukan." };
+  }
+
   const reportType = targetProfile.role === "menteri" ? "menteri_kepala_biro" : "staf_unit";
   const PRESTASI_INDICATOR = "Nilai Prestasi";
 
-  // PJ Kementerian only allowed to edit detail on "Nilai Prestasi".
-  if (evaluatorProfile.role === "pj_kementerian") {
+  // PJ Kementerian (non-kemenkoan) only allowed to edit detail on "Nilai Prestasi".
+  if (evaluatorProfile.role === "pj_kementerian" && evaluatorProfile.is_pj_kemenkoan !== true) {
     const hasNonPrestasiDetail = parsed.data.indicators.some((indicator) =>
       indicator.main_indicator_name !== PRESTASI_INDICATOR &&
       indicator.items.some((item) => item.sub_indicator_name && item.sub_indicator_name.trim().length > 0),
@@ -114,17 +123,59 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     }
   }
 
-  // Non-PJ Kemenkoan (non-admin) cannot add/remove sub-indikators, only edit scores.
-  const canEditDetailKegiatan = canInputDetailKegiatan(evaluatorProfile);
-  if (!canEditDetailKegiatan && !isAdmin) {
-    const hasAnyDetail = parsed.data.indicators.some((indicator) =>
-      indicator.items.some((item) => item.sub_indicator_name && item.sub_indicator_name.trim().length > 0),
-    );
-    if (hasAnyDetail) {
-      return {
-        ok: false,
-        message: "Anda hanya dapat mengubah nilai penilaian dari sub-indikator yang sudah ada. Penambahan/pengurangan sub-indikator hanya dapat dilakukan oleh PJ Kemenkoan atau Admin.",
-      };
+  if (evaluatorProfile.role === "pj_kementerian" && evaluatorProfile.is_pj_kemenkoan === true) {
+    const parentKemenkoId = selectedUnit.kategori === "kemenko" ? selectedUnit.id : selectedUnit.parent_id;
+    const { data: ownedKemenko } = await supabase
+      .from("pj_assignments")
+      .select("id")
+      .eq("nim", evaluatorProfile.nim)
+      .eq("scope", "kemenko")
+      .eq("target_unit_id", parentKemenkoId ?? "00000000-0000-0000-0000-000000000000")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    // If selected unit is not under owned kemenko, sub-indicator names must match template exactly.
+    if (!ownedKemenko) {
+      const { data: templateRows } = await supabase
+        .from("kemenko_sub_indicator_templates")
+        .select("main_indicator_name, sub_indicator_name")
+        .eq("kemenko_unit_id", parentKemenkoId ?? "00000000-0000-0000-0000-000000000000")
+        .eq("periode_id", parsed.data.periode_id);
+
+      const normalize = (value: string) => value.trim().toLowerCase();
+
+      const expectedByIndicator = new Map<string, string[]>();
+      for (const row of templateRows ?? []) {
+        if (!expectedByIndicator.has(row.main_indicator_name)) {
+          expectedByIndicator.set(row.main_indicator_name, []);
+        }
+        expectedByIndicator.get(row.main_indicator_name)!.push(normalize(row.sub_indicator_name));
+      }
+
+      const submittedByIndicator = new Map<string, string[]>();
+      for (const indicator of parsed.data.indicators) {
+        submittedByIndicator.set(
+          indicator.main_indicator_name,
+          indicator.items
+            .map((item) => normalize(item.sub_indicator_name))
+            .filter((name) => name.length > 0),
+        );
+      }
+
+      const mismatch = Array.from(submittedByIndicator.entries()).some(([indicatorName, submitted]) => {
+        const expected = expectedByIndicator.get(indicatorName) ?? [];
+        const submittedSorted = [...new Set(submitted)].sort();
+        const expectedSorted = [...new Set(expected)].sort();
+        return submittedSorted.join("||") !== expectedSorted.join("||");
+      });
+
+      if (mismatch) {
+        return {
+          ok: false,
+          message:
+            "Sub-indikator hanya dapat diubah oleh PJ Kemenko yang mengampu unit tersebut. Anda hanya bisa input nilai dari template sub-indikator yang sudah ada.",
+        };
+      }
     }
   }
 

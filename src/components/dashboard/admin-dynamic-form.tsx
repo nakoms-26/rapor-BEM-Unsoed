@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { MAIN_INDICATORS } from "@/lib/constants";
 import { adminInputSchema, type AdminInputForm, type PeriodOption, type StaffOption, type UnitOption } from "@/types/app";
 import { submitAdminRapor } from "@/app/(dashboard)/admin/actions";
-import { canInputDetailKegiatan, getAdminTypeLabel } from "@/lib/auth/permissions";
 import { AdminIndicatorBlock } from "@/components/dashboard/admin-indicator-block";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +16,7 @@ type Props = {
   staffs: StaffOption[];
   adminType?: "pj_kementerian" | "pj_kemenkoan";
   isAdmin?: boolean;
+  editableKemenkoUnitIds?: string[];
   kemenkoTemplates?: {
     kemenko_unit_id: string;
     periode_id: string;
@@ -40,7 +40,15 @@ const BULAN_LABEL: Record<number, string> = {
   12: "Desember",
 };
 
-export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, kemenkoTemplates = [] }: Props) {
+export function AdminDynamicForm({
+  units,
+  periods,
+  staffs,
+  adminType,
+  isAdmin,
+  editableKemenkoUnitIds = [],
+  kemenkoTemplates = [],
+}: Props) {
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -48,10 +56,7 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
   const hasUnits = units.length > 0;
   const isPjKemenkoan = adminType === "pj_kemenkoan";
   const PRESTASI_INDICATOR = "Nilai Prestasi";
-  // Admin dan PJ Kemenkoan dapat menambah sub-indikator untuk semua indicator
-  // PJ Kementerian hanya untuk Nilai Prestasi
-  // Yang lain hanya dapat edit score
-  const canAddDetailAll = isAdmin || isPjKemenkoan;
+  const editableKemenkoSet = useMemo(() => new Set(editableKemenkoUnitIds), [editableKemenkoUnitIds]);
 
   const form = useForm<AdminInputForm>({
     resolver: zodResolver(adminInputSchema),
@@ -83,6 +88,13 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
   );
 
   const unitById = useMemo(() => new Map(units.map((unit) => [unit.id, unit])), [units]);
+  const selectedUnitMeta = unitById.get(selectedUnit);
+  const selectedParentKemenkoId =
+    selectedUnitMeta?.kategori === "kemenko" ? selectedUnitMeta.id : (selectedUnitMeta?.parent_id ?? "");
+  const canEditByOwnedKemenko = isPjKemenkoan && editableKemenkoSet.has(selectedParentKemenkoId);
+  // Admin can always edit sub-indicator names.
+  // PJ Kemenkoan can edit only when selected unit belongs to kemenko they own.
+  const canAddDetailAll = Boolean(isAdmin) || canEditByOwnedKemenko;
 
   const templatesByKemenkoPeriode = useMemo(() => {
     const map = new Map<string, Map<string, string[]>>();
@@ -180,7 +192,9 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
         <CardDescription>
           {canAddDetailAll
             ? "Tambahkan, sunting, atau hapus rincian kegiatan (sub-indikator) per indikator utama."
-            : isPjKemenkoan === false && adminType === "pj_kementerian"
+            : isPjKemenkoan
+            ? "Anda hanya dapat input nilai dari sub-indikator template. Edit sub-indikator hanya untuk unit di bawah kemenko yang Anda ampu."
+            : adminType === "pj_kementerian"
             ? "Input skala penilaian per indikator. Hanya dapat menambah/mengurangi rincian kegiatan pada Nilai Prestasi."
             : "Input skala penilaian per indikator yang sudah ada. Penambahan/pengurangan rincian kegiatan tidak diizinkan."
           }
@@ -261,7 +275,7 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
               index={index}
               control={form.control}
               register={form.register}
-              readOnlyNames={!canAddDetailAll && indicatorName !== PRESTASI_INDICATOR}
+              readOnlyNames={isPjKemenkoan ? !canAddDetailAll : !canAddDetailAll && indicatorName !== PRESTASI_INDICATOR}
             />
           ))}
 
