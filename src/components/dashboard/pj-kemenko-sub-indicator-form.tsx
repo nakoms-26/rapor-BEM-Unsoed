@@ -9,7 +9,7 @@ import { MAIN_INDICATORS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { saveKemenkoSubIndicators } from "@/app/(dashboard)/pj-kemenkoan/actions";
 
 const subIndicatorSchema = z.object({
   indicators: z.array(
@@ -107,80 +107,13 @@ export function PjKemenkoSubIndicatorForm({ kemenkoId, kemenkoName }: Props) {
     setIsSubmitSuccess(false);
 
     startTransition(async () => {
-      try {
-        const supabase = createAdminSupabaseClient();
+      const result = await saveKemenkoSubIndicators({
+        kemenkoUnitId: kemenkoId,
+        indicators: values.indicators,
+      });
 
-        // Save sub-indicators as templates linked to this kemenko
-        // We'll store this as rapor with report_type='kemenko_sub_template'
-        const { data: existingTemplate, error: fetchError } = await supabase
-          .from("rapor_scores")
-          .select("id")
-          .eq("user_nim", kemenkoId)
-          .eq("report_type", "kemenko_sub_template")
-          .limit(1)
-          .maybeSingle();
-
-        if (fetchError && fetchError.code !== "PGRST116") {
-          throw new Error(`Gagal mengambil template: ${fetchError.message}`);
-        }
-
-        // Prepare detail rows
-        const detailRows = values.indicators.flatMap((indicator) =>
-          indicator.items.map((item) => ({
-            main_indicator_name: indicator.main_indicator_name,
-            sub_indicator_name: item.sub_indicator_name.trim(),
-            score: 0,
-          })),
-        );
-
-        if (existingTemplate) {
-          // Delete old details
-          const { error: deleteError } = await supabase.from("rapor_details").delete().eq("rapor_id", existingTemplate.id);
-          if (deleteError) throw new Error(`Gagal menghapus detail lama: ${deleteError.message}`);
-
-          // Insert new details if any
-          if (detailRows.length) {
-            const { error: insertError } = await supabase.from("rapor_details").insert(
-              detailRows.map((row) => ({
-                rapor_id: existingTemplate.id,
-                ...row,
-              })),
-            );
-            if (insertError) throw new Error(`Gagal menyimpan detail: ${insertError.message}`);
-          }
-        } else {
-          // Create new template
-          const { data: newRapor, error: createError } = await supabase
-            .from("rapor_scores")
-            .insert({
-              user_nim: kemenkoId,
-              periode_id: "00000000-0000-0000-0000-000000000000", // Placeholder for template
-              penilai_nim: kemenkoId,
-              report_type: "kemenko_sub_template",
-              total_avg: 0,
-            })
-            .select("id")
-            .single();
-
-          if (createError || !newRapor) throw new Error(`Gagal membuat template: ${createError?.message}`);
-
-          if (detailRows.length) {
-            const { error: insertError } = await supabase.from("rapor_details").insert(
-              detailRows.map((row) => ({
-                rapor_id: newRapor.id,
-                ...row,
-              })),
-            );
-            if (insertError) throw new Error(`Gagal menyimpan detail: ${insertError.message}`);
-          }
-        }
-
-        setSubmitMessage("Sub-indikator berhasil disimpan untuk kemenko ini.");
-        setIsSubmitSuccess(true);
-      } catch (error) {
-        setSubmitMessage(error instanceof Error ? error.message : "Gagal menyimpan sub-indikator.");
-        setIsSubmitSuccess(false);
-      }
+      setSubmitMessage(result.message);
+      setIsSubmitSuccess(Boolean(result.ok));
     });
   }
 
