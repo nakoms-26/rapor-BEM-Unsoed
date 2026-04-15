@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { ROLE_HOME } from "@/lib/constants";
+import { MAIN_INDICATORS, ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   clearEvaluatorAssignmentByAdmin,
@@ -23,7 +24,19 @@ function scoreTone(score: number) {
   return "bg-rose-100 text-rose-800 border-rose-200";
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolvedParams = (await searchParams) ?? {};
+  const editRaporIdParam = resolvedParams.edit_rapor_id;
+  const editRaporId = typeof editRaporIdParam === "string"
+    ? editRaporIdParam
+    : Array.isArray(editRaporIdParam)
+      ? (editRaporIdParam[0] ?? "")
+      : "";
+
   const profile = await requireSessionProfile();
   const supabase = createAdminSupabaseClient();
 
@@ -122,8 +135,11 @@ export default async function AdminPage() {
 
     return {
       id: row.id,
+      user_nim: row.user_nim,
+      periode_id: row.periode_id,
       targetName,
       evaluatorName,
+      unitId: targetProfile?.unit_id ?? "",
       unitName: targetUnit?.nama_unit ?? "-",
       kemenkoName: parentKemenko?.nama_unit ?? "Tanpa Kemenko",
       totalAvg: Number(row.total_avg),
@@ -180,6 +196,82 @@ export default async function AdminPage() {
   const noReferenceData = !scopedUnits.length || !(periods ?? []).length;
   const missingPjAssignment = profile.role === "pj_kementerian" && !pjAssignment;
 
+  const raporIds = (reportRows ?? []).map((row) => row.id);
+  const { data: reportDetailRows } = raporIds.length
+    ? await supabase
+        .from("rapor_details")
+        .select("rapor_id, main_indicator_name, sub_indicator_name, score")
+        .in("rapor_id", raporIds)
+    : { data: [] as { rapor_id: string; main_indicator_name: string; sub_indicator_name: string; score: number }[] };
+
+  const detailsByRaporId = new Map<string, { main_indicator_name: string; sub_indicator_name: string; score: number }[]>();
+  for (const detail of reportDetailRows ?? []) {
+    if (!detailsByRaporId.has(detail.rapor_id)) {
+      detailsByRaporId.set(detail.rapor_id, []);
+    }
+    detailsByRaporId.get(detail.rapor_id)!.push(detail);
+  }
+
+  const rowById = new Map((reportRows ?? []).map((row) => [row.id, row]));
+  const selectedEditRow = rowById.get(editRaporId);
+
+  const initialEditRapor = selectedEditRow
+    ? (() => {
+        const selectedProfile = profileRecordByNim.get(selectedEditRow.user_nim);
+        if (!selectedProfile) {
+          return undefined;
+        }
+
+        if (profile.role === "pj_kementerian" && !scopedUnitIds.has(selectedProfile.unit_id)) {
+          return undefined;
+        }
+
+        const detailRows = detailsByRaporId.get(selectedEditRow.id) ?? [];
+        const detailByIndicator = new Map<string, { sub_indicator_name: string; score: number }[]>();
+        for (const detail of detailRows) {
+          if (!detailByIndicator.has(detail.main_indicator_name)) {
+            detailByIndicator.set(detail.main_indicator_name, []);
+          }
+          detailByIndicator.get(detail.main_indicator_name)!.push({
+            sub_indicator_name: detail.sub_indicator_name,
+            score: Number(detail.score),
+          });
+        }
+
+        return {
+          rapor_id: selectedEditRow.id,
+          periode_id: selectedEditRow.periode_id,
+          unit_id: selectedProfile.unit_id,
+          user_nim: selectedEditRow.user_nim,
+          catatan: selectedEditRow.catatan ?? "",
+          indicators: MAIN_INDICATORS.map((indicator) => ({
+            main_indicator_name: indicator,
+            items: detailByIndicator.get(indicator) ?? [],
+          })),
+        };
+      })()
+    : undefined;
+
+  const visibleRows = profile.role === "pj_kementerian"
+    ? formattedRows.filter((row) => scopedUnitIds.has(row.unitId))
+    : formattedRows;
+
+  const visibleGroupedReports = new Map<string, Map<string, typeof visibleRows>>();
+  for (const row of visibleRows) {
+    if (!visibleGroupedReports.has(row.kemenkoName)) {
+      visibleGroupedReports.set(row.kemenkoName, new Map());
+    }
+    const unitGroup = visibleGroupedReports.get(row.kemenkoName)!;
+    if (!unitGroup.has(row.unitName)) {
+      unitGroup.set(row.unitName, []);
+    }
+    unitGroup.get(row.unitName)!.push(row);
+  }
+
+  const visibleTotalReports = visibleRows.length;
+  const visibleTotalUnitsWithReports = new Set(visibleRows.map((row) => row.unitName)).size;
+  const visibleTotalEvaluators = new Set(visibleRows.map((row) => row.evaluatorName)).size;
+
   return (
     <section className="space-y-4">
       <div>
@@ -204,6 +296,7 @@ export default async function AdminPage() {
         isAdmin={profile.role === "admin"}
         editableKemenkoUnitIds={(pjKemenkoAssignments ?? []).map((item) => item.target_unit_id)}
         kemenkoTemplates={kemenkoTemplates ?? []}
+        initialEditRapor={initialEditRapor}
       />
 
       {profile.role === "admin" ? (
@@ -286,20 +379,20 @@ export default async function AdminPage() {
           <div className="grid gap-2 md:grid-cols-3">
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <p className="text-xs text-slate-500">Total Rapor</p>
-              <p className="text-sm font-semibold text-slate-800">{totalReports}</p>
+              <p className="text-sm font-semibold text-slate-800">{visibleTotalReports}</p>
             </div>
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <p className="text-xs text-slate-500">Unit Dengan Rapor</p>
-              <p className="text-sm font-semibold text-slate-800">{totalUnitsWithReports}</p>
+              <p className="text-sm font-semibold text-slate-800">{visibleTotalUnitsWithReports}</p>
             </div>
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <p className="text-xs text-slate-500">Penilai Aktif</p>
-              <p className="text-sm font-semibold text-slate-800">{totalEvaluators}</p>
+              <p className="text-sm font-semibold text-slate-800">{visibleTotalEvaluators}</p>
             </div>
           </div>
 
-          {formattedRows.length ? (
-            [...groupedReports.entries()].map(([kemenkoName, unitGroup]) => {
+          {visibleRows.length ? (
+            [...visibleGroupedReports.entries()].map(([kemenkoName, unitGroup]) => {
               const kemenkoCount = [...unitGroup.values()].reduce((sum, rows) => sum + rows.length, 0);
               return (
               <details key={kemenkoName} open className="rounded-lg border border-slate-200 bg-slate-50/50">
@@ -337,6 +430,12 @@ export default async function AdminPage() {
                                 <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${scoreTone(row.totalAvg)}`}>
                                   {row.totalAvg.toFixed(2)}
                                 </span>
+                                <Link
+                                  href={`/admin?edit_rapor_id=${row.id}#input-rapor-form`}
+                                  className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100"
+                                >
+                                  Detail/Edit
+                                </Link>
                                 <form action={deleteRaporAction}>
                                   <input type="hidden" name="rapor_id" value={row.id} />
                                   <button

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +24,20 @@ type Props = {
     main_indicator_name: string;
     sub_indicator_name: string;
   }[];
+  initialEditRapor?: {
+    rapor_id: string;
+    periode_id: string;
+    unit_id: string;
+    user_nim: string;
+    catatan: string;
+    indicators: {
+      main_indicator_name: string;
+      items: {
+        sub_indicator_name: string;
+        score: number;
+      }[];
+    }[];
+  };
 };
 
 const BULAN_LABEL: Record<number, string> = {
@@ -48,6 +63,7 @@ export function AdminDynamicForm({
   isAdmin,
   editableKemenkoUnitIds = [],
   kemenkoTemplates = [],
+  initialEditRapor,
 }: Props) {
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
@@ -95,6 +111,7 @@ export function AdminDynamicForm({
   // Admin can always edit sub-indicator names.
   // PJ Kemenkoan can edit only when selected unit belongs to kemenko they own.
   const canAddDetailAll = Boolean(isAdmin) || canEditByOwnedKemenko;
+  const isEditMode = Boolean(initialEditRapor);
 
   const templatesByKemenkoPeriode = useMemo(() => {
     const map = new Map<string, Map<string, string[]>>();
@@ -116,6 +133,7 @@ export function AdminDynamicForm({
   }, [kemenkoTemplates]);
 
   useEffect(() => {
+    if (isEditMode) return;
     if (!selectedUnit) return;
     if (!selectedPeriode) return;
 
@@ -146,7 +164,24 @@ export function AdminDynamicForm({
         keepTouched: true,
       },
     );
-  }, [selectedUnit, selectedPeriode, unitById, templatesByKemenkoPeriode, form]);
+  }, [selectedUnit, selectedPeriode, unitById, templatesByKemenkoPeriode, form, isEditMode]);
+
+  useEffect(() => {
+    if (!initialEditRapor) return;
+
+    form.reset(
+      {
+        periode_id: initialEditRapor.periode_id,
+        unit_id: initialEditRapor.unit_id,
+        user_nim: initialEditRapor.user_nim,
+        catatan: initialEditRapor.catatan,
+        indicators: initialEditRapor.indicators,
+      },
+      {
+        keepErrors: true,
+      },
+    );
+  }, [initialEditRapor, form]);
 
   const canSubmit = hasPeriods && hasUnits;
 
@@ -186,7 +221,7 @@ export function AdminDynamicForm({
   }
 
   return (
-    <Card>
+    <Card id="input-rapor-form">
       <CardHeader>
         <CardTitle>Input Rapor Dinamis</CardTitle>
         <CardDescription>
@@ -201,6 +236,17 @@ export function AdminDynamicForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {isEditMode ? (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+            <p>
+              Mode edit aktif. Anda sedang mengedit rapor terpilih.
+            </p>
+            <Link href="/admin#input-rapor-form" className="rounded-md border border-blue-300 bg-white px-2 py-1 text-xs text-blue-700 hover:bg-blue-100">
+              Keluar dari mode edit
+            </Link>
+          </div>
+        ) : null}
+
         {!canSubmit ? (
           <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
             {!hasPeriods ? "Data bulan/periode belum tersedia." : "Data unit belum tersedia."} Lengkapi data referensi
