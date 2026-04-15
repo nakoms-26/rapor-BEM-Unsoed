@@ -7,7 +7,6 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { SignUpRoleOption, SignUpUnitOption } from "@/types/app";
 
 const ADMIN_ALLOWED_UNITS = new Set(["Admin"]);
-const PJ_KEMENTERIAN_ALLOWED_KATEGORI = new Set<"kementerian" | "biro">(["kementerian", "biro"]);
 const PRES_WAPRES_ALLOWED_UNITS = new Set(["Lingkar Presiden"]);
 
 const SIGN_UP_ROLE_OPTIONS: SignUpRoleOption[] = [
@@ -61,7 +60,7 @@ function isUnitAllowedForRole(
   }
 
   if (role === "pj_kementerian") {
-    return PJ_KEMENTERIAN_ALLOWED_KATEGORI.has(unit.kategori);
+    return unit.kategori === "kementerian" || unit.kategori === "biro";
   }
 
   return false;
