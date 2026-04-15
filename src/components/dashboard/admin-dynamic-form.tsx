@@ -180,7 +180,7 @@ export function AdminDynamicForm({
       form.formState.errors.unit_id?.message ||
       form.formState.errors.user_nim?.message ||
       form.formState.errors.indicators?.message ||
-      "Form belum lengkap. Pastikan staf dipilih dan nama sub-indikator yang diisi minimal 2 karakter.";
+      "Form belum lengkap. Pastikan staf dipilih dan nama sub-indikator diisi.";
 
     setSubmitMessage(String(firstError));
   }

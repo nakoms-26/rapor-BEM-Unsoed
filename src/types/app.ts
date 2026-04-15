@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { AppRole } from "@/lib/constants";
 
 export const subIndicatorSchema = z.object({
-  sub_indicator_name: z.string().trim().min(2, "Nama sub-indikator minimal 2 karakter"),
+  sub_indicator_name: z.string().trim().min(1, "Nama sub-indikator wajib diisi"),
   score: z
     .number()
     .min(0, "Skor minimal 0")
