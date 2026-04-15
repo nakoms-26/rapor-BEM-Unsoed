@@ -196,7 +196,6 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin }:
               readOnlyNames={!canAddDetailAll && indicatorName !== PRESTASI_INDICATOR}
             />
           ))}
-          })}
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Catatan</label>
