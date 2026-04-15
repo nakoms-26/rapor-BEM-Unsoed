@@ -65,6 +65,11 @@ export default async function AdminPage() {
     redirect(ROLE_HOME[profile.role] ?? "/login");
   }
 
+  // Redirect PJ Kemenkoan to their dedicated sub-indicator management page
+  if (profile.is_pj_kemenkoan && profile.role === "pj_kementerian") {
+    redirect("/dashboard/pj-kemenkoan");
+  }
+
   const isPjKemenkoan = profile.is_pj_kemenkoan === true;
 
   const [{ data: units }, { data: periods }, { data: staffs }, { data: reportRows }, { data: allProfiles }, { data: assignments }, { data: pjAssignment }] = await Promise.all([

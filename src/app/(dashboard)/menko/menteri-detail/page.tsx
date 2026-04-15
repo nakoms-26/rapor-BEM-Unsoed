@@ -34,6 +34,11 @@ export default async function MenkoMenteriDetailPage() {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
+  // PJ Kemenkoan should only access /pj-kemenkoan to manage sub-indicators
+  if (profile.is_pj_kemenkoan) {
+    redirect("/dashboard/pj-kemenkoan");
+  }
+
   // Get all kementerian/biro under this kemenko
   const { data: coordinatedUnits } = await supabase
     .from("ref_units")

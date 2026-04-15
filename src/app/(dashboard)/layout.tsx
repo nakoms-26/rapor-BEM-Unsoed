@@ -25,10 +25,15 @@ export default async function DashboardLayout({
   navItems.push({ href: "/dashboard", label: "Dashboard", icon: Home });
 
   if (profile.role === "admin" || profile.role === "pj_kementerian") {
-    navItems.push({ href: "/admin", label: profile.role === "pj_kementerian" ? "Input Kementerian" : "Admin", icon: ClipboardList });
+    // PJ Kemenkoan should use /pj-kemenkoan for managing sub-indicators, not /admin
+    if (profile.is_pj_kemenkoan) {
+      navItems.push({ href: "/pj-kemenkoan", label: "Kelola Sub-Indikator", icon: ClipboardList });
+    } else {
+      navItems.push({ href: "/admin", label: profile.role === "pj_kementerian" ? "Input Kementerian" : "Admin", icon: ClipboardList });
+    }
   }
 
-  if (profile.role === "pj_kementerian") {
+  if (profile.role === "pj_kementerian" && !profile.is_pj_kemenkoan) {
     navItems.push({ href: "/pj-kementerian", label: "Rapor Diri", icon: UserRoundCheck });
   }
 
@@ -36,7 +41,8 @@ export default async function DashboardLayout({
     navItems.push({ href: "/pres_wapres", label: "Presiden & Wakil Presiden", icon: ClipboardList });
   }
 
-  if (canAccessKemenkoReports(profile)) {
+  // Only menko (not PJ Kemenkoan) can access kemenko reports
+  if (canAccessKemenkoReports(profile) && !profile.is_pj_kemenkoan) {
     const kemenkoLabel = profile.role === "menko" ? "Menko" : "PJ Kemenkoan";
     navItems.push({ href: "/menko", label: kemenkoLabel, icon: BarChart3 });
     navItems.push({ href: "/menko/menteri", label: `${kemenkoLabel} - Rapor Menteri`, icon: BarChart3 });

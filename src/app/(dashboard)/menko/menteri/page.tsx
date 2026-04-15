@@ -15,6 +15,11 @@ export default async function MenkoMenteriPage() {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
+  // PJ Kemenkoan should only access /pj-kemenkoan to manage sub-indicators
+  if (profile.is_pj_kemenkoan) {
+    redirect("/dashboard/pj-kemenkoan");
+  }
+
   const [{ data: coordinatedUnits }, { data: periods }] = await Promise.all([
     supabase
       .from("ref_units")
