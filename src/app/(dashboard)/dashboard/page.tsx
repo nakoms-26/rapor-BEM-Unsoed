@@ -28,6 +28,18 @@ export default async function DashboardLandingPage() {
         description: "Input dan perbarui rapor bulanan untuk anggota.",
         icon: ClipboardList,
       },
+      {
+        href: "/admin/staff-recap",
+        title: "Recap Staff Kabinet",
+        description: "Lihat recap seluruh staff kabinet yang dikelompokkan berdasar kementerian.",
+        icon: BarChart3,
+      },
+      {
+        href: "/admin/menteri-detail",
+        title: "Rapor Menteri",
+        description: "Lihat detail rapor menteri/kepala biro se-kabinet.",
+        icon: UserRoundCheck,
+      },
     ],
     pj_kementerian: [
       {
@@ -35,6 +47,12 @@ export default async function DashboardLandingPage() {
         title: "Rapor Diri Sendiri",
         description: "Lihat seluruh periode rapor pribadi PJ Kementerian.",
         icon: UserRoundCheck,
+      },
+      {
+        href: "/pj-kementerian/staff-detail",
+        title: "Rapor Staff Unit",
+        description: "Lihat detail isi rapor staff pada kementerian yang Anda ampu.",
+        icon: BarChart3,
       },
       {
         href: "/admin",

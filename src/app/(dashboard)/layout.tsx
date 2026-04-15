@@ -32,6 +32,9 @@ export default async function DashboardLayout({
       navItems.push({ href: "/menko", label: "Recap Kementerian", icon: BarChart3 });
     } else {
       navItems.push({ href: "/admin", label: profile.role === "pj_kementerian" ? "Input Kementerian" : "Admin", icon: ClipboardList });
+      if (profile.role === "pj_kementerian") {
+        navItems.push({ href: "/pj-kementerian/staff-detail", label: "Rapor Staff Unit", icon: BarChart3 });
+      }
     }
   }
 
@@ -67,6 +70,11 @@ export default async function DashboardLayout({
     if (assignment) {
       navItems.push({ href: "/penilai", label: "Input Unit Pegangan", icon: ClipboardList });
     }
+  }
+
+  if (profile.role === "admin") {
+    navItems.push({ href: "/admin/staff-recap", label: "Recap Staff Kabinet", icon: BarChart3 });
+    navItems.push({ href: "/admin/menteri-detail", label: "Rapor Menteri", icon: UserRoundCheck });
   }
 
   return (
