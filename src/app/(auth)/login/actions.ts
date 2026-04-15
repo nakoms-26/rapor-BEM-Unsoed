@@ -200,15 +200,11 @@ export async function signUpWithTableAccount(payload: {
     return {
       ok: false,
       message:
-        requestedRole === "admin"
-          ? "Akun Admin hanya boleh menggunakan unit Admin."
-          : requestedRole === "pj_kementerian"
-            ? "Akun PJ Kementerian hanya boleh menggunakan unit Biro Pengendali & Penjamin Mutu."
-            : requestedRole === "pres_wapres"
-              ? "Akun Presiden & Wakil Presiden hanya boleh menggunakan unit Lingkar Presiden."
-              : requestedRole === "menko"
-                ? "Akun Menko wajib menggunakan unit kategori kemenko."
-                : "Akun Menteri/Staff wajib menggunakan unit kategori kementerian atau biro.",
+        requestedRole === "pres_wapres"
+          ? "Akun Presiden & Wakil Presiden hanya boleh menggunakan unit Lingkar Presiden."
+          : requestedRole === "menko"
+            ? "Akun Menko wajib menggunakan unit kategori kemenko."
+            : "Akun Menteri/Staff wajib menggunakan unit kategori kementerian atau biro.",
     };
   }
 
