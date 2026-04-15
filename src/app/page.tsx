@@ -10,9 +10,9 @@ export default function Home() {
 
       <section className="relative w-full max-w-3xl rounded-2xl border border-slate-200 bg-white/95 p-8 shadow-xl md:p-10">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700">Internal System</p>
-        <h1 className="mt-3 text-3xl font-bold text-slate-900 md:text-5xl">Rapor BEM Ungsud</h1>
+        <h1 className="mt-3 text-3xl font-bold text-slate-900 md:text-5xl">Rapor BEM Unsoed</h1>
         <p className="mt-4 max-w-2xl text-slate-600">
-          Sistem Rapor BEM Unsoed 2026, tlonk buat akun yg bener yh
+          Sistem Rapor BEM Unsoed 2026 Kabinet Kausa Cipta
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
