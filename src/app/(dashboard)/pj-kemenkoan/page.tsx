@@ -44,12 +44,18 @@ export default async function PjKemenkoPage() {
     );
   }
 
-  // Fetch all kemenko data for assigned units
-  const { data: kemenkoUnits } = await supabase
-    .from("ref_units")
-    .select("id, nama_unit, kategori")
-    .in("id", kemenkoIds)
-    .order("nama_unit");
+  // Fetch all kemenko data for assigned units + saved templates
+  const [{ data: kemenkoUnits }, { data: templateRows }] = await Promise.all([
+    supabase
+      .from("ref_units")
+      .select("id, nama_unit, kategori")
+      .in("id", kemenkoIds)
+      .order("nama_unit"),
+    supabase
+      .from("kemenko_sub_indicator_templates")
+      .select("kemenko_unit_id, main_indicator_name, sub_indicator_name")
+      .in("kemenko_unit_id", kemenkoIds),
+  ]);
 
   return (
     <section className="space-y-4">
@@ -80,7 +86,16 @@ export default async function PjKemenkoPage() {
             <CardDescription>Kelola sub-indikator untuk kemenko ini.</CardDescription>
           </CardHeader>
           <CardContent>
-            <PjKemenkoSubIndicatorForm kemenkoId={kemenko.id} kemenkoName={kemenko.nama_unit} />
+            <PjKemenkoSubIndicatorForm
+              kemenkoId={kemenko.id}
+              kemenkoName={kemenko.nama_unit}
+              initialTemplates={(templateRows ?? [])
+                .filter((row) => row.kemenko_unit_id === kemenko.id)
+                .map((row) => ({
+                  main_indicator_name: row.main_indicator_name,
+                  sub_indicator_name: row.sub_indicator_name,
+                }))}
+            />
           </CardContent>
         </Card>
       ))}

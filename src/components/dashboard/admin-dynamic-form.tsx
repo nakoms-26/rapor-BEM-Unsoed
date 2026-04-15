@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MAIN_INDICATORS } from "@/lib/constants";
@@ -17,6 +17,11 @@ type Props = {
   staffs: StaffOption[];
   adminType?: "pj_kementerian" | "pj_kemenkoan";
   isAdmin?: boolean;
+  kemenkoTemplates?: {
+    kemenko_unit_id: string;
+    main_indicator_name: string;
+    sub_indicator_name: string;
+  }[];
 };
 
 const BULAN_LABEL: Record<number, string> = {
@@ -34,7 +39,7 @@ const BULAN_LABEL: Record<number, string> = {
   12: "Desember",
 };
 
-export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin }: Props) {
+export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, kemenkoTemplates = [] }: Props) {
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -71,6 +76,51 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin }:
     [selectedUnit, staffs],
   );
 
+  const unitById = useMemo(() => new Map(units.map((unit) => [unit.id, unit])), [units]);
+
+  const templatesByKemenko = useMemo(() => {
+    const map = new Map<string, Map<string, string[]>>();
+    for (const row of kemenkoTemplates) {
+      if (!map.has(row.kemenko_unit_id)) {
+        map.set(row.kemenko_unit_id, new Map());
+      }
+      const byIndicator = map.get(row.kemenko_unit_id)!;
+      if (!byIndicator.has(row.main_indicator_name)) {
+        byIndicator.set(row.main_indicator_name, []);
+      }
+      const list = byIndicator.get(row.main_indicator_name)!;
+      if (!list.includes(row.sub_indicator_name)) {
+        list.push(row.sub_indicator_name);
+      }
+    }
+    return map;
+  }, [kemenkoTemplates]);
+
+  useEffect(() => {
+    if (!selectedUnit) return;
+
+    const selectedUnitMeta = unitById.get(selectedUnit);
+    const kemenkoId = selectedUnitMeta?.kategori === "kemenko" ? selectedUnitMeta.id : selectedUnitMeta?.parent_id;
+    if (!kemenkoId) return;
+
+    const indicatorTemplate = templatesByKemenko.get(kemenkoId);
+    if (!indicatorTemplate) return;
+
+    form.setValue(
+      "indicators",
+      MAIN_INDICATORS.map((indicatorName) => ({
+        main_indicator_name: indicatorName,
+        items: (indicatorTemplate.get(indicatorName) ?? []).map((subName) => ({
+          sub_indicator_name: subName,
+          score: 0,
+        })),
+      })),
+      { shouldDirty: false, shouldValidate: false },
+    );
+
+    form.setValue("user_nim", "", { shouldDirty: false, shouldValidate: false });
+  }, [selectedUnit, unitById, templatesByKemenko, form]);
+
   const canSubmit = hasPeriods && hasUnits;
 
   async function onSubmit(values: AdminInputForm) {
@@ -86,7 +136,10 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin }:
           catatan: "",
           indicators: values.indicators.map((indicator) => ({
             ...indicator,
-            items: [],
+            items: indicator.items.map((item) => ({
+              ...item,
+              score: 0,
+            })),
           })),
         });
       }

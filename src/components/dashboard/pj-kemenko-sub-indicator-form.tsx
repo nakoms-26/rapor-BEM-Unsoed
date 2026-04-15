@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm, useFieldArray, type Control, type UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,7 +29,25 @@ type SubIndicatorForm = z.infer<typeof subIndicatorSchema>;
 type Props = {
   kemenkoId: string;
   kemenkoName: string;
+  initialTemplates?: {
+    main_indicator_name: string;
+    sub_indicator_name: string;
+  }[];
 };
+
+function buildIndicatorsFromTemplates(
+  templates: {
+    main_indicator_name: string;
+    sub_indicator_name: string;
+  }[] = [],
+) {
+  return MAIN_INDICATORS.map((name) => ({
+    main_indicator_name: name,
+    items: templates
+      .filter((row) => row.main_indicator_name === name)
+      .map((row) => ({ sub_indicator_name: row.sub_indicator_name })),
+  }));
+}
 
 function SubIndicatorBlock({
   indicatorName,
@@ -87,7 +105,7 @@ function SubIndicatorBlock({
   );
 }
 
-export function PjKemenkoSubIndicatorForm({ kemenkoId, kemenkoName }: Props) {
+export function PjKemenkoSubIndicatorForm({ kemenkoId, kemenkoName, initialTemplates = [] }: Props) {
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -95,12 +113,15 @@ export function PjKemenkoSubIndicatorForm({ kemenkoId, kemenkoName }: Props) {
   const form = useForm<SubIndicatorForm>({
     resolver: zodResolver(subIndicatorSchema),
     defaultValues: {
-      indicators: MAIN_INDICATORS.map((name) => ({
-        main_indicator_name: name,
-        items: [],
-      })),
+      indicators: buildIndicatorsFromTemplates(initialTemplates),
     },
   });
+
+  useEffect(() => {
+    form.reset({
+      indicators: buildIndicatorsFromTemplates(initialTemplates),
+    });
+  }, [form, initialTemplates]);
 
   async function onSubmit(values: SubIndicatorForm) {
     setSubmitMessage("");
