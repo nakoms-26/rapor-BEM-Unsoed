@@ -5,11 +5,6 @@ export const dynamic = "force-dynamic";
 
 const FALLBACK_ROLE_OPTIONS: SignUpRoleOption[] = [
   {
-    value: "admin",
-    label: "Admin",
-    description: "CRUD seluruh rapor dan assignment penilai unit.",
-  },
-  {
     value: "menko",
     label: "Menko",
     description: "Melihat rekap seluruh kementerian di bawah koordinasi kemenko.",

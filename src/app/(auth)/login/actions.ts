@@ -12,16 +12,6 @@ const PRES_WAPRES_ALLOWED_UNITS = new Set(["Lingkar Presiden"]);
 
 const SIGN_UP_ROLE_OPTIONS: SignUpRoleOption[] = [
   {
-    value: "admin",
-    label: "Admin",
-    description: "CRUD seluruh rapor dan assignment penilai unit.",
-  },
-  {
-    value: "pj_kementerian",
-    label: "PJ Kementerian",
-    description: "Input rapor untuk kementerian, terbatas pada Biro Pengendali & Penjamin Mutu.",
-  },
-  {
     value: "menko",
     label: "Menko",
     description: "Melihat rekap seluruh kementerian di bawah koordinasi kemenko.",
@@ -44,6 +34,10 @@ function normalizeNim(nim: string) {
 
 function isAppRole(value: string): value is AppRole {
   return APP_ROLES.includes(value as AppRole);
+}
+
+function isSignupRoleAllowed(role: AppRole) {
+  return role === "menko" || role === "menteri" || role === "staff" || role === "pres_wapres";
 }
 
 function isUnitAllowedForRole(
@@ -167,6 +161,10 @@ export async function signUpWithTableAccount(payload: {
 
   if (!isAppRole(requestedRole)) {
     return { ok: false, message: "Role akun tidak valid." };
+  }
+
+  if (!isSignupRoleAllowed(requestedRole)) {
+    return { ok: false, message: "Role yang dipilih tidak tersedia untuk registrasi mandiri." };
   }
 
   if (password.length < 6) {
