@@ -8,6 +8,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const payloadSchema = z.object({
   kemenkoUnitId: z.string().uuid("Unit kemenko tidak valid."),
+  periodeId: z.string().uuid("Periode tidak valid."),
   indicators: z.array(
     z.object({
       main_indicator_name: z.string(),
@@ -22,6 +23,7 @@ const payloadSchema = z.object({
 
 export async function saveKemenkoSubIndicators(payload: {
   kemenkoUnitId: string;
+  periodeId: string;
   indicators: { main_indicator_name: string; items: { sub_indicator_name: string }[] }[];
 }) {
   const parsed = payloadSchema.safeParse(payload);
@@ -57,6 +59,7 @@ export async function saveKemenkoSubIndicators(payload: {
         .filter((name) => name.length > 0)
         .map((subName) => ({
           kemenko_unit_id: parsed.data.kemenkoUnitId,
+          periode_id: parsed.data.periodeId,
           main_indicator_name: indicator.main_indicator_name,
           sub_indicator_name: subName,
           created_by_nim: profile.nim,
@@ -66,7 +69,7 @@ export async function saveKemenkoSubIndicators(payload: {
   const uniqueRows = Array.from(
     new Map(
       normalizedRows.map((row) => [
-        `${row.kemenko_unit_id}::${row.main_indicator_name}::${row.sub_indicator_name.toLowerCase()}`,
+        `${row.kemenko_unit_id}::${row.periode_id}::${row.main_indicator_name}::${row.sub_indicator_name.toLowerCase()}`,
         row,
       ]),
     ).values(),
@@ -75,7 +78,8 @@ export async function saveKemenkoSubIndicators(payload: {
   const { error: deleteError } = await supabase
     .from("kemenko_sub_indicator_templates")
     .delete()
-    .eq("kemenko_unit_id", parsed.data.kemenkoUnitId);
+    .eq("kemenko_unit_id", parsed.data.kemenkoUnitId)
+    .eq("periode_id", parsed.data.periodeId);
 
   if (deleteError) {
     return { ok: false, message: `Gagal membersihkan template lama: ${deleteError.message}` };

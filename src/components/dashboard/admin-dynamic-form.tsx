@@ -19,6 +19,7 @@ type Props = {
   isAdmin?: boolean;
   kemenkoTemplates?: {
     kemenko_unit_id: string;
+    periode_id: string;
     main_indicator_name: string;
     sub_indicator_name: string;
   }[];
@@ -71,6 +72,11 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
     name: "unit_id",
   });
 
+  const selectedPeriode = useWatch({
+    control: form.control,
+    name: "periode_id",
+  });
+
   const filteredStaff = useMemo(
     () => staffs.filter((staff) => staff.unit_id === selectedUnit),
     [selectedUnit, staffs],
@@ -78,13 +84,14 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
 
   const unitById = useMemo(() => new Map(units.map((unit) => [unit.id, unit])), [units]);
 
-  const templatesByKemenko = useMemo(() => {
+  const templatesByKemenkoPeriode = useMemo(() => {
     const map = new Map<string, Map<string, string[]>>();
     for (const row of kemenkoTemplates) {
-      if (!map.has(row.kemenko_unit_id)) {
-        map.set(row.kemenko_unit_id, new Map());
+      const key = `${row.kemenko_unit_id}::${row.periode_id}`;
+      if (!map.has(key)) {
+        map.set(key, new Map());
       }
-      const byIndicator = map.get(row.kemenko_unit_id)!;
+      const byIndicator = map.get(key)!;
       if (!byIndicator.has(row.main_indicator_name)) {
         byIndicator.set(row.main_indicator_name, []);
       }
@@ -98,12 +105,13 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
 
   useEffect(() => {
     if (!selectedUnit) return;
+    if (!selectedPeriode) return;
 
     const selectedUnitMeta = unitById.get(selectedUnit);
     const kemenkoId = selectedUnitMeta?.kategori === "kemenko" ? selectedUnitMeta.id : selectedUnitMeta?.parent_id;
     if (!kemenkoId) return;
 
-    const indicatorTemplate = templatesByKemenko.get(kemenkoId);
+    const indicatorTemplate = templatesByKemenkoPeriode.get(`${kemenkoId}::${selectedPeriode}`);
     const nextIndicators = MAIN_INDICATORS.map((indicatorName) => ({
       main_indicator_name: indicatorName,
       items: (indicatorTemplate?.get(indicatorName) ?? []).map((subName) => ({
@@ -117,6 +125,7 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
       {
         ...current,
         unit_id: selectedUnit,
+        periode_id: selectedPeriode,
         user_nim: "",
         indicators: nextIndicators,
       },
@@ -125,7 +134,7 @@ export function AdminDynamicForm({ units, periods, staffs, adminType, isAdmin, k
         keepTouched: true,
       },
     );
-  }, [selectedUnit, unitById, templatesByKemenko, form]);
+  }, [selectedUnit, selectedPeriode, unitById, templatesByKemenkoPeriode, form]);
 
   const canSubmit = hasPeriods && hasUnits;
 

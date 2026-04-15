@@ -44,16 +44,21 @@ export default async function PjKemenkoPage() {
     );
   }
 
-  // Fetch all kemenko data for assigned units + saved templates
-  const [{ data: kemenkoUnits }, { data: templateRows }] = await Promise.all([
+  // Fetch all kemenko data for assigned units + periods + saved templates
+  const [{ data: kemenkoUnits }, { data: periods }, { data: templateRows }] = await Promise.all([
     supabase
       .from("ref_units")
       .select("id, nama_unit, kategori")
       .in("id", kemenkoIds)
       .order("nama_unit"),
     supabase
+      .from("rapor_periods")
+      .select("id, bulan, tahun, status")
+      .order("tahun", { ascending: false })
+      .order("bulan", { ascending: false }),
+    supabase
       .from("kemenko_sub_indicator_templates")
-      .select("kemenko_unit_id, main_indicator_name, sub_indicator_name")
+      .select("kemenko_unit_id, periode_id, main_indicator_name, sub_indicator_name")
       .in("kemenko_unit_id", kemenkoIds),
   ]);
 
@@ -89,9 +94,11 @@ export default async function PjKemenkoPage() {
             <PjKemenkoSubIndicatorForm
               kemenkoId={kemenko.id}
               kemenkoName={kemenko.nama_unit}
+              periods={periods ?? []}
               initialTemplates={(templateRows ?? [])
                 .filter((row) => row.kemenko_unit_id === kemenko.id)
                 .map((row) => ({
+                  periode_id: row.periode_id,
                   main_indicator_name: row.main_indicator_name,
                   sub_indicator_name: row.sub_indicator_name,
                 }))}

@@ -93,7 +93,7 @@ export default async function AdminPage() {
       : Promise.resolve({ data: null }),
     supabase
       .from("kemenko_sub_indicator_templates")
-      .select("kemenko_unit_id, main_indicator_name, sub_indicator_name"),
+      .select("kemenko_unit_id, periode_id, main_indicator_name, sub_indicator_name"),
   ]);
 
   const unitById = new Map((units ?? []).map((unit) => [unit.id, unit]));
