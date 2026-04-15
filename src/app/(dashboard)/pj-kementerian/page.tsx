@@ -33,11 +33,11 @@ export default async function PjKementerianPage() {
 
   if (profile.role !== "pj_kementerian") {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
+  }
 
-    // Block PJ Kemenkoan from accessing this page
-    if (profile.is_pj_kemenkoan) {
-      redirect("/pj-kemenkoan");
-    }
+  // Block PJ Kemenkoan from accessing this page
+  if (profile.is_pj_kemenkoan) {
+    redirect("/pj-kemenkoan");
   }
 
   const [{ data: ownedUnit }, { data: periods }, { data: selfScores }] = await Promise.all([
@@ -91,6 +91,15 @@ export default async function PjKementerianPage() {
         <p className="text-sm text-slate-600">
           Riwayat rapor pribadi untuk unit {ownedUnit?.nama_unit ?? "-"}.
         </p>
+      </div>
+
+      <div>
+        <a
+          href="/pj-kementerian/staff-detail"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Lihat Rapor Staff Unit
+        </a>
       </div>
 
       <Card>
