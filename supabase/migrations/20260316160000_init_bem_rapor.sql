@@ -50,7 +50,7 @@ create table if not exists public.rapor_scores (
   user_nim text not null references public.profiles(nim) on delete cascade,
   periode_id uuid not null references public.rapor_periods(id) on delete cascade,
   penilai_nim text not null references public.profiles(nim) on delete restrict,
-  total_avg numeric(4,2) not null default 0 check (total_avg between 0 and 5),
+  total_avg numeric(5,2) not null default 0 check (total_avg between 0 and 100),
   created_at timestamptz not null default now(),
   unique (user_nim, periode_id)
 );

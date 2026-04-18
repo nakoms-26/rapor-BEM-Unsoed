@@ -20,7 +20,7 @@ export function DownloadPdfButton({ reportId }: Props) {
       return;
     }
 
-    const printWindow = window.open("", "_blank", "width=1024,height=768");
+    const printWindow = window.open("", "Rapor BEM Unsoed", "width=1024,height=768");
     if (!printWindow) {
       return;
     }
@@ -34,7 +34,7 @@ export function DownloadPdfButton({ reportId }: Props) {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>Rapor PDF</title>
+          <title>Rapor BEM Unsoed 2026</title>
           ${styleAndLinkTags}
           <style>
             body {
