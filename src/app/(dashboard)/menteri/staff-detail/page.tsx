@@ -64,7 +64,7 @@ export default async function MenteriStaffDetailPage() {
   const { data: details } = scoreIds.length
     ? await supabase
         .from("rapor_details")
-        .select("rapor_id, main_indicator_name, sub_indicator_name, score")
+        .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
         .in("rapor_id", scoreIds)
     : { data: [] };
 

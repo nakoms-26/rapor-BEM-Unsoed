@@ -6,12 +6,34 @@ type ReportDetail = {
   sub_indicator_name: string;
   catatan?: string | null;
   score: number;
+  bentuk_tanggung_jawab?: string | null;
+  nilai_kuantitatif_tanggung_jawab?: number | null;
+  skala?: string | null;
+  nilai_kuantitatif_skala?: number | null;
+  nilai_kualitatif?: number | null;
+  nilai_akhir?: number | null;
 };
 
 type SectionItem = {
   label: string;
   catatan?: string | null;
   score: number;
+  bentuk_tanggung_jawab?: string | null;
+  nilai_kuantitatif_tanggung_jawab?: number | null;
+  skala?: string | null;
+  nilai_kuantitatif_skala?: number | null;
+  nilai_kualitatif?: number | null;
+  nilai_akhir?: number | null;
+};
+
+type PrestasiRow = {
+  namaAgenda: string;
+  bentukTanggungJawab: string;
+  nilaiKuantitatifTanggungJawab: number | null;
+  skala: string;
+  nilaiKuantitatifSkala: number | null;
+  nilaiKualitatif: number | null;
+  nilaiAkhir: number | null;
 };
 
 type Props = {
@@ -88,6 +110,12 @@ function groupSectionItems(details: ReportDetail[]) {
       label: detail.sub_indicator_name,
       catatan: detail.catatan ?? null,
       score: Number(detail.score),
+      bentuk_tanggung_jawab: detail.bentuk_tanggung_jawab ?? null,
+      nilai_kuantitatif_tanggung_jawab: detail.nilai_kuantitatif_tanggung_jawab ?? null,
+      skala: detail.skala ?? null,
+      nilai_kuantitatif_skala: detail.nilai_kuantitatif_skala ?? null,
+      nilai_kualitatif: detail.nilai_kualitatif ?? null,
+      nilai_akhir: detail.nilai_akhir ?? null,
     });
   }
 
@@ -131,6 +159,18 @@ function attendanceDescription(score: number) {
 
 function renderSectionTitle(section: string) {
   return SECTION_LABELS[section] ?? section;
+}
+
+function formatPrestasiValue(value: number | null | undefined) {
+  return value == null || Number.isNaN(value) ? "" : formatNumber(value, 2);
+}
+
+function prettifyScaleLabel(scale?: string | null) {
+  if (!scale) return "";
+  if (scale === "kecil") return "Kecil";
+  if (scale === "sedang") return "Sedang";
+  if (scale === "besar") return "Besar";
+  return scale;
 }
 
 export function RaporDocument({
@@ -180,6 +220,26 @@ export function RaporDocument({
   const terlambatCount = participationItems.filter((item) => item.score === 3).length;
   const izinCount = participationItems.filter((item) => item.score === 2).length;
   const tanpaKetCount = participationItems.filter((item) => item.score === 1).length;
+  const prestasiRows: PrestasiRow[] = [...prestasiSection.map((item) => ({
+    namaAgenda: item.label,
+    bentukTanggungJawab: item.bentuk_tanggung_jawab ?? "",
+    nilaiKuantitatifTanggungJawab: item.nilai_kuantitatif_tanggung_jawab ?? null,
+    skala: prettifyScaleLabel(item.skala),
+    nilaiKuantitatifSkala: item.nilai_kuantitatif_skala ?? null,
+    nilaiKualitatif: item.nilai_kualitatif ?? null,
+    nilaiAkhir: item.nilai_akhir ?? item.score,
+  }))];
+  while (prestasiRows.length < 5) {
+    prestasiRows.push({
+      namaAgenda: "",
+      bentukTanggungJawab: "",
+      nilaiKuantitatifTanggungJawab: null,
+      skala: "",
+      nilaiKuantitatifSkala: null,
+      nilaiKualitatif: null,
+      nilaiAkhir: null,
+    });
+  }
 
   return (
     <Card id={reportId} className="border-slate-200 bg-white shadow-sm">
@@ -449,30 +509,33 @@ export function RaporDocument({
                   <th className="w-32 px-3 py-2 text-left">Bentuk Tanggung Jawab</th>
                   <th className="w-32 px-3 py-2 text-left">Nilai Kuantitatif</th>
                   <th className="w-32 px-3 py-2 text-left">Skala</th>
+                  <th className="w-32 px-3 py-2 text-left">Nilai Kuantitatif</th>
+                  <th className="w-28 px-3 py-2 text-left">Nilai Kualitatif</th>
+                  <th className="w-28 px-3 py-2 text-left">Nilai Akhir</th>
                 </tr>
               </thead>
               <tbody>
-                {prestasiSection.length ? (
-                  prestasiSection.map((item, idx) => (
-                    <tr key={`${item.label}-${idx}`} className="border-b border-slate-100">
-                      <td className="px-3 py-2 text-slate-500">{idx + 1}</td>
-                      <td className="px-3 py-2 text-slate-700">{item.label}</td>
-                      <td className="px-3 py-2 text-slate-500">-</td>
-                      <td className="px-3 py-2 text-slate-700">{item.score.toFixed(2)}</td>
-                      <td className="px-3 py-2 text-slate-500">-</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-4 text-sm text-slate-500">Belum ada data nilai prestasi.</td>
+                {prestasiRows.map((item, idx) => (
+                  <tr key={`${item.namaAgenda}-${idx}`} className="border-b border-slate-100">
+                    <td className="px-3 py-2 text-slate-500">{idx + 1}.</td>
+                    <td className="px-3 py-2 text-slate-700">{item.namaAgenda || ""}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.bentukTanggungJawab || ""}</td>
+                    <td className="px-3 py-2 text-slate-700">{formatPrestasiValue(item.nilaiKuantitatifTanggungJawab)}</td>
+                    <td className="px-3 py-2 text-slate-700">{item.skala || ""}</td>
+                    <td className="px-3 py-2 text-slate-700">{formatPrestasiValue(item.nilaiKuantitatifSkala)}</td>
+                    <td className="px-3 py-2 text-slate-700">{formatPrestasiValue(item.nilaiKualitatif)}</td>
+                    <td className="px-3 py-2 text-slate-700">{formatPrestasiValue(item.nilaiAkhir)}</td>
                   </tr>
-                )}
+                ))}
                 <tr className="bg-slate-50 text-sm font-semibold text-slate-700">
                   <td className="px-3 py-2"></td>
                   <td className="px-3 py-2">Jumlah Prestasi</td>
                   <td className="px-3 py-2"></td>
-                  <td className="px-3 py-2">{sectionTotal(prestasiSection).toFixed(2)}</td>
                   <td className="px-3 py-2"></td>
+                  <td className="px-3 py-2"></td>
+                  <td className="px-3 py-2"></td>
+                  <td className="px-3 py-2"></td>
+                  <td className="px-3 py-2">{sectionTotal(prestasiSection).toFixed(2)}</td>
                 </tr>
               </tbody>
             </table>

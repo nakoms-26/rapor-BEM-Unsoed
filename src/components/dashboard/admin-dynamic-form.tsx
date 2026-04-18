@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { MAIN_INDICATORS } from "@/lib/constants";
+import { MAIN_INDICATORS, PRESTASI_RESPONSIBILITY_OPTIONS, PRESTASI_SCALE_OPTIONS } from "@/lib/constants";
 import { adminInputSchema, type AdminInputForm, type PeriodOption, type StaffOption, type UnitOption } from "@/types/app";
 import { submitAdminRapor } from "@/app/(dashboard)/admin/actions";
 import { AdminIndicatorBlock } from "@/components/dashboard/admin-indicator-block";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+type PrestasiResponsibilityValue = (typeof PRESTASI_RESPONSIBILITY_OPTIONS)[number]["value"];
+type PrestasiScaleValue = (typeof PRESTASI_SCALE_OPTIONS)[number]["value"];
 
 type Props = {
   units: UnitOption[];
@@ -36,6 +39,12 @@ type Props = {
         sub_indicator_name: string;
         catatan?: string;
         score: number;
+        bentuk_tanggung_jawab?: PrestasiResponsibilityValue;
+        nilai_kuantitatif_tanggung_jawab?: number;
+        skala?: PrestasiScaleValue;
+        nilai_kuantitatif_skala?: number;
+        nilai_kualitatif?: number;
+        nilai_akhir?: number;
       }[];
     }[];
   };
@@ -55,6 +64,39 @@ const BULAN_LABEL: Record<number, string> = {
   11: "November",
   12: "Desember",
 };
+
+function createBlankPrestasiItem() {
+  return {
+    sub_indicator_name: "",
+    catatan: undefined,
+    score: 0,
+    bentuk_tanggung_jawab: undefined,
+    nilai_kuantitatif_tanggung_jawab: undefined,
+    skala: undefined,
+    nilai_kuantitatif_skala: undefined,
+    nilai_kualitatif: undefined,
+    nilai_akhir: undefined,
+  };
+}
+
+function createBlankPrestasiItems(count = 5) {
+  return Array.from({ length: count }, () => createBlankPrestasiItem());
+}
+
+type FormIndicatorItem = NonNullable<AdminInputForm["indicators"][number]["items"][number]>;
+
+function normalizeIndicatorItems(indicatorName: string, items: FormIndicatorItem[]) {
+  if (indicatorName !== "Nilai Prestasi") {
+    return items;
+  }
+
+  const nextItems = [...items];
+  while (nextItems.length < 5) {
+    nextItems.push(createBlankPrestasiItem());
+  }
+
+  return nextItems;
+}
 
 export function AdminDynamicForm({
   units,
@@ -80,7 +122,7 @@ export function AdminDynamicForm({
   );
   const editableKemenkoSet = useMemo(() => new Set(editableKemenkoUnitIds), [editableKemenkoUnitIds]);
 
-  const form = useForm<AdminInputForm>({
+  const form = useForm<AdminInputForm, undefined, AdminInputForm>({
     resolver: zodResolver(adminInputSchema),
     defaultValues: {
       periode_id: periods[0]?.id ?? "",
@@ -89,7 +131,7 @@ export function AdminDynamicForm({
       catatan: "",
       indicators: MAIN_INDICATORS.map((name) => ({
         main_indicator_name: name,
-        items: name === PRESTASI_INDICATOR ? [] : [],
+        items: name === PRESTASI_INDICATOR ? createBlankPrestasiItems() : [],
       })),
     },
   });
@@ -150,11 +192,13 @@ export function AdminDynamicForm({
     const indicatorTemplate = templatesByKemenkoPeriode.get(`${kemenkoId}::${selectedPeriode}`);
     const nextIndicators = MAIN_INDICATORS.map((indicatorName) => ({
       main_indicator_name: indicatorName,
-      items: (indicatorTemplate?.get(indicatorName) ?? []).map((subName) => ({
-        sub_indicator_name: subName,
-        catatan: "",
-        score: 1,
-      })),
+      items: indicatorName === PRESTASI_INDICATOR
+        ? createBlankPrestasiItems()
+        : (indicatorTemplate?.get(indicatorName) ?? []).map((subName) => ({
+            sub_indicator_name: subName,
+            catatan: "",
+            score: 1,
+          })),
     }));
 
     const current = form.getValues();
@@ -182,7 +226,10 @@ export function AdminDynamicForm({
         unit_id: initialEditRapor.unit_id,
         user_nim: initialEditRapor.user_nim,
         catatan: initialEditRapor.catatan,
-        indicators: initialEditRapor.indicators,
+        indicators: initialEditRapor.indicators.map((indicator) => ({
+          ...indicator,
+          items: normalizeIndicatorItems(indicator.main_indicator_name, indicator.items),
+        })),
       },
       {
         keepErrors: true,
@@ -205,11 +252,13 @@ export function AdminDynamicForm({
           catatan: "",
           indicators: values.indicators.map((indicator) => ({
             ...indicator,
-            items: indicator.items.map((item) => ({
-              ...item,
-              catatan: item.catatan ?? "",
-              score: 1,
-            })),
+            items: indicator.main_indicator_name === PRESTASI_INDICATOR
+              ? createBlankPrestasiItems()
+              : indicator.items.map((item) => ({
+                  ...item,
+                  catatan: item.catatan ?? "",
+                  score: 1,
+                })),
           })),
         });
       }
@@ -329,6 +378,7 @@ export function AdminDynamicForm({
               index={index}
               control={form.control}
               register={form.register}
+              setValue={form.setValue}
               readOnlyNames={isPjKemenkoan
                 ? !canAddDetailAll
                 : !canAddDetailAll && !pjKementerianEditableIndicators.has(indicatorName)}

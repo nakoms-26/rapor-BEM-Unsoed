@@ -146,6 +146,12 @@ export type Database = {
           sub_indicator_name: string;
           catatan: string | null;
           score: number;
+          bentuk_tanggung_jawab: string | null;
+          nilai_kuantitatif_tanggung_jawab: number | null;
+          skala: string | null;
+          nilai_kuantitatif_skala: number | null;
+          nilai_kualitatif: number | null;
+          nilai_akhir: number | null;
           created_at: string;
         };
         Insert: {
@@ -155,6 +161,12 @@ export type Database = {
           sub_indicator_name: string;
           catatan?: string | null;
           score: number;
+          bentuk_tanggung_jawab?: string | null;
+          nilai_kuantitatif_tanggung_jawab?: number | null;
+          skala?: string | null;
+          nilai_kuantitatif_skala?: number | null;
+          nilai_kualitatif?: number | null;
+          nilai_akhir?: number | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["rapor_details"]["Insert"]>;

@@ -200,11 +200,11 @@ export default async function AdminPage({
   const { data: reportDetailRows } = raporIds.length
     ? await supabase
         .from("rapor_details")
-        .select("rapor_id, main_indicator_name, sub_indicator_name, catatan, score")
+        .select("rapor_id, main_indicator_name, sub_indicator_name, catatan, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
         .in("rapor_id", raporIds)
-    : { data: [] as { rapor_id: string; main_indicator_name: string; sub_indicator_name: string; catatan: string | null; score: number }[] };
+    : { data: [] as { rapor_id: string; main_indicator_name: string; sub_indicator_name: string; catatan: string | null; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[] };
 
-  const detailsByRaporId = new Map<string, { main_indicator_name: string; sub_indicator_name: string; catatan: string | null; score: number }[]>();
+  const detailsByRaporId = new Map<string, { main_indicator_name: string; sub_indicator_name: string; catatan: string | null; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[]>();
   for (const detail of reportDetailRows ?? []) {
     if (!detailsByRaporId.has(detail.rapor_id)) {
       detailsByRaporId.set(detail.rapor_id, []);
@@ -227,7 +227,7 @@ export default async function AdminPage({
         }
 
         const detailRows = detailsByRaporId.get(selectedEditRow.id) ?? [];
-        const detailByIndicator = new Map<string, { sub_indicator_name: string; catatan: string; score: number }[]>();
+        const detailByIndicator = new Map<string, { sub_indicator_name: string; catatan: string; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[]>();
         for (const detail of detailRows) {
           if (!detailByIndicator.has(detail.main_indicator_name)) {
             detailByIndicator.set(detail.main_indicator_name, []);
@@ -236,6 +236,12 @@ export default async function AdminPage({
             sub_indicator_name: detail.sub_indicator_name,
             catatan: detail.catatan ?? "",
             score: Number(detail.score),
+            bentuk_tanggung_jawab: detail.bentuk_tanggung_jawab ?? null,
+            nilai_kuantitatif_tanggung_jawab: detail.nilai_kuantitatif_tanggung_jawab ?? null,
+            skala: detail.skala ?? null,
+            nilai_kuantitatif_skala: detail.nilai_kuantitatif_skala ?? null,
+            nilai_kualitatif: detail.nilai_kualitatif ?? null,
+            nilai_akhir: detail.nilai_akhir ?? null,
           });
         }
 

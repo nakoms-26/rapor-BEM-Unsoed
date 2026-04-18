@@ -61,7 +61,13 @@ create table if not exists public.rapor_details (
   main_indicator_name text not null,
   sub_indicator_name text not null,
   catatan text,
-  score numeric(3,2) not null check (score between 0 and 5),
+  score numeric(5,2) not null check (score between 0 and 100),
+  bentuk_tanggung_jawab text,
+  nilai_kuantitatif_tanggung_jawab numeric(4,2),
+  skala text,
+  nilai_kuantitatif_skala numeric(4,2),
+  nilai_kualitatif numeric(3,2),
+  nilai_akhir numeric(4,2),
   created_at timestamptz not null default now()
 );
 

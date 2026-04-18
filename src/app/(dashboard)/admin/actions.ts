@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { requireSessionProfile } from "@/lib/auth/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import {
+  PRESTASI_RESPONSIBILITY_OPTIONS,
+  PRESTASI_SCALE_OPTIONS,
+} from "@/lib/constants";
 import { adminInputSchema, type AdminInputForm } from "@/types/app";
 
 function canInputAsAdmin(role: string) {
@@ -23,6 +27,14 @@ async function canInputAsEvaluator(
     .maybeSingle();
 
   return Boolean(assignment);
+}
+
+function getPrestasiResponsibilityScore(value?: string | null) {
+  return PRESTASI_RESPONSIBILITY_OPTIONS.find((option) => option.value === value)?.score ?? 0;
+}
+
+function getPrestasiScaleScore(value?: string | null) {
+  return PRESTASI_SCALE_OPTIONS.find((option) => option.value === value)?.score ?? 0;
 }
 
 export async function submitAdminRapor(payload: AdminInputForm) {
@@ -303,13 +315,29 @@ export async function submitAdminRapor(payload: AdminInputForm) {
   const detailRows = parsed.data.indicators.flatMap((indicator) =>
     indicator.items
       .filter((item) => item.sub_indicator_name.trim().length > 0)
-      .map((item) => ({
-        rapor_id: rapor.id,
-        main_indicator_name: indicator.main_indicator_name,
-        sub_indicator_name: item.sub_indicator_name.trim(),
-        catatan: item.catatan?.trim() || null,
-        score: item.score,
-      })),
+      .map((item) => {
+        const isPrestasi = indicator.main_indicator_name === PRESTASI_INDICATOR;
+        const responsibilityScore = getPrestasiResponsibilityScore(item.bentuk_tanggung_jawab ?? null);
+        const scaleScore = getPrestasiScaleScore(item.skala ?? null);
+        const qualitativeScore = Number(item.nilai_kualitatif ?? 0);
+        const finalScore = isPrestasi
+          ? Number((responsibilityScore + scaleScore + qualitativeScore).toFixed(2))
+          : item.score;
+
+        return {
+          rapor_id: rapor.id,
+          main_indicator_name: indicator.main_indicator_name,
+          sub_indicator_name: item.sub_indicator_name.trim(),
+          catatan: item.catatan?.trim() || null,
+          score: finalScore,
+          bentuk_tanggung_jawab: isPrestasi ? (item.bentuk_tanggung_jawab ?? null) : null,
+          nilai_kuantitatif_tanggung_jawab: isPrestasi ? responsibilityScore : null,
+          skala: isPrestasi ? (item.skala ?? null) : null,
+          nilai_kuantitatif_skala: isPrestasi ? scaleScore : null,
+          nilai_kualitatif: isPrestasi ? qualitativeScore : null,
+          nilai_akhir: isPrestasi ? finalScore : null,
+        };
+      }),
   );
 
   if (detailRows.length > 0) {
