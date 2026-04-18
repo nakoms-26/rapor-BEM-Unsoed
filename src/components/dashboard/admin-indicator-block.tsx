@@ -54,13 +54,18 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, r
               disabled={readOnlyNames}
               {...register(`indicators.${index}.items.${itemIndex}.sub_indicator_name`)}
             />
-            <Input
-              type="number"
-              min={1}
-              max={maxScore}
-              step={1}
-              {...register(`indicators.${index}.items.${itemIndex}.score`, { valueAsNumber: true })}
-            />
+            <select
+              className="h-10 w-full appearance-auto rounded-md border border-slate-300 bg-white px-3 text-sm"
+              {...register(`indicators.${index}.items.${itemIndex}.score`, {
+                setValueAs: (value) => Number(value),
+              })}
+            >
+              {Array.from({ length: maxScore }, (_, idx) => idx + 1).map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
             <Button
               type="button"
               variant="ghost"
