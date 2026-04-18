@@ -126,6 +126,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
   const INTERNAL_INDICATOR = "Partisipasi Internal";
   const EXTERNAL_INDICATOR = "Partisipasi External";
   const EXTERNAL_INDICATOR_ALT = "Partisipasi Eksternal";
+  const normalizeIndicatorName = (name: string) => (name === EXTERNAL_INDICATOR_ALT ? EXTERNAL_INDICATOR : name);
 
   const parentKemenkoId = selectedUnit.kategori === "kemenko" ? selectedUnit.id : selectedUnit.parent_id;
 
@@ -148,10 +149,8 @@ export async function submitAdminRapor(payload: AdminInputForm) {
 
     const mismatchRestrictedIndicator = parsed.data.indicators.some((indicator) => {
       if (
-        indicator.main_indicator_name === PRESTASI_INDICATOR ||
-        indicator.main_indicator_name === INTERNAL_INDICATOR ||
-        indicator.main_indicator_name === EXTERNAL_INDICATOR ||
-        indicator.main_indicator_name === EXTERNAL_INDICATOR_ALT
+        normalizeIndicatorName(indicator.main_indicator_name) === PRESTASI_INDICATOR ||
+        normalizeIndicatorName(indicator.main_indicator_name) === INTERNAL_INDICATOR
       ) {
         return false;
       }
@@ -169,7 +168,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     if (mismatchRestrictedIndicator) {
       return {
         ok: false,
-        message: "PJ Kementerian hanya dapat mengubah sub-indikator pada Partisipasi Internal, Partisipasi External, dan Nilai Prestasi.",
+        message: "PJ Kementerian hanya dapat mengubah sub-indikator pada Partisipasi Internal dan Nilai Prestasi.",
       };
     }
   }
@@ -184,48 +183,49 @@ export async function submitAdminRapor(payload: AdminInputForm) {
       .eq("is_active", true)
       .maybeSingle();
 
-    // If selected unit is not under owned kemenko, sub-indicator names must match template exactly.
-    if (!ownedKemenko) {
-      const { data: templateRows } = await supabase
-        .from("kemenko_sub_indicator_templates")
-        .select("main_indicator_name, sub_indicator_name")
-        .eq("kemenko_unit_id", parentKemenkoId ?? "00000000-0000-0000-0000-000000000000")
-        .eq("periode_id", parsed.data.periode_id);
+    const { data: templateRows } = await supabase
+      .from("kemenko_sub_indicator_templates")
+      .select("main_indicator_name, sub_indicator_name")
+      .eq("kemenko_unit_id", parentKemenkoId ?? "00000000-0000-0000-0000-000000000000")
+      .eq("periode_id", parsed.data.periode_id);
 
-      const normalize = (value: string) => value.trim().toLowerCase();
+    const normalize = (value: string) => value.trim().toLowerCase();
 
-      const expectedByIndicator = new Map<string, string[]>();
-      for (const row of templateRows ?? []) {
-        if (!expectedByIndicator.has(row.main_indicator_name)) {
-          expectedByIndicator.set(row.main_indicator_name, []);
-        }
-        expectedByIndicator.get(row.main_indicator_name)!.push(normalize(row.sub_indicator_name));
+    const expectedByIndicator = new Map<string, string[]>();
+    for (const row of templateRows ?? []) {
+      const indicatorName = normalizeIndicatorName(row.main_indicator_name);
+      if (!expectedByIndicator.has(indicatorName)) {
+        expectedByIndicator.set(indicatorName, []);
+      }
+      expectedByIndicator.get(indicatorName)!.push(normalize(row.sub_indicator_name));
+    }
+
+    const editableIndicators = ownedKemenko
+      ? new Set([PRESTASI_INDICATOR, INTERNAL_INDICATOR, EXTERNAL_INDICATOR])
+      : new Set<string>();
+
+    const mismatch = parsed.data.indicators.some((indicator) => {
+      const indicatorName = normalizeIndicatorName(indicator.main_indicator_name);
+      if (editableIndicators.has(indicatorName)) {
+        return false;
       }
 
-      const submittedByIndicator = new Map<string, string[]>();
-      for (const indicator of parsed.data.indicators) {
-        submittedByIndicator.set(
-          indicator.main_indicator_name,
-          indicator.items
-            .map((item) => normalize(item.sub_indicator_name))
-            .filter((name) => name.length > 0),
-        );
-      }
+      const submitted = indicator.items
+        .map((item) => normalize(item.sub_indicator_name))
+        .filter((name) => name.length > 0);
+      const expected = expectedByIndicator.get(indicatorName) ?? [];
+      const submittedSorted = [...new Set(submitted)].sort();
+      const expectedSorted = [...new Set(expected)].sort();
+      return submittedSorted.join("||") !== expectedSorted.join("||");
+    });
 
-      const mismatch = Array.from(submittedByIndicator.entries()).some(([indicatorName, submitted]) => {
-        const expected = expectedByIndicator.get(indicatorName) ?? [];
-        const submittedSorted = [...new Set(submitted)].sort();
-        const expectedSorted = [...new Set(expected)].sort();
-        return submittedSorted.join("||") !== expectedSorted.join("||");
-      });
-
-      if (mismatch) {
-        return {
-          ok: false,
-          message:
-            "Sub-indikator hanya dapat diubah oleh PJ Kemenko yang mengampu unit tersebut. Anda hanya bisa input nilai dari template sub-indikator yang sudah ada.",
-        };
-      }
+    if (mismatch) {
+      return {
+        ok: false,
+        message: ownedKemenko
+          ? "PJ Kemenkoan hanya dapat mengubah sub-indikator pada Partisipasi Internal, Partisipasi External, dan Nilai Prestasi untuk unit ampuan."
+          : "Sub-indikator hanya dapat diubah oleh PJ Kemenko yang mengampu unit tersebut. Anda hanya bisa input nilai dari template sub-indikator yang sudah ada.",
+      };
     }
   }
 

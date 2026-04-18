@@ -109,6 +109,10 @@ export function AdminDynamicForm({
   const INTERNAL_INDICATOR = "Partisipasi Internal";
   const EXTERNAL_INDICATOR = "Partisipasi External";
   const pjKementerianEditableIndicators = useMemo(
+    () => new Set([PRESTASI_INDICATOR, INTERNAL_INDICATOR]),
+    [PRESTASI_INDICATOR, INTERNAL_INDICATOR],
+  );
+  const pjKemenkoanEditableIndicators = useMemo(
     () => new Set([PRESTASI_INDICATOR, INTERNAL_INDICATOR, EXTERNAL_INDICATOR]),
     [PRESTASI_INDICATOR, INTERNAL_INDICATOR, EXTERNAL_INDICATOR],
   );
@@ -148,8 +152,6 @@ export function AdminDynamicForm({
   const selectedParentKemenkoId =
     selectedUnitMeta?.kategori === "kemenko" ? selectedUnitMeta.id : (selectedUnitMeta?.parent_id ?? "");
   const canEditByOwnedKemenko = isPjKemenkoan && editableKemenkoSet.has(selectedParentKemenkoId);
-  // Admin can always edit sub-indicator names.
-  // PJ Kemenkoan can edit only when selected unit belongs to kemenko they own.
   const canAddDetailAll = Boolean(isAdmin) || canEditByOwnedKemenko;
   const isEditMode = Boolean(initialEditRapor);
 
@@ -274,12 +276,12 @@ export function AdminDynamicForm({
       <CardHeader>
         <CardTitle>Input Rapor Dinamis</CardTitle>
         <CardDescription>
-          {canAddDetailAll
+          {isAdmin
             ? "Tambahkan, sunting, atau hapus rincian kegiatan (sub-indikator) per indikator utama."
             : isPjKemenkoan
-            ? "Anda hanya dapat input nilai dari sub-indikator template. Edit sub-indikator hanya untuk unit di bawah kemenko yang Anda ampu."
+            ? "PJ Kemenkoan dapat menambah/mengurangi rincian pada Partisipasi Internal, Partisipasi External, dan Nilai Prestasi untuk unit di bawah kemenko yang diampu. Di luar itu, hanya dapat input nilai dari template."
             : adminType === "pj_kementerian"
-            ? "Input skala penilaian per indikator. PJ Kementerian dapat menambah/mengurangi rincian pada Partisipasi Internal, Partisipasi External, dan Nilai Prestasi."
+            ? "Input skala penilaian per indikator. PJ Kementerian dapat menambah/mengurangi rincian pada Partisipasi Internal dan Nilai Prestasi."
             : "Input skala penilaian per indikator yang sudah ada. Penambahan/pengurangan rincian kegiatan tidak diizinkan."
           }
         </CardDescription>
@@ -371,9 +373,11 @@ export function AdminDynamicForm({
               control={form.control}
               register={form.register}
               setValue={form.setValue}
-              readOnlyNames={isPjKemenkoan
-                ? !canAddDetailAll
-                : !canAddDetailAll && !pjKementerianEditableIndicators.has(indicatorName)}
+              readOnlyNames={isAdmin
+                ? false
+                : isPjKemenkoan
+                ? !canEditByOwnedKemenko || !pjKemenkoanEditableIndicators.has(indicatorName)
+                : !pjKementerianEditableIndicators.has(indicatorName)}
             />
           ))}
 
