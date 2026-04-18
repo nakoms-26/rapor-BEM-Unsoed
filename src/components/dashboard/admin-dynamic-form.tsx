@@ -79,10 +79,6 @@ function createBlankPrestasiItem() {
   };
 }
 
-function createBlankPrestasiItems(count = 5) {
-  return Array.from({ length: count }, () => createBlankPrestasiItem());
-}
-
 type FormIndicatorItem = NonNullable<AdminInputForm["indicators"][number]["items"][number]>;
 
 function normalizeIndicatorItems(indicatorName: string, items: FormIndicatorItem[]) {
@@ -90,12 +86,7 @@ function normalizeIndicatorItems(indicatorName: string, items: FormIndicatorItem
     return items;
   }
 
-  const nextItems = [...items];
-  while (nextItems.length < 5) {
-    nextItems.push(createBlankPrestasiItem());
-  }
-
-  return nextItems;
+  return items;
 }
 
 export function AdminDynamicForm({
@@ -131,7 +122,7 @@ export function AdminDynamicForm({
       catatan: "",
       indicators: MAIN_INDICATORS.map((name) => ({
         main_indicator_name: name,
-        items: name === PRESTASI_INDICATOR ? createBlankPrestasiItems() : [],
+        items: [],
       })),
     },
   });
@@ -193,7 +184,7 @@ export function AdminDynamicForm({
     const nextIndicators = MAIN_INDICATORS.map((indicatorName) => ({
       main_indicator_name: indicatorName,
       items: indicatorName === PRESTASI_INDICATOR
-        ? createBlankPrestasiItems()
+        ? []
         : (indicatorTemplate?.get(indicatorName) ?? []).map((subName) => ({
             sub_indicator_name: subName,
             catatan: "",
@@ -253,7 +244,7 @@ export function AdminDynamicForm({
           indicators: values.indicators.map((indicator) => ({
             ...indicator,
             items: indicator.main_indicator_name === PRESTASI_INDICATOR
-              ? createBlankPrestasiItems()
+              ? []
               : indicator.items.map((item) => ({
                   ...item,
                   catatan: item.catatan ?? "",

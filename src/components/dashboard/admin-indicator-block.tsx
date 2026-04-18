@@ -36,6 +36,20 @@ function getPrestasiScaleScore(value?: string) {
   return PRESTASI_SCALE_OPTIONS.find((option) => option.value === value)?.score ?? 0;
 }
 
+function createBlankPrestasiItem() {
+  return {
+    sub_indicator_name: "",
+    catatan: "",
+    score: 0,
+    bentuk_tanggung_jawab: undefined,
+    nilai_kuantitatif_tanggung_jawab: undefined,
+    skala: undefined,
+    nilai_kuantitatif_skala: undefined,
+    nilai_kualitatif: undefined,
+    nilai_akhir: undefined,
+  };
+}
+
 export function AdminIndicatorBlock({ indicatorName, index, control, register, setValue, readOnlyNames }: Props) {
   const isParticipationIndicator =
     indicatorName === "Partisipasi Internal" ||
@@ -107,7 +121,13 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, s
           size="sm"
           variant="outline"
           disabled={readOnlyNames}
-          onClick={() => fieldArray.append({ sub_indicator_name: "", catatan: "", score: 1 })}
+          onClick={() =>
+            fieldArray.append(
+              isPrestasiIndicator
+                ? createBlankPrestasiItem()
+                : { sub_indicator_name: "", catatan: "", score: 1 },
+            )
+          }
         >
           <CirclePlus className="mr-2 h-4 w-4" /> {isPrestasiIndicator ? "Tambah Prestasi" : "Tambah Sub"}
         </Button>

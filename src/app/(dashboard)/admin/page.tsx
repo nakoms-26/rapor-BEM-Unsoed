@@ -86,7 +86,7 @@ export default async function AdminPage({
     supabase
       .from("profiles")
       .select("nim, nama_lengkap, unit_id")
-      .in("role", ["staff", "menteri", "pj_kementerian"])
+      .in("role", ["staff", "pj_kementerian"])
       .order("nama_lengkap"),
     supabase
       .from("rapor_scores")
