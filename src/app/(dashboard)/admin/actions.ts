@@ -213,9 +213,37 @@ export async function submitAdminRapor(payload: AdminInputForm) {
   const scoreList = parsed.data.indicators.flatMap((indicator) =>
     indicator.items.map((item) => Number(item.score)),
   );
-  const totalAverage = scoreList.length
-    ? Number((scoreList.reduce((sum, n) => sum + n, 0) / scoreList.length).toFixed(2))
-    : 0;
+  const normalizeMainIndicator = (name: string) => (name === "Partisipasi External" ? "Partisipasi Eksternal" : name);
+  const sectionWeights: Record<string, number> = {
+    "Keaktifan": 20,
+    "Tanggung Jawab": 20,
+    "Partisipasi Internal": 30,
+    "Partisipasi Eksternal": 30,
+  };
+  const sectionMaxScore: Record<string, number> = {
+    "Keaktifan": 5,
+    "Tanggung Jawab": 5,
+    "Partisipasi Internal": 4,
+    "Partisipasi Eksternal": 4,
+  };
+
+  const indicatorsByName = new Map(
+    parsed.data.indicators.map((indicator) => [normalizeMainIndicator(indicator.main_indicator_name), indicator.items]),
+  );
+
+  const weightedTotal = Object.entries(sectionWeights).reduce((sum, [indicatorName, weight]) => {
+    const items = indicatorsByName.get(indicatorName) ?? [];
+    if (!items.length) {
+      return sum;
+    }
+
+    const maxScore = sectionMaxScore[indicatorName] ?? 5;
+    const sectionAverage = items.reduce((acc, item) => acc + Number(item.score), 0) / items.length;
+    const weightedScore = (sectionAverage / maxScore) * weight;
+    return sum + weightedScore;
+  }, 0);
+
+  const totalAverage = Number(weightedTotal.toFixed(2));
 
   const normalizedCatatan = parsed.data.catatan?.trim() || null;
 

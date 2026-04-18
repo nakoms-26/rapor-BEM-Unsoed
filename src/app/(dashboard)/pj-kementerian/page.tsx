@@ -115,7 +115,6 @@ export default async function PjKementerianPage() {
                   jurusan={null}
                   tahunAngkatan={null}
                   unitName={ownedUnit?.nama_unit ?? "-"}
-                  categoryLabel={row.total_avg >= 4 ? "SANGAT BAIK" : row.total_avg >= 3 ? "BAIK" : "CUKUP"}
                   totalScore={Number(row.total_avg)}
                   catatan={row.catatan}
                   details={detailsByRapor.get(row.id) ?? []}

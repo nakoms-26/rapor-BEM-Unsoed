@@ -11,8 +11,8 @@ function reportTypeLabel(type: "staf_unit" | "menteri_kepala_biro") {
 }
 
 function scoreTone(score: number) {
-  if (score >= 4) return "bg-emerald-100 text-emerald-800 border-emerald-200";
-  if (score >= 3) return "bg-amber-100 text-amber-800 border-amber-200";
+  if (score >= 85) return "bg-emerald-100 text-emerald-800 border-emerald-200";
+  if (score >= 70) return "bg-amber-100 text-amber-800 border-amber-200";
   return "bg-rose-100 text-rose-800 border-rose-200";
 }
 

@@ -20,7 +20,6 @@ type Props = {
   jurusan?: string | null;
   tahunAngkatan?: number | null;
   unitName: string;
-  categoryLabel: string;
   totalScore: number;
   catatan?: string | null;
   details: ReportDetail[];
@@ -29,7 +28,6 @@ type Props = {
 const SECTION_LABELS: Record<string, string> = {
   "Keaktifan": "A. Keaktifan",
   "Tanggung Jawab": "B. Tanggung Jawab",
-  "Partisipasi Kegiatan": "C. Partisipasi Kegiatan",
   "Partisipasi Internal": "C.1 Partisipasi Internal",
   "Partisipasi External": "C.2 Partisipasi Eksternal",
   "Partisipasi Eksternal": "C.2 Partisipasi Eksternal",
@@ -41,20 +39,19 @@ const SECTION_ORDER = [
   "Tanggung Jawab",
   "Partisipasi Internal",
   "Partisipasi Eksternal",
-  "Nilai Prestasi",
 ];
 
 function scoreTone(score: number) {
-  if (score >= 4.5) return "bg-emerald-100 text-emerald-800 border-emerald-200";
-  if (score >= 3.5) return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (score >= 2.5) return "bg-amber-100 text-amber-800 border-amber-200";
+  if (score >= 85) return "bg-emerald-100 text-emerald-800 border-emerald-200";
+  if (score >= 70) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (score >= 55) return "bg-amber-100 text-amber-800 border-amber-200";
   return "bg-rose-100 text-rose-800 border-rose-200";
 }
 
 function categoryFromScore(score: number) {
-  if (score >= 4.5) return "SANGAT BAIK";
-  if (score >= 3.5) return "BAIK";
-  if (score >= 2.5) return "CUKUP";
+  if (score >= 85) return "SANGAT BAIK";
+  if (score >= 70) return "BAIK";
+  if (score >= 55) return "CUKUP";
   return "PERLU PERBAIKAN";
 }
 
@@ -84,6 +81,30 @@ function sectionTotal(items: SectionItem[]) {
   return Number(items.reduce((sum, item) => sum + Number(item.score), 0).toFixed(2));
 }
 
+function sectionAverage(items: SectionItem[]) {
+  if (!items.length) return 0;
+  return Number((sectionTotal(items) / items.length).toFixed(2));
+}
+
+function weightedSectionScore(items: SectionItem[], weight: number) {
+  if (!items.length) return 0;
+  return Number(((sectionAverage(items) / 5) * weight).toFixed(2));
+}
+
+function formatNumber(value: number, maximumFractionDigits = 1) {
+  return new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
+  }).format(value);
+}
+
+function attendanceDescription(score: number) {
+  if (score >= 4) return "Hadir";
+  if (score >= 3) return "Terlambat";
+  if (score >= 2) return "Izin";
+  return "Tanpa keterangan";
+}
+
 function renderSectionTitle(section: string) {
   return SECTION_LABELS[section] ?? section;
 }
@@ -96,7 +117,6 @@ export function RaporDocument({
   jurusan,
   tahunAngkatan,
   unitName,
-  categoryLabel,
   totalScore,
   catatan,
   details,
@@ -108,6 +128,15 @@ export function RaporDocument({
   const externalSection = sectionGroups.get("Partisipasi Eksternal") ?? sectionGroups.get("Partisipasi External") ?? [];
   const keaktifanSection = sectionGroups.get("Keaktifan") ?? [];
   const tanggungJawabSection = sectionGroups.get("Tanggung Jawab") ?? [];
+  const cumulativeCategory = categoryFromScore(totalScore);
+  const prestasiScore = sectionTotal(prestasiSection);
+
+  const weightedBySection: Record<string, number> = {
+    "Keaktifan": weightedSectionScore(keaktifanSection, 20),
+    "Tanggung Jawab": weightedSectionScore(tanggungJawabSection, 20),
+    "Partisipasi Internal": weightedSectionScore(internalSection, 30),
+    "Partisipasi Eksternal": weightedSectionScore(externalSection, 30),
+  };
 
   return (
     <Card id={reportId} className="border-slate-200 bg-white shadow-sm">
@@ -131,10 +160,9 @@ export function RaporDocument({
           </div>
           <div className={`rounded-lg border p-3 text-sm ${scoreTone(totalScore)}`}>
             <p><span className="font-medium">Bulan:</span> {periodLabel}</p>
-            <p><span className="font-medium">Nilai Kumulatif:</span> {totalScore.toFixed(2)}</p>
-            <p><span className="font-medium">Kategori:</span> {categoryFromScore(totalScore)}</p>
-            <p><span className="font-medium">Bobot Nilai Prestasi:</span> 0</p>
-            <p><span className="font-medium">Status:</span> {categoryLabel}</p>
+            <p><span className="font-medium">Kategori:</span> {cumulativeCategory}</p>
+            <p><span className="font-medium">Nilai Kumulatif:</span> {formatNumber(totalScore)}</p>
+            <p><span className="font-medium">Nilai Prestasi:</span> {formatNumber(prestasiScore, 1)}</p>
           </div>
         </div>
       </CardHeader>
@@ -157,20 +185,19 @@ export function RaporDocument({
                 const baseWeights: Record<string, number> = {
                   "Keaktifan": 20,
                   "Tanggung Jawab": 20,
-                  "Partisipasi Kegiatan": 30,
                   "Partisipasi Internal": 30,
                   "Partisipasi Eksternal": 30,
                   "Partisipasi External": 30,
-                  "Nilai Prestasi": 0,
                 };
                 const weight = baseWeights[sectionKey] ?? 0;
+                const weightedScore = weightedBySection[sectionKey] ?? 0;
 
                 return (
                   <tr key={sectionKey} className="border-b border-slate-100">
                     <td className="px-3 py-2 text-slate-500">{index + 1}</td>
                     <td className="px-3 py-2 font-medium text-slate-800">{renderSectionTitle(sectionKey)}</td>
                     <td className="px-3 py-2 text-slate-600">{weight}</td>
-                    <td className="px-3 py-2 text-slate-600">{total.toFixed(2)}</td>
+                    <td className="px-3 py-2 text-slate-600">{formatNumber(weightedScore)}</td>
                   </tr>
                 );
               })}
@@ -246,6 +273,10 @@ export function RaporDocument({
         {internalSection.length || externalSection.length ? (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-700">C. Partisipasi Kegiatan</h3>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+              <p className="font-semibold text-slate-800">Keterangan Penilaian Partisipasi</p>
+              <p>Hadir = 4, Terlambat = 3, Izin = 2, Tanpa keterangan = 1 (maksimal skor: 4)</p>
+            </div>
             {internalSection.length ? (
               <div className="overflow-hidden rounded-lg border border-slate-200">
                 <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">C.1 Partisipasi Internal</div>
@@ -254,6 +285,7 @@ export function RaporDocument({
                     <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
                       <th className="w-14 px-3 py-2 text-left">No</th>
                       <th className="px-3 py-2 text-left">Nama Agenda</th>
+                      <th className="w-40 px-3 py-2 text-left">Keterangan</th>
                       <th className="w-20 px-3 py-2 text-left">Nilai</th>
                     </tr>
                   </thead>
@@ -262,12 +294,14 @@ export function RaporDocument({
                       <tr key={`${item.label}-${idx}`} className="border-b border-slate-100">
                         <td className="px-3 py-2 text-slate-500">{idx + 1}</td>
                         <td className="px-3 py-2 text-slate-700">{item.label}</td>
+                        <td className="px-3 py-2 text-slate-600">{attendanceDescription(item.score)}</td>
                         <td className="px-3 py-2 text-slate-700">{item.score.toFixed(2)}</td>
                       </tr>
                     ))}
                     <tr className="bg-slate-50 text-sm font-semibold text-slate-700">
                       <td className="px-3 py-2"></td>
                       <td className="px-3 py-2">Total Agenda</td>
+                      <td className="px-3 py-2"></td>
                       <td className="px-3 py-2">{sectionTotal(internalSection).toFixed(2)}</td>
                     </tr>
                   </tbody>
@@ -283,6 +317,7 @@ export function RaporDocument({
                     <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
                       <th className="w-14 px-3 py-2 text-left">No</th>
                       <th className="px-3 py-2 text-left">Nama Agenda</th>
+                      <th className="w-40 px-3 py-2 text-left">Keterangan</th>
                       <th className="w-20 px-3 py-2 text-left">Nilai</th>
                     </tr>
                   </thead>
@@ -291,12 +326,14 @@ export function RaporDocument({
                       <tr key={`${item.label}-${idx}`} className="border-b border-slate-100">
                         <td className="px-3 py-2 text-slate-500">{idx + 1}</td>
                         <td className="px-3 py-2 text-slate-700">{item.label}</td>
+                        <td className="px-3 py-2 text-slate-600">{attendanceDescription(item.score)}</td>
                         <td className="px-3 py-2 text-slate-700">{item.score.toFixed(2)}</td>
                       </tr>
                     ))}
                     <tr className="bg-slate-50 text-sm font-semibold text-slate-700">
                       <td className="px-3 py-2"></td>
                       <td className="px-3 py-2">Total Agenda</td>
+                      <td className="px-3 py-2"></td>
                       <td className="px-3 py-2">{sectionTotal(externalSection).toFixed(2)}</td>
                     </tr>
                   </tbody>

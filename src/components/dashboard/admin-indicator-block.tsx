@@ -15,6 +15,12 @@ type Props = {
 };
 
 export function AdminIndicatorBlock({ indicatorName, index, control, register, readOnlyNames }: Props) {
+  const isParticipationIndicator =
+    indicatorName === "Partisipasi Internal" ||
+    indicatorName === "Partisipasi External" ||
+    indicatorName === "Partisipasi Eksternal";
+  const maxScore = isParticipationIndicator ? 4 : 5;
+
   const fieldArray = useFieldArray({
     control,
     name: `indicators.${index}.items`,
@@ -29,7 +35,7 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, r
           size="sm"
           variant="outline"
           disabled={readOnlyNames}
-          onClick={() => fieldArray.append({ sub_indicator_name: "", score: 0 })}
+          onClick={() => fieldArray.append({ sub_indicator_name: "", score: 1 })}
         >
           <CirclePlus className="mr-2 h-4 w-4" /> Tambah Sub
         </Button>
@@ -50,9 +56,9 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, r
             />
             <Input
               type="number"
-              min={0}
-              max={5}
-              step={0.5}
+              min={1}
+              max={maxScore}
+              step={1}
               {...register(`indicators.${index}.items.${itemIndex}.score`, { valueAsNumber: true })}
             />
             <Button

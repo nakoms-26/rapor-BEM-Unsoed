@@ -151,7 +151,7 @@ export function AdminDynamicForm({
       main_indicator_name: indicatorName,
       items: (indicatorTemplate?.get(indicatorName) ?? []).map((subName) => ({
         sub_indicator_name: subName,
-        score: 0,
+        score: 1,
       })),
     }));
 
@@ -205,7 +205,7 @@ export function AdminDynamicForm({
             ...indicator,
             items: indicator.items.map((item) => ({
               ...item,
-              score: 0,
+              score: 1,
             })),
           })),
         });
@@ -220,7 +220,7 @@ export function AdminDynamicForm({
       form.formState.errors.unit_id?.message ||
       form.formState.errors.user_nim?.message ||
       form.formState.errors.indicators?.message ||
-      "Form belum lengkap. Pastikan staf dipilih dan nama sub-indikator yang diisi minimal 2 karakter.";
+      "Form belum lengkap. Pastikan staf dipilih dan skor diisi bilangan bulat 1 sampai 5.";
 
     setSubmitMessage(String(firstError));
   }

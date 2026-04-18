@@ -149,7 +149,6 @@ export default async function AdminMenteriDetailPage() {
                                     jurusan={null}
                                     tahunAngkatan={null}
                                     unitName={item.unit}
-                                    categoryLabel={Number(row.total_avg) >= 4 ? "SANGAT BAIK" : Number(row.total_avg) >= 3 ? "BAIK" : "CUKUP"}
                                     totalScore={Number(row.total_avg)}
                                     catatan={row.catatan}
                                     details={detailsByRapor.get(row.id) ?? []}

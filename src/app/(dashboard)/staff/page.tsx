@@ -100,8 +100,8 @@ export default async function StaffPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Total Average</CardTitle>
-          <CardDescription>Skala 0 - 5</CardDescription>
+          <CardTitle>Nilai Kumulatif</CardTitle>
+          <CardDescription>Skala 0 - 100 (tanpa nilai prestasi)</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-4xl font-bold text-slate-900">{latestScore?.total_avg?.toFixed(2) ?? "0.00"}</p>
@@ -132,7 +132,6 @@ export default async function StaffPage() {
                   jurusan={null}
                   tahunAngkatan={null}
                   unitName={latestUnit.data?.nama_unit ?? "-"}
-                  categoryLabel={row.total_avg >= 4 ? "SANGAT BAIK" : row.total_avg >= 3 ? "BAIK" : "CUKUP"}
                   totalScore={Number(row.total_avg)}
                   catatan={row.catatan}
                   details={detailsByRapor.get(row.id) ?? []}
