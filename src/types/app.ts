@@ -3,6 +3,7 @@ import type { AppRole } from "@/lib/constants";
 
 export const subIndicatorSchema = z.object({
   sub_indicator_name: z.string().trim().min(2, "Nama sub-indikator minimal 2 karakter"),
+  catatan: z.string().trim().max(200, "Catatan maksimal 200 karakter").optional(),
   score: z
     .number()
     .int("Skor harus bilangan bulat")
@@ -41,7 +42,7 @@ export const adminInputSchema = z.object({
   });
 });
 
-export type AdminInputForm = z.infer<typeof adminInputSchema>;
+export type AdminInputForm = z.input<typeof adminInputSchema>;
 
 export type UnitOption = {
   id: string;

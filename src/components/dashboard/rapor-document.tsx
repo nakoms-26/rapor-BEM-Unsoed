@@ -4,11 +4,13 @@ import { DownloadPdfButton } from "@/components/dashboard/download-pdf-button";
 type ReportDetail = {
   main_indicator_name: string;
   sub_indicator_name: string;
+  catatan?: string | null;
   score: number;
 };
 
 type SectionItem = {
   label: string;
+  catatan?: string | null;
   score: number;
 };
 
@@ -70,6 +72,7 @@ function groupSectionItems(details: ReportDetail[]) {
     }
     groups.get(section)!.push({
       label: detail.sub_indicator_name,
+      catatan: detail.catatan ?? null,
       score: Number(detail.score),
     });
   }
@@ -88,7 +91,7 @@ function sectionAverage(items: SectionItem[]) {
 
 function weightedSectionScore(items: SectionItem[], weight: number) {
   if (!items.length) return 0;
-  return Number(((sectionAverage(items) / 5) * weight).toFixed(2));
+  return Number(((sectionAverage(items) / 4) * weight).toFixed(2));
 }
 
 function formatNumber(value: number, maximumFractionDigits = 1) {
@@ -294,7 +297,12 @@ export function RaporDocument({
                       <tr key={`${item.label}-${idx}`} className="border-b border-slate-100">
                         <td className="px-3 py-2 text-slate-500">{idx + 1}</td>
                         <td className="px-3 py-2 text-slate-700">{item.label}</td>
-                        <td className="px-3 py-2 text-slate-600">{attendanceDescription(item.score)}</td>
+                        <td className="px-3 py-2 text-slate-600">
+                          <div className="space-y-1">
+                            <p>{attendanceDescription(item.score)}</p>
+                            {item.catatan ? <p className="text-xs text-slate-500">{item.catatan}</p> : null}
+                          </div>
+                        </td>
                         <td className="px-3 py-2 text-slate-700">{item.score.toFixed(2)}</td>
                       </tr>
                     ))}
@@ -326,7 +334,12 @@ export function RaporDocument({
                       <tr key={`${item.label}-${idx}`} className="border-b border-slate-100">
                         <td className="px-3 py-2 text-slate-500">{idx + 1}</td>
                         <td className="px-3 py-2 text-slate-700">{item.label}</td>
-                        <td className="px-3 py-2 text-slate-600">{attendanceDescription(item.score)}</td>
+                        <td className="px-3 py-2 text-slate-600">
+                          <div className="space-y-1">
+                            <p>{attendanceDescription(item.score)}</p>
+                            {item.catatan ? <p className="text-xs text-slate-500">{item.catatan}</p> : null}
+                          </div>
+                        </td>
                         <td className="px-3 py-2 text-slate-700">{item.score.toFixed(2)}</td>
                       </tr>
                     ))}

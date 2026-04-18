@@ -60,6 +60,7 @@ create table if not exists public.rapor_details (
   rapor_id uuid not null references public.rapor_scores(id) on delete cascade,
   main_indicator_name text not null,
   sub_indicator_name text not null,
+  catatan text,
   score numeric(3,2) not null check (score between 0 and 5),
   created_at timestamptz not null default now()
 );

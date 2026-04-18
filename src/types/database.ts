@@ -144,6 +144,7 @@ export type Database = {
           rapor_id: string;
           main_indicator_name: string;
           sub_indicator_name: string;
+          catatan: string | null;
           score: number;
           created_at: string;
         };
@@ -152,6 +153,7 @@ export type Database = {
           rapor_id: string;
           main_indicator_name: string;
           sub_indicator_name: string;
+          catatan?: string | null;
           score: number;
           created_at?: string;
         };

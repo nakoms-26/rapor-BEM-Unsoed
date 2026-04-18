@@ -20,6 +20,12 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, r
     indicatorName === "Partisipasi External" ||
     indicatorName === "Partisipasi Eksternal";
   const maxScore = isParticipationIndicator ? 4 : 5;
+  const attendanceLabelByScore: Record<number, string> = {
+    4: "Hadir",
+    3: "Terlambat",
+    2: "Izin",
+    1: "Tanpa keterangan",
+  };
 
   const fieldArray = useFieldArray({
     control,
@@ -35,7 +41,7 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, r
           size="sm"
           variant="outline"
           disabled={readOnlyNames}
-          onClick={() => fieldArray.append({ sub_indicator_name: "", score: 1 })}
+          onClick={() => fieldArray.append({ sub_indicator_name: "", catatan: "", score: 1 })}
         >
           <CirclePlus className="mr-2 h-4 w-4" /> Tambah Sub
         </Button>
@@ -48,12 +54,18 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, r
           <p className="text-xs text-slate-500">Belum ada sub-indikator.</p>
         ) : null}
         {fieldArray.fields.map((field, itemIndex) => (
-          <div key={field.id} className="grid gap-3 md:grid-cols-[1fr_130px_56px]">
+          <div key={field.id} className={isParticipationIndicator ? "grid gap-3 md:grid-cols-[1fr_1fr_130px_56px]" : "grid gap-3 md:grid-cols-[1fr_130px_56px]"}>
             <Input
               placeholder={readOnlyNames ? "Sub-indikator (tetap)" : "Nama sub-indikator"}
               disabled={readOnlyNames}
               {...register(`indicators.${index}.items.${itemIndex}.sub_indicator_name`)}
             />
+            {isParticipationIndicator ? (
+              <Input
+                placeholder="Catatan"
+                {...register(`indicators.${index}.items.${itemIndex}.catatan`)}
+              />
+            ) : null}
             <select
               className="h-10 w-full appearance-auto rounded-md border border-slate-300 bg-white px-3 text-sm"
               {...register(`indicators.${index}.items.${itemIndex}.score`, {
@@ -62,7 +74,7 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, r
             >
               {Array.from({ length: maxScore }, (_, idx) => idx + 1).map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {isParticipationIndicator ? `${value} - ${attendanceLabelByScore[value]}` : value}
                 </option>
               ))}
             </select>

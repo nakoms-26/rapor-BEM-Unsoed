@@ -200,11 +200,11 @@ export default async function AdminPage({
   const { data: reportDetailRows } = raporIds.length
     ? await supabase
         .from("rapor_details")
-        .select("rapor_id, main_indicator_name, sub_indicator_name, score")
+        .select("rapor_id, main_indicator_name, sub_indicator_name, catatan, score")
         .in("rapor_id", raporIds)
-    : { data: [] as { rapor_id: string; main_indicator_name: string; sub_indicator_name: string; score: number }[] };
+    : { data: [] as { rapor_id: string; main_indicator_name: string; sub_indicator_name: string; catatan: string | null; score: number }[] };
 
-  const detailsByRaporId = new Map<string, { main_indicator_name: string; sub_indicator_name: string; score: number }[]>();
+  const detailsByRaporId = new Map<string, { main_indicator_name: string; sub_indicator_name: string; catatan: string | null; score: number }[]>();
   for (const detail of reportDetailRows ?? []) {
     if (!detailsByRaporId.has(detail.rapor_id)) {
       detailsByRaporId.set(detail.rapor_id, []);
@@ -227,13 +227,14 @@ export default async function AdminPage({
         }
 
         const detailRows = detailsByRaporId.get(selectedEditRow.id) ?? [];
-        const detailByIndicator = new Map<string, { sub_indicator_name: string; score: number }[]>();
+        const detailByIndicator = new Map<string, { sub_indicator_name: string; catatan: string; score: number }[]>();
         for (const detail of detailRows) {
           if (!detailByIndicator.has(detail.main_indicator_name)) {
             detailByIndicator.set(detail.main_indicator_name, []);
           }
           detailByIndicator.get(detail.main_indicator_name)!.push({
             sub_indicator_name: detail.sub_indicator_name,
+            catatan: detail.catatan ?? "",
             score: Number(detail.score),
           });
         }
@@ -246,7 +247,11 @@ export default async function AdminPage({
           catatan: selectedEditRow.catatan ?? "",
           indicators: MAIN_INDICATORS.map((indicator) => ({
             main_indicator_name: indicator,
-            items: detailByIndicator.get(indicator) ?? [],
+            items: (detailByIndicator.get(indicator) ?? []).map((item) => ({
+              sub_indicator_name: item.sub_indicator_name,
+              catatan: item.catatan,
+              score: item.score,
+            })),
           })),
         };
       })()
@@ -289,6 +294,7 @@ export default async function AdminPage({
         </p>
       ) : null}
       <AdminDynamicForm
+        key={initialEditRapor?.rapor_id ?? "new-rapor"}
         units={scopedUnits}
         periods={periods ?? []}
         staffs={scopedStaffs}

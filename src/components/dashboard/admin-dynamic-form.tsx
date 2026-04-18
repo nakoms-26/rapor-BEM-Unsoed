@@ -34,6 +34,7 @@ type Props = {
       main_indicator_name: string;
       items: {
         sub_indicator_name: string;
+        catatan?: string;
         score: number;
       }[];
     }[];
@@ -151,6 +152,7 @@ export function AdminDynamicForm({
       main_indicator_name: indicatorName,
       items: (indicatorTemplate?.get(indicatorName) ?? []).map((subName) => ({
         sub_indicator_name: subName,
+        catatan: "",
         score: 1,
       })),
     }));
@@ -205,6 +207,7 @@ export function AdminDynamicForm({
             ...indicator,
             items: indicator.items.map((item) => ({
               ...item,
+              catatan: item.catatan ?? "",
               score: 1,
             })),
           })),

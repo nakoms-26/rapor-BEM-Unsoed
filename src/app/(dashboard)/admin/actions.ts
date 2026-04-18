@@ -307,6 +307,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
         rapor_id: rapor.id,
         main_indicator_name: indicator.main_indicator_name,
         sub_indicator_name: item.sub_indicator_name.trim(),
+        catatan: item.catatan?.trim() || null,
         score: item.score,
       })),
   );
