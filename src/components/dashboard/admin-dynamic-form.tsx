@@ -107,9 +107,10 @@ export function AdminDynamicForm({
   const isPjKemenkoan = adminType === "pj_kemenkoan";
   const PRESTASI_INDICATOR = "Nilai Prestasi";
   const INTERNAL_INDICATOR = "Partisipasi Internal";
+  const EXTERNAL_INDICATOR = "Partisipasi External";
   const pjKementerianEditableIndicators = useMemo(
-    () => new Set([PRESTASI_INDICATOR, INTERNAL_INDICATOR]),
-    [PRESTASI_INDICATOR, INTERNAL_INDICATOR],
+    () => new Set([PRESTASI_INDICATOR, INTERNAL_INDICATOR, EXTERNAL_INDICATOR]),
+    [PRESTASI_INDICATOR, INTERNAL_INDICATOR, EXTERNAL_INDICATOR],
   );
   const editableKemenkoSet = useMemo(() => new Set(editableKemenkoUnitIds), [editableKemenkoUnitIds]);
 
@@ -278,7 +279,7 @@ export function AdminDynamicForm({
             : isPjKemenkoan
             ? "Anda hanya dapat input nilai dari sub-indikator template. Edit sub-indikator hanya untuk unit di bawah kemenko yang Anda ampu."
             : adminType === "pj_kementerian"
-            ? "Input skala penilaian per indikator. PJ Kementerian dapat menambah/mengurangi rincian pada Partisipasi Internal dan Nilai Prestasi."
+            ? "Input skala penilaian per indikator. PJ Kementerian dapat menambah/mengurangi rincian pada Partisipasi Internal, Partisipasi External, dan Nilai Prestasi."
             : "Input skala penilaian per indikator yang sudah ada. Penambahan/pengurangan rincian kegiatan tidak diizinkan."
           }
         </CardDescription>
