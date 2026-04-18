@@ -152,7 +152,7 @@ export function AdminDynamicForm({
   const selectedUnitMeta = unitById.get(selectedUnit);
   const selectedParentKemenkoId =
     selectedUnitMeta?.kategori === "kemenko" ? selectedUnitMeta.id : (selectedUnitMeta?.parent_id ?? "");
-  const canEditByOwnedKemenko = isPjKemenkoan && editableKemenkoSet.has(selectedParentKemenkoId);
+  const canEditByOwnedKemenko = isPjKemenkoan && (editableKemenkoSet.size === 0 || editableKemenkoSet.has(selectedParentKemenkoId));
   const canAddDetailAll = Boolean(isAdmin) || canEditByOwnedKemenko;
   const canAddSubIndicator = !isPjKemenkoan;
   const isEditMode = Boolean(initialEditRapor);

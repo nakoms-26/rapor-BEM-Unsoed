@@ -162,6 +162,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
   const reportType = targetProfile.role === "menteri" ? "menteri_kepala_biro" : "staf_unit";
   const PRESTASI_INDICATOR = "Nilai Prestasi";
   const INTERNAL_INDICATOR = "Partisipasi Internal";
+  const TANGGUNG_JAWAB_INDICATOR = "Tanggung Jawab";
   const EXTERNAL_INDICATOR = "Partisipasi External";
   const EXTERNAL_INDICATOR_ALT = "Partisipasi Eksternal";
   const normalizeIndicatorName = (name: string) => (name === EXTERNAL_INDICATOR_ALT ? EXTERNAL_INDICATOR : name);
@@ -179,24 +180,23 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     const normalize = (value: string) => value.trim().toLowerCase();
     const expectedByIndicator = new Map<string, string[]>();
     for (const row of templateRows ?? []) {
-      if (!expectedByIndicator.has(row.main_indicator_name)) {
-        expectedByIndicator.set(row.main_indicator_name, []);
+      const indicatorName = normalizeIndicatorName(row.main_indicator_name);
+      if (!expectedByIndicator.has(indicatorName)) {
+        expectedByIndicator.set(indicatorName, []);
       }
-      expectedByIndicator.get(row.main_indicator_name)!.push(normalize(row.sub_indicator_name));
+      expectedByIndicator.get(indicatorName)!.push(normalize(row.sub_indicator_name));
     }
 
     const mismatchRestrictedIndicator = parsed.data.indicators.some((indicator) => {
-      if (
-        normalizeIndicatorName(indicator.main_indicator_name) === PRESTASI_INDICATOR ||
-        normalizeIndicatorName(indicator.main_indicator_name) === INTERNAL_INDICATOR
-      ) {
+      const indicatorName = normalizeIndicatorName(indicator.main_indicator_name);
+      if (indicatorName === PRESTASI_INDICATOR || indicatorName === INTERNAL_INDICATOR || indicatorName === TANGGUNG_JAWAB_INDICATOR) {
         return false;
       }
 
       const submitted = indicator.items
         .map((item) => normalize(item.sub_indicator_name))
         .filter((name) => name.length > 0);
-      const expected = expectedByIndicator.get(indicator.main_indicator_name) ?? [];
+      const expected = expectedByIndicator.get(indicatorName) ?? [];
       const submittedSorted = [...new Set(submitted)].sort();
       const expectedSorted = [...new Set(expected)].sort();
 
@@ -206,21 +206,12 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     if (mismatchRestrictedIndicator) {
       return {
         ok: false,
-        message: "PJ Kementerian hanya dapat mengubah sub-indikator pada Partisipasi Internal dan Nilai Prestasi.",
+        message: "PJ Kementerian hanya dapat mengubah sub-indikator pada Tanggung Jawab, Partisipasi Internal, dan Nilai Prestasi.",
       };
     }
   }
 
   if (evaluatorProfile.role === "pj_kementerian" && evaluatorProfile.is_pj_kemenkoan === true) {
-    const { data: ownedKemenko } = await supabase
-      .from("pj_assignments")
-      .select("id")
-      .eq("nim", evaluatorProfile.nim)
-      .eq("scope", "kemenko")
-      .eq("target_unit_id", parentKemenkoId ?? "00000000-0000-0000-0000-000000000000")
-      .eq("is_active", true)
-      .maybeSingle();
-
     const { data: templateRows } = await supabase
       .from("kemenko_sub_indicator_templates")
       .select("main_indicator_name, sub_indicator_name")
@@ -238,16 +229,8 @@ export async function submitAdminRapor(payload: AdminInputForm) {
       expectedByIndicator.get(indicatorName)!.push(normalize(row.sub_indicator_name));
     }
 
-    const editableIndicators = ownedKemenko
-      ? new Set([PRESTASI_INDICATOR, INTERNAL_INDICATOR, EXTERNAL_INDICATOR])
-      : new Set<string>();
-
     const mismatch = parsed.data.indicators.some((indicator) => {
       const indicatorName = normalizeIndicatorName(indicator.main_indicator_name);
-      if (editableIndicators.has(indicatorName)) {
-        return false;
-      }
-
       const submitted = indicator.items
         .map((item) => normalize(item.sub_indicator_name))
         .filter((name) => name.length > 0);
@@ -260,9 +243,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     if (mismatch) {
       return {
         ok: false,
-        message: ownedKemenko
-          ? "PJ Kemenkoan hanya dapat mengubah sub-indikator pada Partisipasi Internal, Partisipasi External, dan Nilai Prestasi untuk unit ampuan."
-          : "Sub-indikator hanya dapat diubah oleh PJ Kemenko yang mengampu unit tersebut. Anda hanya bisa input nilai dari template sub-indikator yang sudah ada.",
+        message: "PJ Kemenkoan tidak dapat menambah/menghapus sub-indikator. Anda hanya bisa input nilai dari template sub-indikator yang sudah ada.",
       };
     }
   }
