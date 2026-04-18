@@ -229,8 +229,14 @@ export async function submitAdminRapor(payload: AdminInputForm) {
       expectedByIndicator.get(indicatorName)!.push(normalize(row.sub_indicator_name));
     }
 
+    const editableIndicators = new Set([PRESTASI_INDICATOR, INTERNAL_INDICATOR, TANGGUNG_JAWAB_INDICATOR]);
+
     const mismatch = parsed.data.indicators.some((indicator) => {
       const indicatorName = normalizeIndicatorName(indicator.main_indicator_name);
+      if (editableIndicators.has(indicatorName)) {
+        return false;
+      }
+
       const submitted = indicator.items
         .map((item) => normalize(item.sub_indicator_name))
         .filter((name) => name.length > 0);
@@ -243,7 +249,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     if (mismatch) {
       return {
         ok: false,
-        message: "PJ Kemenkoan tidak dapat menambah/menghapus sub-indikator. Anda hanya bisa input nilai dari template sub-indikator yang sudah ada.",
+        message: "PJ Kemenkoan hanya dapat mengubah sub-indikator pada Tanggung Jawab, Partisipasi Internal, dan Nilai Prestasi untuk unit ampuan.",
       };
     }
   }

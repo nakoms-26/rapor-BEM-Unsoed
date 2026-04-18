@@ -20,7 +20,6 @@ type Props = {
   staffs: StaffOption[];
   adminType?: "pj_kementerian" | "pj_kemenkoan";
   isAdmin?: boolean;
-  editableKemenkoUnitIds?: string[];
   kemenkoTemplates?: {
     kemenko_unit_id: string;
     periode_id: string;
@@ -95,7 +94,6 @@ export function AdminDynamicForm({
   staffs,
   adminType,
   isAdmin,
-  editableKemenkoUnitIds = [],
   kemenkoTemplates = [],
   initialEditRapor,
 }: Props) {
@@ -114,10 +112,9 @@ export function AdminDynamicForm({
     [PRESTASI_INDICATOR, INTERNAL_INDICATOR, TANGGUNG_JAWAB_INDICATOR],
   );
   const pjKemenkoanEditableIndicators = useMemo(
-    () => new Set([PRESTASI_INDICATOR, INTERNAL_INDICATOR, EXTERNAL_INDICATOR]),
-    [PRESTASI_INDICATOR, INTERNAL_INDICATOR, EXTERNAL_INDICATOR],
+    () => new Set([PRESTASI_INDICATOR, INTERNAL_INDICATOR, TANGGUNG_JAWAB_INDICATOR]),
+    [PRESTASI_INDICATOR, INTERNAL_INDICATOR, TANGGUNG_JAWAB_INDICATOR],
   );
-  const editableKemenkoSet = useMemo(() => new Set(editableKemenkoUnitIds), [editableKemenkoUnitIds]);
 
   const form = useForm<AdminInputForm, undefined, AdminInputForm>({
     resolver: zodResolver(adminInputSchema),
@@ -150,11 +147,6 @@ export function AdminDynamicForm({
 
   const unitById = useMemo(() => new Map(units.map((unit) => [unit.id, unit])), [units]);
   const selectedUnitMeta = unitById.get(selectedUnit);
-  const selectedParentKemenkoId =
-    selectedUnitMeta?.kategori === "kemenko" ? selectedUnitMeta.id : (selectedUnitMeta?.parent_id ?? "");
-  const canEditByOwnedKemenko = isPjKemenkoan && (editableKemenkoSet.size === 0 || editableKemenkoSet.has(selectedParentKemenkoId));
-  const canAddDetailAll = Boolean(isAdmin) || canEditByOwnedKemenko;
-  const canAddSubIndicator = !isPjKemenkoan;
   const isEditMode = Boolean(initialEditRapor);
 
   const templatesByKemenkoPeriode = useMemo(() => {
@@ -281,7 +273,7 @@ export function AdminDynamicForm({
           {isAdmin
             ? "Tambahkan, sunting, atau hapus rincian kegiatan (sub-indikator) per indikator utama."
             : isPjKemenkoan
-            ? "PJ Kemenkoan tidak dapat menambah sub-indikator. Hanya dapat mengisi nilai pada rincian yang sudah tersedia sesuai unit assignment."
+            ? "PJ Kemenkoan dapat menambah/mengurangi rincian pada Tanggung Jawab, Partisipasi Internal, dan Nilai Prestasi untuk unit assignment yang diampu."
             : adminType === "pj_kementerian"
             ? "Input skala penilaian per indikator. PJ Kementerian dapat menambah/mengurangi rincian pada Tanggung Jawab, Partisipasi Internal, dan Nilai Prestasi."
             : "Input skala penilaian per indikator yang sudah ada. Penambahan/pengurangan rincian kegiatan tidak diizinkan."
@@ -367,22 +359,26 @@ export function AdminDynamicForm({
             </div>
           </div>
 
-          {MAIN_INDICATORS.map((indicatorName, index) => (
-            <AdminIndicatorBlock
-              key={indicatorName}
-              indicatorName={indicatorName}
-              index={index}
-              control={form.control}
-              register={form.register}
-              setValue={form.setValue}
-              allowAddItem={canAddSubIndicator}
-              readOnlyNames={isAdmin
-                ? false
-                : isPjKemenkoan
-                ? !canEditByOwnedKemenko || !pjKemenkoanEditableIndicators.has(indicatorName)
-                : !pjKementerianEditableIndicators.has(indicatorName)}
-            />
-          ))}
+          {MAIN_INDICATORS.map((indicatorName, index) => {
+            const isEditable = isAdmin
+              ? true
+              : isPjKemenkoan
+              ? pjKemenkoanEditableIndicators.has(indicatorName)
+              : pjKementerianEditableIndicators.has(indicatorName);
+
+            return (
+              <AdminIndicatorBlock
+                key={indicatorName}
+                indicatorName={indicatorName}
+                index={index}
+                control={form.control}
+                register={form.register}
+                setValue={form.setValue}
+                allowAddItem={isEditable}
+                readOnlyNames={!isEditable}
+              />
+            );
+          })}
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Catatan</label>

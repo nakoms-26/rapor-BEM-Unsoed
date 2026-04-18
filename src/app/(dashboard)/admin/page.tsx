@@ -322,7 +322,6 @@ export default async function AdminPage({
         staffs={scopedStaffs}
         adminType={isPjKemenkoan ? "pj_kemenkoan" : "pj_kementerian"}
         isAdmin={profile.role === "admin"}
-        editableKemenkoUnitIds={(pjKemenkoAssignments ?? []).map((item) => item.target_unit_id)}
         kemenkoTemplates={kemenkoTemplates ?? []}
         initialEditRapor={initialEditRapor}
       />
