@@ -154,6 +154,7 @@ export function AdminDynamicForm({
     selectedUnitMeta?.kategori === "kemenko" ? selectedUnitMeta.id : (selectedUnitMeta?.parent_id ?? "");
   const canEditByOwnedKemenko = isPjKemenkoan && editableKemenkoSet.has(selectedParentKemenkoId);
   const canAddDetailAll = Boolean(isAdmin) || canEditByOwnedKemenko;
+  const canAddSubIndicator = !isPjKemenkoan;
   const isEditMode = Boolean(initialEditRapor);
 
   const templatesByKemenkoPeriode = useMemo(() => {
@@ -280,7 +281,7 @@ export function AdminDynamicForm({
           {isAdmin
             ? "Tambahkan, sunting, atau hapus rincian kegiatan (sub-indikator) per indikator utama."
             : isPjKemenkoan
-            ? "PJ Kemenkoan dapat menambah/mengurangi rincian pada Partisipasi Internal, Partisipasi External, dan Nilai Prestasi untuk unit di bawah kemenko yang diampu. Di luar itu, hanya dapat input nilai dari template."
+            ? "PJ Kemenkoan tidak dapat menambah sub-indikator. Hanya dapat mengisi nilai pada rincian yang sudah tersedia sesuai unit assignment."
             : adminType === "pj_kementerian"
             ? "Input skala penilaian per indikator. PJ Kementerian dapat menambah/mengurangi rincian pada Tanggung Jawab, Partisipasi Internal, dan Nilai Prestasi."
             : "Input skala penilaian per indikator yang sudah ada. Penambahan/pengurangan rincian kegiatan tidak diizinkan."
@@ -374,6 +375,7 @@ export function AdminDynamicForm({
               control={form.control}
               register={form.register}
               setValue={form.setValue}
+              allowAddItem={canAddSubIndicator}
               readOnlyNames={isAdmin
                 ? false
                 : isPjKemenkoan

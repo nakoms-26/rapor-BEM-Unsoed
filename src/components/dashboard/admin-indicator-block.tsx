@@ -19,6 +19,7 @@ type Props = {
   register: UseFormRegister<AdminInputForm>;
   setValue: UseFormSetValue<AdminInputForm>;
   readOnlyNames?: boolean;
+  allowAddItem?: boolean;
 };
 
 function formatDecimal(value: number) {
@@ -50,7 +51,7 @@ function createBlankPrestasiItem() {
   };
 }
 
-export function AdminIndicatorBlock({ indicatorName, index, control, register, setValue, readOnlyNames }: Props) {
+export function AdminIndicatorBlock({ indicatorName, index, control, register, setValue, readOnlyNames, allowAddItem = true }: Props) {
   const isParticipationIndicator =
     indicatorName === "Partisipasi Internal" ||
     indicatorName === "Partisipasi External" ||
@@ -120,7 +121,7 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, s
           type="button"
           size="sm"
           variant="outline"
-          disabled={readOnlyNames}
+          disabled={readOnlyNames || !allowAddItem}
           onClick={() =>
             fieldArray.append(
               isPrestasiIndicator
