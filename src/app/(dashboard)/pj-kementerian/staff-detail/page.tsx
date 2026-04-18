@@ -127,9 +127,9 @@ export default async function PjKementerianStaffDetailPage() {
                             title={`${formatPeriode(period?.bulan ?? 0, period?.tahun ?? 0)} (${period?.status ?? "draft"})`}
                             scoreLabel={Number(score.total_avg).toFixed(2)}
                           >
-                            <RaporDocument
-                              reportId={`pj-staff-rapor-${score.id}`}
-                              title="Rapor BEM UNSOED 2025"
+                             <RaporDocument
+                               reportId={`pj-staff-rapor-${score.id}`}
+                              title="Rapor BEM UNSOED 2026"
                               periodLabel={formatPeriode(period?.bulan ?? 0, period?.tahun ?? 0)}
                               name={staff.nama_lengkap}
                               jurusan={null}

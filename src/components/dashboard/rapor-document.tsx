@@ -248,7 +248,7 @@ export function RaporDocument({
           <DownloadPdfButton reportId={reportId} />
         </div>
         <div className="space-y-2 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Rapor BEM UNSOED 2025</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Rapor BEM UNSOED 2026</p>
           <CardTitle className="text-2xl text-slate-900">{title}</CardTitle>
           <CardDescription className="text-sm text-slate-600">
             Laporan kinerja pengurus BEM yang disusun setiap bulan.

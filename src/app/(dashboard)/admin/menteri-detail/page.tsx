@@ -149,7 +149,7 @@ export default async function AdminMenteriDetailPage() {
                                 >
                                   <RaporDocument
                                     reportId={`admin-menteri-${row.id}`}
-                                    title="Rapor BEM UNSOED 2025"
+                                    title="Rapor BEM UNSOED 2026"
                                     periodLabel={formatPeriode(period?.bulan ?? 0, period?.tahun ?? 0)}
                                     name={menteri?.nama_lengkap ?? "-"}
                                     jurusan={null}

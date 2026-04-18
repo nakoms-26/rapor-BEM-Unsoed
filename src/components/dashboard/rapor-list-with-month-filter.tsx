@@ -72,7 +72,7 @@ export function RaporListWithMonthFilter({
               >
                 <RaporDocument
                   reportId={`rapor-${row.id}`}
-                  title="Rapor BEM UNSOED 2025"
+                  title="Rapor BEM UNSOED 2026"
                   periodLabel={formatPeriode(row.bulan, row.tahun)}
                   name={userProfile.nama_lengkap}
                   jurusan={null}

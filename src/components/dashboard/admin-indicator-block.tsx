@@ -140,9 +140,21 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, s
         {fieldArray.fields.length === 0 ? (
           <p className="text-xs text-slate-500">{isPrestasiIndicator ? "Belum ada data prestasi." : "Belum ada sub-indikator."}</p>
         ) : null}
+        {isPrestasiIndicator ? (
+          <div className="hidden grid-cols-[1.2fr_1fr_120px_1fr_120px_120px_120px_80px_56px] gap-3 rounded-md border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 md:grid">
+            <div>Nama Agenda</div>
+            <div>Bentuk Tanggung Jawab</div>
+            <div>Nilai Kuantitatif</div>
+            <div>Skala</div>
+            <div>Nilai Kuantitatif</div>
+            <div>Nilai Kualitatif</div>
+            <div>Nilai Akhir</div>
+            <div></div>
+          </div>
+        ) : null}
         {fieldArray.fields.map((field, itemIndex) =>
           isPrestasiIndicator ? (
-            <div key={field.id} className="grid gap-3 md:grid-cols-[1.2fr_1fr_120px_1fr_120px_80px_120px_120px_56px]">
+            <div key={field.id} className="grid gap-3 md:grid-cols-[1.2fr_1fr_120px_1fr_120px_120px_120px_80px_56px]">
               <Input
                 placeholder={readOnlyNames ? "Nama agenda (tetap)" : "Nama agenda"}
                 disabled={readOnlyNames}
