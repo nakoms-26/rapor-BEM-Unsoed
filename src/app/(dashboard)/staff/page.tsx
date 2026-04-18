@@ -3,8 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { RaporDocument } from "@/components/dashboard/rapor-document";
-import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
+import { RaporListWithMonthFilter } from "@/components/dashboard/rapor-list-with-month-filter";
 
 export const dynamic = "force-dynamic";
 
@@ -121,32 +120,15 @@ export default async function StaffPage() {
         <CardHeader>
           <CardTitle>Riwayat Periode Rapor</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {raporByPeriod.length ? (
-            raporByPeriod.map((row, index) => (
-              <ReportPeriodItem
-                key={row.id}
-                defaultOpen={index === 0}
-                title={`${formatPeriode(row.bulan, row.tahun)} (${row.status})`}
-                scoreLabel={row.total_avg.toFixed(2)}
-              >
-                <RaporDocument
-                  reportId={`rapor-${row.id}`}
-                  title="Rapor BEM UNSOED 2025"
-                  periodLabel={formatPeriode(row.bulan, row.tahun)}
-                  name={profile.nama_lengkap}
-                  jurusan={null}
-                  tahunAngkatan={null}
-                  unitName={latestUnit.data?.nama_unit ?? "-"}
-                  totalScore={Number(row.total_avg)}
-                  catatan={row.catatan}
-                  details={detailsByRapor.get(row.id) ?? []}
-                />
-              </ReportPeriodItem>
-            ))
-          ) : (
-            <p className="text-sm text-slate-600">Belum ada rapor yang tersedia.</p>
-          )}
+        <CardContent>
+          <RaporListWithMonthFilter
+            raporItems={raporByPeriod.map((row) => ({
+              ...row,
+              details: detailsByRapor.get(row.id),
+            }))}
+            userProfile={{ nama_lengkap: profile.nama_lengkap }}
+            unitName={latestUnit.data?.nama_unit ?? "-"}
+          />
         </CardContent>
       </Card>
     </section>

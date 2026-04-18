@@ -3,29 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { RaporDocument } from "@/components/dashboard/rapor-document";
-import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
+import { RaporListWithMonthFilter } from "@/components/dashboard/rapor-list-with-month-filter";
 
 export const dynamic = "force-dynamic";
-
-const BULAN_LABEL: Record<number, string> = {
-  1: "Januari",
-  2: "Februari",
-  3: "Maret",
-  4: "April",
-  5: "Mei",
-  6: "Juni",
-  7: "Juli",
-  8: "Agustus",
-  9: "September",
-  10: "Oktober",
-  11: "November",
-  12: "Desember",
-};
-
-function formatPeriode(bulan: number, tahun: number) {
-  return `${BULAN_LABEL[bulan] ?? `Bulan ${bulan}`}/${tahun}`;
-}
 
 export default async function MenteriPage() {
   const supabase = createAdminSupabaseClient();
@@ -99,32 +79,16 @@ export default async function MenteriPage() {
           <CardTitle>Riwayat Periode Rapor</CardTitle>
           <CardDescription>Urut dari periode terbaru.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {rows.length ? (
-            rows.map((row, index) => (
-              <ReportPeriodItem
-                key={row.id}
-                defaultOpen={index === 0}
-                title={`${formatPeriode(row.bulan, row.tahun)} (${row.status})`}
-                scoreLabel={row.total_avg.toFixed(2)}
-              >
-                <RaporDocument
-                  reportId={`rapor-${row.id}`}
-                  title="Rapor BEM UNSOED 2025"
-                  periodLabel={formatPeriode(row.bulan, row.tahun)}
-                  name={profile.nama_lengkap}
-                  jurusan={null}
-                  tahunAngkatan={null}
-                  unitName={ownedUnit?.nama_unit ?? "-"}
-                  totalScore={Number(row.total_avg)}
-                  catatan={row.catatan}
-                  details={detailsByRapor.get(row.id) ?? []}
-                />
-              </ReportPeriodItem>
-            ))
-          ) : (
-            <p className="text-sm text-slate-600">Belum ada data rapor pribadi.</p>
-          )}
+        <CardContent>
+          <RaporListWithMonthFilter
+            raporItems={rows.map((row) => ({
+              ...row,
+              details: detailsByRapor.get(row.id),
+            }))}
+            userProfile={{ nama_lengkap: profile.nama_lengkap }}
+            unitName={ownedUnit?.nama_unit ?? "-"}
+            emptyMessage="Belum ada data rapor pribadi."
+          />
         </CardContent>
       </Card>
     </section>
