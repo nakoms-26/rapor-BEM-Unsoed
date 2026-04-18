@@ -183,8 +183,15 @@ export default async function AdminPage({
     is_active: item.is_active,
   }));
 
+  const ownedKemenkoIds = new Set((pjKemenkoAssignments ?? []).map((item) => item.target_unit_id));
   const scopedUnits = profile.role === "pj_kementerian"
-    ? (units ?? []).filter((unit) => unit.id === pjAssignment?.target_unit_id)
+    ? isPjKemenkoan
+      ? (units ?? []).filter(
+          (unit) =>
+            (unit.kategori === "kemenko" && ownedKemenkoIds.has(unit.id)) ||
+            (unit.kategori !== "kemenko" && ownedKemenkoIds.has(unit.parent_id ?? "")),
+        )
+      : (units ?? []).filter((unit) => unit.id === pjAssignment?.target_unit_id)
     : (units ?? []);
 
   const scopedUnitIds = new Set(scopedUnits.map((unit) => unit.id));
@@ -194,7 +201,7 @@ export default async function AdminPage({
     : (staffs ?? []);
 
   const noReferenceData = !scopedUnits.length || !(periods ?? []).length;
-  const missingPjAssignment = profile.role === "pj_kementerian" && !pjAssignment;
+  const missingPjAssignment = profile.role === "pj_kementerian" && !isPjKemenkoan && !pjAssignment;
 
   const raporIds = (reportRows ?? []).map((row) => row.id);
   const { data: reportDetailRows } = raporIds.length
@@ -292,6 +299,11 @@ export default async function AdminPage({
       {missingPjAssignment ? (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           Assignment PJ Kementerian belum ditetapkan. Hubungi admin untuk menetapkan 1 kementerian pegangan Anda.
+        </p>
+      ) : null}
+      {profile.role === "pj_kementerian" && isPjKemenkoan && scopedUnits.length === 0 ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Assignment PJ Kemenkoan belum ditetapkan. Hubungi admin untuk menetapkan kemenko ampuan Anda.
         </p>
       ) : null}
       {noReferenceData ? (

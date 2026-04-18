@@ -89,7 +89,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     return { ok: false, message: "Admin hanya dapat menilai akun staff, PJ Kementerian, atau menteri/kepala biro." };
   }
 
-  if (isPjKementerian) {
+  if (isPjKementerian && evaluatorProfile.is_pj_kemenkoan !== true) {
     if (!allowedEvaluatorTarget) {
       return { ok: false, message: "PJ Kementerian hanya boleh menilai staf/PJ Kementerian pada unit pegangan." };
     }
