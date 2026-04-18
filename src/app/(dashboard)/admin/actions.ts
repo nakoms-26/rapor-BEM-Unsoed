@@ -94,7 +94,8 @@ export async function submitAdminRapor(payload: AdminInputForm) {
       return { ok: false, message: "PJ Kementerian hanya boleh menilai staf/PJ Kementerian pada unit pegangan." };
     }
 
-    const { data: pjAssignment } = await supabase
+    // Check both legacy evaluator_unit_assignments and new pj_assignments (scope='unit')
+    const { data: legacyAssignment } = await supabase
       .from("evaluator_unit_assignments")
       .select("target_unit_id, is_active")
       .eq("evaluator_nim", evaluatorProfile.nim)
@@ -102,12 +103,25 @@ export async function submitAdminRapor(payload: AdminInputForm) {
       .limit(1)
       .maybeSingle();
 
-    if (!pjAssignment) {
-      return { ok: false, message: "Assignment PJ Kementerian belum ditetapkan. Hubungi admin untuk menetapkan 1 kementerian pegangan." };
+    const { data: pjUnitAssignments } = await supabase
+      .from("pj_assignments")
+      .select("target_unit_id")
+      .eq("nim", evaluatorProfile.nim)
+      .eq("scope", "unit")
+      .eq("is_active", true);
+
+    const validUnitIds = new Set<string>();
+    if (legacyAssignment) {
+      validUnitIds.add(legacyAssignment.target_unit_id);
+    }
+    pjUnitAssignments?.forEach((a) => validUnitIds.add(a.target_unit_id));
+
+    if (validUnitIds.size === 0) {
+      return { ok: false, message: "Assignment PJ Kementerian belum ditetapkan. Hubungi admin untuk menetapkan kementerian pegangan." };
     }
 
-    if (targetProfile.unit_id !== pjAssignment.target_unit_id || parsed.data.unit_id !== pjAssignment.target_unit_id) {
-      return { ok: false, message: "PJ Kementerian hanya dapat input rapor pada 1 kementerian yang ditetapkan." };
+    if (!validUnitIds.has(targetProfile.unit_id) || !validUnitIds.has(parsed.data.unit_id)) {
+      return { ok: false, message: "PJ Kementerian hanya dapat input rapor pada unit yang ditetapkan assignment." };
     }
   }
 
