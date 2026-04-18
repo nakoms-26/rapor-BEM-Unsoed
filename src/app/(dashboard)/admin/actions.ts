@@ -125,6 +125,30 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     }
   }
 
+  if (isPjKementerian && evaluatorProfile.is_pj_kemenkoan === true) {
+    if (!allowedEvaluatorTarget) {
+      return { ok: false, message: "PJ Kemenkoan hanya boleh menilai staf/PJ Kementerian pada unit pegangan." };
+    }
+
+    // PJ Kemenkoan validates against pj_assignments scope='unit' only
+    const { data: pjUnitAssignments } = await supabase
+      .from("pj_assignments")
+      .select("target_unit_id")
+      .eq("nim", evaluatorProfile.nim)
+      .eq("scope", "unit")
+      .eq("is_active", true);
+
+    const pjUnitIds = new Set((pjUnitAssignments ?? []).map((a) => a.target_unit_id));
+
+    if (pjUnitIds.size === 0) {
+      return { ok: false, message: "Assignment unit PJ Kemenkoan belum ditetapkan. Hubungi admin untuk menetapkan unit pegangan." };
+    }
+
+    if (!pjUnitIds.has(targetProfile.unit_id) || !pjUnitIds.has(parsed.data.unit_id)) {
+      return { ok: false, message: "PJ Kemenkoan hanya dapat input rapor pada unit yang ditetapkan assignment." };
+    }
+  }
+
   const { data: selectedUnit } = await supabase
     .from("ref_units")
     .select("id, kategori, parent_id")

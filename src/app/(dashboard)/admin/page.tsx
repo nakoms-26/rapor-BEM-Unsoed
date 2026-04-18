@@ -112,7 +112,7 @@ export default async function AdminPage({
           .eq("scope", "kemenko")
           .eq("is_active", true)
       : Promise.resolve({ data: [] as { target_unit_id: string }[] }),
-    profile.role === "pj_kementerian"
+    profile.role === "pj_kementerian" || isPjKemenkoan
       ? supabase
           .from("pj_assignments")
           .select("target_unit_id")
@@ -191,18 +191,11 @@ export default async function AdminPage({
     is_active: item.is_active,
   }));
 
-  const ownedKemenkoIds = new Set((pjKemenkoAssignments ?? []).map((item) => item.target_unit_id));
   const pjUnitIds = new Set((pjUnitAssignments ?? []).map((item) => item.target_unit_id));
   
-  // Scopped units: combination of kemenko units + direct unit assignments
+  // Scoped units: PJ Kemenkoan and PJ Kementerian both use direct unit assignments (scope='unit')
   const scopedUnits = profile.role === "pj_kementerian"
-    ? isPjKemenkoan
-      ? (units ?? []).filter(
-          (unit) =>
-            (unit.kategori === "kemenko" && ownedKemenkoIds.has(unit.id)) ||
-            (unit.kategori !== "kemenko" && ownedKemenkoIds.has(unit.parent_id ?? "")),
-        )
-      : (units ?? []).filter((unit) => pjUnitIds.has(unit.id) || (unit.parent_id && pjUnitIds.has(unit.parent_id)))
+    ? (units ?? []).filter((unit) => pjUnitIds.has(unit.id) || (unit.parent_id && pjUnitIds.has(unit.parent_id)))
     : (units ?? []);
 
   const scopedUnitIds = new Set(scopedUnits.map((unit) => unit.id));
