@@ -88,6 +88,17 @@ export async function saveKemenkoSubIndicators(payload: {
   if (uniqueRows.length) {
     const { error: insertError } = await supabase.from("kemenko_sub_indicator_templates").insert(uniqueRows);
     if (insertError) {
+      if (
+        insertError.code === "23505" &&
+        (insertError.message.includes("kemenko_sub_indicator_templat_kemenko_unit_id_main_indicato_key") ||
+          insertError.message.includes("kemenko_sub_indicator_templates_kemenko_unit_id_main_indicator_name_sub_indicator_name_key"))
+      ) {
+        return {
+          ok: false,
+          message:
+            "Gagal menyimpan template karena database masih memakai constraint lama (tanpa periode). Jalankan migration terbaru lalu coba simpan ulang.",
+        };
+      }
       return { ok: false, message: `Gagal menyimpan template: ${insertError.message}` };
     }
   }
