@@ -35,8 +35,18 @@ function isPrestasiScaleValue(value: string | null | undefined): value is Presta
   return PRESTASI_SCALE_OPTIONS.some((option) => option.value === value);
 }
 
+function canonicalizeIndicatorName(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z0-9]+[\.)\-:\s]+/, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function normalizeMainIndicatorName(name: string) {
-  const normalized = name.trim().toLowerCase();
+  const normalized = canonicalizeIndicatorName(name);
   if (normalized.includes("partisipasi") && (normalized.includes("ekstern") || normalized.includes("external"))) {
     return "Partisipasi External";
   }
@@ -293,6 +303,20 @@ export default async function AdminPage({
           });
         }
 
+        const getItemsByIndicator = (indicator: string) => {
+          const normalizedIndicator = normalizeIndicatorName(indicator);
+          const direct = detailByIndicator.get(normalizedIndicator);
+          if (direct) return direct;
+
+          for (const [key, values] of detailByIndicator.entries()) {
+            if (normalizeIndicatorName(key) === normalizedIndicator) {
+              return values;
+            }
+          }
+
+          return [] as { sub_indicator_name: string; catatan: string; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[];
+        };
+
         return {
           rapor_id: selectedEditRow.id,
           periode_id: selectedEditRow.periode_id,
@@ -301,7 +325,7 @@ export default async function AdminPage({
           catatan: selectedEditRow.catatan ?? "",
           indicators: MAIN_INDICATORS.map((indicator) => ({
             main_indicator_name: indicator,
-            items: (detailByIndicator.get(indicator) ?? []).map((item) => ({
+            items: getItemsByIndicator(indicator).map((item) => ({
               sub_indicator_name: item.sub_indicator_name,
               catatan: item.catatan,
               score: item.score,
