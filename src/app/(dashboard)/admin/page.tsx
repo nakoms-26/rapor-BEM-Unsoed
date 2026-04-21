@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { MAIN_INDICATORS, ROLE_HOME } from "@/lib/constants";
+import { MAIN_INDICATORS, PRESTASI_RESPONSIBILITY_OPTIONS, PRESTASI_SCALE_OPTIONS, ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   clearEvaluatorAssignmentByAdmin,
@@ -22,6 +22,17 @@ function scoreTone(score: number) {
   if (score >= 85) return "bg-emerald-100 text-emerald-800 border-emerald-200";
   if (score >= 70) return "bg-amber-100 text-amber-800 border-amber-200";
   return "bg-rose-100 text-rose-800 border-rose-200";
+}
+
+type PrestasiResponsibilityValue = (typeof PRESTASI_RESPONSIBILITY_OPTIONS)[number]["value"];
+type PrestasiScaleValue = (typeof PRESTASI_SCALE_OPTIONS)[number]["value"];
+
+function isPrestasiResponsibilityValue(value: string | null | undefined): value is PrestasiResponsibilityValue {
+  return PRESTASI_RESPONSIBILITY_OPTIONS.some((option) => option.value === value);
+}
+
+function isPrestasiScaleValue(value: string | null | undefined): value is PrestasiScaleValue {
+  return PRESTASI_SCALE_OPTIONS.some((option) => option.value === value);
 }
 
 export default async function AdminPage({
@@ -270,9 +281,9 @@ export default async function AdminPage({
               sub_indicator_name: item.sub_indicator_name,
               catatan: item.catatan,
               score: item.score,
-              bentuk_tanggung_jawab: item.bentuk_tanggung_jawab ?? undefined,
+              bentuk_tanggung_jawab: isPrestasiResponsibilityValue(item.bentuk_tanggung_jawab) ? item.bentuk_tanggung_jawab : undefined,
               nilai_kuantitatif_tanggung_jawab: item.nilai_kuantitatif_tanggung_jawab ?? undefined,
-              skala: item.skala ?? undefined,
+              skala: isPrestasiScaleValue(item.skala) ? item.skala : undefined,
               nilai_kuantitatif_skala: item.nilai_kuantitatif_skala ?? undefined,
               nilai_kualitatif: item.nilai_kualitatif ?? undefined,
               nilai_akhir: item.nilai_akhir ?? undefined,
