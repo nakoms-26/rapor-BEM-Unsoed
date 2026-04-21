@@ -225,6 +225,7 @@ export default async function AdminPage({
 
   const rowById = new Map((reportRows ?? []).map((row) => [row.id, row]));
   const selectedEditRow = rowById.get(editRaporId);
+  const normalizeIndicatorName = (name: string) => (name === "Partisipasi Eksternal" ? "Partisipasi External" : name);
 
   const initialEditRapor = selectedEditRow
     ? (() => {
@@ -240,10 +241,11 @@ export default async function AdminPage({
         const detailRows = detailsByRaporId.get(selectedEditRow.id) ?? [];
         const detailByIndicator = new Map<string, { sub_indicator_name: string; catatan: string; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[]>();
         for (const detail of detailRows) {
-          if (!detailByIndicator.has(detail.main_indicator_name)) {
-            detailByIndicator.set(detail.main_indicator_name, []);
+          const indicatorName = normalizeIndicatorName(detail.main_indicator_name);
+          if (!detailByIndicator.has(indicatorName)) {
+            detailByIndicator.set(indicatorName, []);
           }
-          detailByIndicator.get(detail.main_indicator_name)!.push({
+          detailByIndicator.get(indicatorName)!.push({
             sub_indicator_name: detail.sub_indicator_name,
             catatan: detail.catatan ?? "",
             score: Number(detail.score),
@@ -268,6 +270,12 @@ export default async function AdminPage({
               sub_indicator_name: item.sub_indicator_name,
               catatan: item.catatan,
               score: item.score,
+              bentuk_tanggung_jawab: item.bentuk_tanggung_jawab ?? undefined,
+              nilai_kuantitatif_tanggung_jawab: item.nilai_kuantitatif_tanggung_jawab ?? undefined,
+              skala: item.skala ?? undefined,
+              nilai_kuantitatif_skala: item.nilai_kuantitatif_skala ?? undefined,
+              nilai_kualitatif: item.nilai_kualitatif ?? undefined,
+              nilai_akhir: item.nilai_akhir ?? undefined,
             })),
           })),
         };
