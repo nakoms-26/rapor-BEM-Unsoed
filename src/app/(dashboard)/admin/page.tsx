@@ -35,6 +35,30 @@ function isPrestasiScaleValue(value: string | null | undefined): value is Presta
   return PRESTASI_SCALE_OPTIONS.some((option) => option.value === value);
 }
 
+function normalizeMainIndicatorName(name: string) {
+  const normalized = name.trim().toLowerCase();
+  if (normalized === "partisipasi eksternal" || normalized === "partisipasi external") {
+    return "Partisipasi External";
+  }
+  if (normalized === "keaktifan") return "Keaktifan";
+  if (normalized === "tanggung jawab") return "Tanggung Jawab";
+  if (normalized === "partisipasi internal") return "Partisipasi Internal";
+  if (normalized === "nilai prestasi") return "Nilai Prestasi";
+  return name.trim();
+}
+
+function normalizePrestasiResponsibilityValue(value: string | null | undefined): PrestasiResponsibilityValue | undefined {
+  if (!value) return undefined;
+  const normalized = value.trim().toLowerCase();
+  return PRESTASI_RESPONSIBILITY_OPTIONS.find((option) => option.value.toLowerCase() === normalized)?.value;
+}
+
+function normalizePrestasiScaleValue(value: string | null | undefined): PrestasiScaleValue | undefined {
+  if (!value) return undefined;
+  const normalized = value.trim().toLowerCase();
+  return PRESTASI_SCALE_OPTIONS.find((option) => option.value.toLowerCase() === normalized)?.value;
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -236,7 +260,7 @@ export default async function AdminPage({
 
   const rowById = new Map((reportRows ?? []).map((row) => [row.id, row]));
   const selectedEditRow = rowById.get(editRaporId);
-  const normalizeIndicatorName = (name: string) => (name === "Partisipasi Eksternal" ? "Partisipasi External" : name);
+  const normalizeIndicatorName = (name: string) => normalizeMainIndicatorName(name);
 
   const initialEditRapor = selectedEditRow
     ? (() => {
@@ -257,7 +281,7 @@ export default async function AdminPage({
             detailByIndicator.set(indicatorName, []);
           }
           detailByIndicator.get(indicatorName)!.push({
-            sub_indicator_name: detail.sub_indicator_name,
+            sub_indicator_name: detail.sub_indicator_name?.trim() ?? "",
             catatan: detail.catatan ?? "",
             score: Number(detail.score),
             bentuk_tanggung_jawab: detail.bentuk_tanggung_jawab ?? null,
@@ -281,9 +305,13 @@ export default async function AdminPage({
               sub_indicator_name: item.sub_indicator_name,
               catatan: item.catatan,
               score: item.score,
-              bentuk_tanggung_jawab: isPrestasiResponsibilityValue(item.bentuk_tanggung_jawab) ? item.bentuk_tanggung_jawab : undefined,
+              bentuk_tanggung_jawab:
+                normalizePrestasiResponsibilityValue(item.bentuk_tanggung_jawab) ??
+                (isPrestasiResponsibilityValue(item.bentuk_tanggung_jawab) ? item.bentuk_tanggung_jawab : undefined),
               nilai_kuantitatif_tanggung_jawab: item.nilai_kuantitatif_tanggung_jawab ?? undefined,
-              skala: isPrestasiScaleValue(item.skala) ? item.skala : undefined,
+              skala:
+                normalizePrestasiScaleValue(item.skala) ??
+                (isPrestasiScaleValue(item.skala) ? item.skala : undefined),
               nilai_kuantitatif_skala: item.nilai_kuantitatif_skala ?? undefined,
               nilai_kualitatif: item.nilai_kualitatif ?? undefined,
               nilai_akhir: item.nilai_akhir ?? undefined,
