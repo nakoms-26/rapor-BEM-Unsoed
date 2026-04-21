@@ -337,13 +337,6 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     };
   }
 
-  if (existingRapor) {
-    const { error: deleteDetailError } = await supabase.from("rapor_details").delete().eq("rapor_id", rapor.id);
-    if (deleteDetailError) {
-      return { ok: false, message: deleteDetailError.message };
-    }
-  }
-
   const detailRows = parsed.data.indicators.flatMap((indicator) =>
     indicator.items
       .filter((item) => item.sub_indicator_name.trim().length > 0)
@@ -371,6 +364,20 @@ export async function submitAdminRapor(payload: AdminInputForm) {
         };
       }),
   );
+
+  if (existingRapor && detailRows.length === 0) {
+    return {
+      ok: false,
+      message: "Gagal menyimpan: detail sub-indikator kosong. Muat ulang halaman dan coba edit lagi.",
+    };
+  }
+
+  if (existingRapor) {
+    const { error: deleteDetailError } = await supabase.from("rapor_details").delete().eq("rapor_id", rapor.id);
+    if (deleteDetailError) {
+      return { ok: false, message: deleteDetailError.message };
+    }
+  }
 
   if (detailRows.length > 0) {
     const { error: detailError } = await supabase.from("rapor_details").insert(detailRows);

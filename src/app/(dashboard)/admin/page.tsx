@@ -37,13 +37,13 @@ function isPrestasiScaleValue(value: string | null | undefined): value is Presta
 
 function normalizeMainIndicatorName(name: string) {
   const normalized = name.trim().toLowerCase();
-  if (normalized === "partisipasi eksternal" || normalized === "partisipasi external") {
+  if (normalized.includes("partisipasi") && (normalized.includes("ekstern") || normalized.includes("external"))) {
     return "Partisipasi External";
   }
-  if (normalized === "keaktifan") return "Keaktifan";
-  if (normalized === "tanggung jawab") return "Tanggung Jawab";
-  if (normalized === "partisipasi internal") return "Partisipasi Internal";
-  if (normalized === "nilai prestasi") return "Nilai Prestasi";
+  if (normalized.includes("keaktifan")) return "Keaktifan";
+  if (normalized.includes("tanggung") && normalized.includes("jawab")) return "Tanggung Jawab";
+  if (normalized.includes("partisipasi") && normalized.includes("internal")) return "Partisipasi Internal";
+  if (normalized.includes("nilai") && normalized.includes("prestasi")) return "Nilai Prestasi";
   return name.trim();
 }
 
