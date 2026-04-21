@@ -500,3 +500,39 @@ export async function clearEvaluatorAssignmentByAdmin(evaluatorNim: string) {
   revalidatePath("/penilai");
   return { ok: true, message: "Assignment unit penilai berhasil dihapus." };
 }
+
+export async function updatePeriodStatusByAdmin(formData: FormData) {
+  const supabase = createAdminSupabaseClient();
+  const profile = await requireSessionProfile();
+
+  if (profile.role !== "admin") {
+    return;
+  }
+
+  const periodId = String(formData.get("period_id") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim();
+
+  if (!periodId || (status !== "draft" && status !== "published")) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("rapor_periods")
+    .update({ status: status as "draft" | "published" })
+    .eq("id", periodId);
+
+  if (error) {
+    return;
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/staff");
+  revalidatePath("/menteri");
+  revalidatePath("/menteri/staff");
+  revalidatePath("/pj-kementerian");
+  revalidatePath("/pj-kementerian/staff-detail");
+  revalidatePath("/menko");
+  revalidatePath("/menko/menteri");
+  revalidatePath("/penilai");
+  revalidatePath("/pres_wapres");
+}

@@ -7,6 +7,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   clearEvaluatorAssignmentByAdmin,
   deleteRaporByAdmin,
+  updatePeriodStatusByAdmin,
   upsertEvaluatorAssignmentByAdmin,
 } from "@/app/(dashboard)/admin/actions";
 import { AdminDynamicForm } from "@/components/dashboard/admin-dynamic-form";
@@ -299,15 +300,27 @@ export default async function AdminPage({
   if (selectedEditRow) {
     const selectedProfile = profileRecordByNim.get(selectedEditRow.user_nim);
     if (selectedProfile && !(profile.role === "pj_kementerian" && !scopedUnitIds.has(selectedProfile.unit_id))) {
-      let detailRows = detailsByRaporId.get(selectedEditRow.id) ?? [];
+      const { data: directDetailRows } = await supabase
+        .from("rapor_details")
+        .select("main_indicator_name, sub_indicator_name, catatan, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
+        .eq("rapor_id", selectedEditRow.id);
+
+      let detailRows = (directDetailRows ?? []).map((row) => ({
+        rapor_id: selectedEditRow.id,
+        main_indicator_name: row.main_indicator_name,
+        sub_indicator_name: row.sub_indicator_name,
+        catatan: row.catatan,
+        score: Number(row.score),
+        bentuk_tanggung_jawab: row.bentuk_tanggung_jawab,
+        nilai_kuantitatif_tanggung_jawab: row.nilai_kuantitatif_tanggung_jawab,
+        skala: row.skala,
+        nilai_kuantitatif_skala: row.nilai_kuantitatif_skala,
+        nilai_kualitatif: row.nilai_kualitatif,
+        nilai_akhir: row.nilai_akhir,
+      }));
 
       if (detailRows.length === 0) {
-        const { data: directDetailRows } = await supabase
-          .from("rapor_details")
-          .select("main_indicator_name, sub_indicator_name, catatan, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
-          .eq("rapor_id", selectedEditRow.id);
-
-        detailRows = (directDetailRows ?? []).map((row) => ({
+        detailRows = (detailsByRaporId.get(selectedEditRow.id) ?? []).map((row) => ({
           rapor_id: selectedEditRow.id,
           main_indicator_name: row.main_indicator_name,
           sub_indicator_name: row.sub_indicator_name,
@@ -504,6 +517,65 @@ export default async function AdminPage({
           </div>
         </CardContent>
       </Card>
+      ) : null}
+
+      {profile.role === "admin" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Publish Periode Rapor</CardTitle>
+            <CardDescription>
+              Rapor hanya terlihat oleh staf jika status periode sudah published.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {periods?.length ? (
+              [...periods]
+                .sort((a, b) => {
+                  if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+                  return b.bulan - a.bulan;
+                })
+                .map((period) => (
+                  <div
+                    key={period.id}
+                    className="flex flex-col gap-3 rounded-md border border-slate-200 px-3 py-3 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div>
+                      <p className="font-medium text-slate-800">
+                        {period.bulan}/{period.tahun}
+                      </p>
+                      <p className="text-xs text-slate-500">Status saat ini: {period.status}</p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <form action={updatePeriodStatusByAdmin}>
+                        <input type="hidden" name="period_id" value={period.id} />
+                        <input type="hidden" name="status" value="draft" />
+                        <button
+                          type="submit"
+                          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                        >
+                          Draft
+                        </button>
+                      </form>
+
+                      <form action={updatePeriodStatusByAdmin}>
+                        <input type="hidden" name="period_id" value={period.id} />
+                        <input type="hidden" name="status" value="published" />
+                        <button
+                          type="submit"
+                          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100"
+                        >
+                          Publish
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <p className="text-sm text-slate-600">Belum ada periode rapor.</p>
+            )}
+          </CardContent>
+        </Card>
       ) : null}
 
       <Card>
