@@ -272,78 +272,116 @@ export default async function AdminPage({
   const selectedEditRow = rowById.get(editRaporId);
   const normalizeIndicatorName = (name: string) => normalizeMainIndicatorName(name);
 
-  const initialEditRapor = selectedEditRow
-    ? (() => {
-        const selectedProfile = profileRecordByNim.get(selectedEditRow.user_nim);
-        if (!selectedProfile) {
-          return undefined;
-        }
+  let initialEditRapor:
+    | {
+        rapor_id: string;
+        periode_id: string;
+        unit_id: string;
+        user_nim: string;
+        catatan: string;
+        indicators: {
+          main_indicator_name: string;
+          items: {
+            sub_indicator_name: string;
+            catatan: string;
+            score: number;
+            bentuk_tanggung_jawab?: PrestasiResponsibilityValue;
+            nilai_kuantitatif_tanggung_jawab?: number;
+            skala?: PrestasiScaleValue;
+            nilai_kuantitatif_skala?: number;
+            nilai_kualitatif?: number;
+            nilai_akhir?: number;
+          }[];
+        }[];
+      }
+    | undefined;
 
-        if (profile.role === "pj_kementerian" && !scopedUnitIds.has(selectedProfile.unit_id)) {
-          return undefined;
-        }
+  if (selectedEditRow) {
+    const selectedProfile = profileRecordByNim.get(selectedEditRow.user_nim);
+    if (selectedProfile && !(profile.role === "pj_kementerian" && !scopedUnitIds.has(selectedProfile.unit_id))) {
+      let detailRows = detailsByRaporId.get(selectedEditRow.id) ?? [];
 
-        const detailRows = detailsByRaporId.get(selectedEditRow.id) ?? [];
-        const detailByIndicator = new Map<string, { sub_indicator_name: string; catatan: string; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[]>();
-        for (const detail of detailRows) {
-          const indicatorName = normalizeIndicatorName(detail.main_indicator_name);
-          if (!detailByIndicator.has(indicatorName)) {
-            detailByIndicator.set(indicatorName, []);
-          }
-          detailByIndicator.get(indicatorName)!.push({
-            sub_indicator_name: detail.sub_indicator_name?.trim() ?? "",
-            catatan: detail.catatan ?? "",
-            score: Number(detail.score),
-            bentuk_tanggung_jawab: detail.bentuk_tanggung_jawab ?? null,
-            nilai_kuantitatif_tanggung_jawab: detail.nilai_kuantitatif_tanggung_jawab ?? null,
-            skala: detail.skala ?? null,
-            nilai_kuantitatif_skala: detail.nilai_kuantitatif_skala ?? null,
-            nilai_kualitatif: detail.nilai_kualitatif ?? null,
-            nilai_akhir: detail.nilai_akhir ?? null,
-          });
-        }
+      if (detailRows.length === 0) {
+        const { data: directDetailRows } = await supabase
+          .from("rapor_details")
+          .select("main_indicator_name, sub_indicator_name, catatan, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
+          .eq("rapor_id", selectedEditRow.id);
 
-        const getItemsByIndicator = (indicator: string) => {
-          const normalizedIndicator = normalizeIndicatorName(indicator);
-          const direct = detailByIndicator.get(normalizedIndicator);
-          if (direct) return direct;
-
-          for (const [key, values] of detailByIndicator.entries()) {
-            if (normalizeIndicatorName(key) === normalizedIndicator) {
-              return values;
-            }
-          }
-
-          return [] as { sub_indicator_name: string; catatan: string; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[];
-        };
-
-        return {
+        detailRows = (directDetailRows ?? []).map((row) => ({
           rapor_id: selectedEditRow.id,
-          periode_id: selectedEditRow.periode_id,
-          unit_id: selectedProfile.unit_id,
-          user_nim: selectedEditRow.user_nim,
-          catatan: selectedEditRow.catatan ?? "",
-          indicators: MAIN_INDICATORS.map((indicator) => ({
-            main_indicator_name: indicator,
-            items: getItemsByIndicator(indicator).map((item) => ({
-              sub_indicator_name: item.sub_indicator_name,
-              catatan: item.catatan,
-              score: item.score,
-              bentuk_tanggung_jawab:
-                normalizePrestasiResponsibilityValue(item.bentuk_tanggung_jawab) ??
-                (isPrestasiResponsibilityValue(item.bentuk_tanggung_jawab) ? item.bentuk_tanggung_jawab : undefined),
-              nilai_kuantitatif_tanggung_jawab: item.nilai_kuantitatif_tanggung_jawab ?? undefined,
-              skala:
-                normalizePrestasiScaleValue(item.skala) ??
-                (isPrestasiScaleValue(item.skala) ? item.skala : undefined),
-              nilai_kuantitatif_skala: item.nilai_kuantitatif_skala ?? undefined,
-              nilai_kualitatif: item.nilai_kualitatif ?? undefined,
-              nilai_akhir: item.nilai_akhir ?? undefined,
-            })),
+          main_indicator_name: row.main_indicator_name,
+          sub_indicator_name: row.sub_indicator_name,
+          catatan: row.catatan,
+          score: Number(row.score),
+          bentuk_tanggung_jawab: row.bentuk_tanggung_jawab,
+          nilai_kuantitatif_tanggung_jawab: row.nilai_kuantitatif_tanggung_jawab,
+          skala: row.skala,
+          nilai_kuantitatif_skala: row.nilai_kuantitatif_skala,
+          nilai_kualitatif: row.nilai_kualitatif,
+          nilai_akhir: row.nilai_akhir,
+        }));
+      }
+
+      const detailByIndicator = new Map<string, { sub_indicator_name: string; catatan: string; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[]>();
+      for (const detail of detailRows) {
+        const indicatorName = normalizeIndicatorName(detail.main_indicator_name);
+        if (!detailByIndicator.has(indicatorName)) {
+          detailByIndicator.set(indicatorName, []);
+        }
+        detailByIndicator.get(indicatorName)!.push({
+          sub_indicator_name: detail.sub_indicator_name?.trim() ?? "",
+          catatan: detail.catatan ?? "",
+          score: Number(detail.score),
+          bentuk_tanggung_jawab: detail.bentuk_tanggung_jawab ?? null,
+          nilai_kuantitatif_tanggung_jawab: detail.nilai_kuantitatif_tanggung_jawab ?? null,
+          skala: detail.skala ?? null,
+          nilai_kuantitatif_skala: detail.nilai_kuantitatif_skala ?? null,
+          nilai_kualitatif: detail.nilai_kualitatif ?? null,
+          nilai_akhir: detail.nilai_akhir ?? null,
+        });
+      }
+
+      const getItemsByIndicator = (indicator: string) => {
+        const normalizedIndicator = normalizeIndicatorName(indicator);
+        const direct = detailByIndicator.get(normalizedIndicator);
+        if (direct) return direct;
+
+        for (const [key, values] of detailByIndicator.entries()) {
+          if (normalizeIndicatorName(key) === normalizedIndicator) {
+            return values;
+          }
+        }
+
+        return [] as { sub_indicator_name: string; catatan: string; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[];
+      };
+
+      initialEditRapor = {
+        rapor_id: selectedEditRow.id,
+        periode_id: selectedEditRow.periode_id,
+        unit_id: selectedProfile.unit_id,
+        user_nim: selectedEditRow.user_nim,
+        catatan: selectedEditRow.catatan ?? "",
+        indicators: MAIN_INDICATORS.map((indicator) => ({
+          main_indicator_name: indicator,
+          items: getItemsByIndicator(indicator).map((item) => ({
+            sub_indicator_name: item.sub_indicator_name,
+            catatan: item.catatan,
+            score: item.score,
+            bentuk_tanggung_jawab:
+              normalizePrestasiResponsibilityValue(item.bentuk_tanggung_jawab) ??
+              (isPrestasiResponsibilityValue(item.bentuk_tanggung_jawab) ? item.bentuk_tanggung_jawab : undefined),
+            nilai_kuantitatif_tanggung_jawab: item.nilai_kuantitatif_tanggung_jawab ?? undefined,
+            skala:
+              normalizePrestasiScaleValue(item.skala) ??
+              (isPrestasiScaleValue(item.skala) ? item.skala : undefined),
+            nilai_kuantitatif_skala: item.nilai_kuantitatif_skala ?? undefined,
+            nilai_kualitatif: item.nilai_kualitatif ?? undefined,
+            nilai_akhir: item.nilai_akhir ?? undefined,
           })),
-        };
-      })()
-    : undefined;
+        })),
+      };
+    }
+  }
 
   const visibleRows = profile.role === "pj_kementerian"
     ? formattedRows.filter((row) => scopedUnitIds.has(row.unitId))
