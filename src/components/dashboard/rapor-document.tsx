@@ -80,17 +80,13 @@ const SECTION_MAX_SCORE: Record<string, number> = {
 };
 
 function scoreTone(score: number) {
-  if (score >= 85) return "bg-emerald-100 text-emerald-800 border-emerald-200";
-  if (score >= 70) return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (score >= 55) return "bg-amber-100 text-amber-800 border-amber-200";
+  if (score >= 60) return "bg-emerald-100 text-emerald-800 border-emerald-200";
   return "bg-rose-100 text-rose-800 border-rose-200";
 }
 
 function categoryFromScore(score: number) {
-  if (score >= 85) return "SANGAT BAIK";
-  if (score >= 70) return "BAIK";
-  if (score >= 55) return "CUKUP";
-  return "PERLU PERBAIKAN";
+  if (score >= 60) return "SANGAT BAIK";
+  return "PERLU DITINGKATKAN";
 }
 
 function normalizeSectionName(name: string) {

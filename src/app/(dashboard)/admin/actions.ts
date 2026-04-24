@@ -423,8 +423,80 @@ export async function deleteRaporByAdmin(raporId: string) {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (profile.role !== "admin") {
-    return { ok: false, message: "Hanya admin yang dapat menghapus rapor." };
+  if (profile.role !== "admin" && profile.role !== "pj_kementerian") {
+    return { ok: false, message: "Anda tidak memiliki akses untuk menghapus rapor." };
+  }
+
+  if (profile.role === "pj_kementerian") {
+    const { data: rapor } = await supabase
+      .from("rapor_scores")
+      .select("id, user_nim")
+      .eq("id", raporId)
+      .maybeSingle();
+
+    if (!rapor) {
+      return { ok: false, message: "Rapor tidak ditemukan." };
+    }
+
+    if (rapor.user_nim === profile.nim) {
+      return { ok: false, message: "PJ Kementerian tidak dapat menghapus rapor diri sendiri." };
+    }
+
+    const [{ data: targetProfile }, { data: legacyAssignments }, { data: pjUnitAssignments }, { data: pjKemenkoAssignments }, { data: units }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("unit_id")
+        .eq("nim", rapor.user_nim)
+        .maybeSingle(),
+      supabase
+        .from("evaluator_unit_assignments")
+        .select("target_unit_id")
+        .eq("evaluator_nim", profile.nim)
+        .eq("is_active", true),
+      supabase
+        .from("pj_assignments")
+        .select("target_unit_id")
+        .eq("nim", profile.nim)
+        .eq("scope", "unit")
+        .eq("is_active", true),
+      supabase
+        .from("pj_assignments")
+        .select("target_unit_id")
+        .eq("nim", profile.nim)
+        .eq("scope", "kemenko")
+        .eq("is_active", true),
+      supabase.from("ref_units").select("id, parent_id"),
+    ]);
+
+    if (!targetProfile?.unit_id) {
+      return { ok: false, message: "Unit target rapor tidak ditemukan." };
+    }
+
+    const scopeRootUnitIds = new Set([
+      ...((legacyAssignments ?? []).map((item) => item.target_unit_id)),
+      ...((pjUnitAssignments ?? []).map((item) => item.target_unit_id)),
+      ...((pjKemenkoAssignments ?? []).map((item) => item.target_unit_id)),
+    ]);
+
+    if (scopeRootUnitIds.size === 0) {
+      return { ok: false, message: "Assignment PJ Kementerian belum ditetapkan." };
+    }
+
+    const unitById = new Map((units ?? []).map((unit) => [unit.id, unit]));
+    let currentUnitId: string | null | undefined = targetProfile.unit_id;
+    let isWithinScope = false;
+
+    while (currentUnitId) {
+      if (scopeRootUnitIds.has(currentUnitId)) {
+        isWithinScope = true;
+        break;
+      }
+      currentUnitId = unitById.get(currentUnitId)?.parent_id ?? null;
+    }
+
+    if (!isWithinScope) {
+      return { ok: false, message: "PJ Kementerian hanya dapat menghapus rapor dalam unit ampuan." };
+    }
   }
 
   const { error } = await supabase.from("rapor_scores").delete().eq("id", raporId);

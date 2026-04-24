@@ -11,6 +11,7 @@ import {
   upsertEvaluatorAssignmentByAdmin,
 } from "@/app/(dashboard)/admin/actions";
 import { AdminDynamicForm } from "@/components/dashboard/admin-dynamic-form";
+import { DeleteRaporForm } from "@/components/dashboard/delete-rapor-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -125,6 +126,9 @@ export default async function AdminPage({
   }
 
   const isPjKemenkoan = profile.is_pj_kemenkoan === true;
+  const selectableRoles = profile.role === "admin"
+    ? ["staff", "pj_kementerian", "user", "menteri"]
+    : ["staff", "pj_kementerian", "user"];
 
   const [{ data: units }, { data: periods }, { data: staffs }, { data: reportRows }, { data: allProfiles }, { data: assignments }, { data: pjAssignment }, { data: pjKemenkoAssignments }, { data: pjUnitAssignments }, { data: kemenkoTemplates }] = await Promise.all([
     supabase.from("ref_units").select("id, nama_unit, kategori, parent_id").order("nama_unit"),
@@ -132,7 +136,7 @@ export default async function AdminPage({
     supabase
       .from("profiles")
       .select("nim, nama_lengkap, unit_id")
-      .in("role", ["staff", "pj_kementerian"])
+      .in("role", selectableRoles)
       .order("nama_lengkap"),
     supabase
       .from("rapor_scores")
@@ -674,15 +678,11 @@ export default async function AdminPage({
                                 >
                                   Detail/Edit
                                 </Link>
-                                <form action={deleteRaporAction}>
-                                  <input type="hidden" name="rapor_id" value={row.id} />
-                                  <button
-                                    type="submit"
-                                    className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100"
-                                  >
-                                    Hapus
-                                  </button>
-                                </form>
+                                <DeleteRaporForm
+                                  action={deleteRaporAction}
+                                  raporId={row.id}
+                                  raporName={`${row.targetName} - ${row.periodeLabel}`}
+                                />
                               </div>
                             </div>
                           </div>
