@@ -13,6 +13,12 @@ export default async function PjKemenkoPage() {
   const profile = await requireSessionProfile();
   const supabase = createAdminSupabaseClient();
 
+  async function updatePeriodStatusAction(formData: FormData) {
+    "use server";
+
+    await updatePeriodStatusByPjKemenkoan(formData);
+  }
+
   // Only PJ Kemenkoan can access this page
   if (profile.role !== "pj_kementerian" || !profile.is_pj_kemenkoan) {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
@@ -112,7 +118,7 @@ export default async function PjKemenkoPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <form action={updatePeriodStatusByPjKemenkoan}>
+                    <form action={updatePeriodStatusAction}>
                       <input type="hidden" name="period_id" value={period.id} />
                       <input type="hidden" name="status" value="draft" />
                       <button
@@ -123,7 +129,7 @@ export default async function PjKemenkoPage() {
                       </button>
                     </form>
 
-                    <form action={updatePeriodStatusByPjKemenkoan}>
+                    <form action={updatePeriodStatusAction}>
                       <input type="hidden" name="period_id" value={period.id} />
                       <input type="hidden" name="status" value="published" />
                       <button
