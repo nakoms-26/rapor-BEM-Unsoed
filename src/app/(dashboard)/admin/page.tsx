@@ -137,8 +137,7 @@ export default async function AdminPage({
     supabase
       .from("rapor_scores")
       .select("id, user_nim, penilai_nim, periode_id, report_type, total_avg, catatan, created_at")
-      .order("created_at", { ascending: false })
-      .limit(120),
+      .order("created_at", { ascending: false }),
     supabase.from("profiles").select("nim, nama_lengkap, role, unit_id"),
     supabase.from("evaluator_unit_assignments").select("evaluator_nim, target_unit_id, is_active"),
     profile.role === "pj_kementerian"
@@ -237,11 +236,42 @@ export default async function AdminPage({
     is_active: item.is_active,
   }));
 
-  const pjUnitIds = new Set((pjUnitAssignments ?? []).map((item) => item.target_unit_id));
+  const legacyPjUnitIds = new Set(
+    (assignments ?? [])
+      .filter((item) => item.evaluator_nim === profile.nim && item.is_active)
+      .map((item) => item.target_unit_id),
+  );
+
+  const pjUnitIds = new Set([
+    ...legacyPjUnitIds,
+    ...((pjUnitAssignments ?? []).map((item) => item.target_unit_id)),
+    ...(pjAssignment?.target_unit_id ? [pjAssignment.target_unit_id] : []),
+  ]);
+
+  const pjKemenkoUnitIds = new Set((pjKemenkoAssignments ?? []).map((item) => item.target_unit_id));
+
+  const pjScopeRootUnitIds = new Set([
+    ...pjUnitIds,
+    ...pjKemenkoUnitIds,
+  ]);
+
+  const isWithinPjScope = (unitId: string) => {
+    let currentUnitId: string | null | undefined = unitId;
+
+    while (currentUnitId) {
+      if (pjScopeRootUnitIds.has(currentUnitId)) {
+        return true;
+      }
+
+      currentUnitId = unitById.get(currentUnitId)?.parent_id ?? null;
+    }
+
+    return false;
+  };
   
   // Scoped units: PJ Kemenkoan and PJ Kementerian both use direct unit assignments (scope='unit')
   const scopedUnits = profile.role === "pj_kementerian"
-    ? (units ?? []).filter((unit) => pjUnitIds.has(unit.id) || (unit.parent_id && pjUnitIds.has(unit.parent_id)))
+    ? (units ?? []).filter((unit) => isWithinPjScope(unit.id))
     : (units ?? []);
 
   const scopedUnitIds = new Set(scopedUnits.map((unit) => unit.id));
@@ -251,7 +281,7 @@ export default async function AdminPage({
     : (staffs ?? []);
 
   const noReferenceData = !scopedUnits.length || !(periods ?? []).length;
-  const missingPjAssignment = profile.role === "pj_kementerian" && !isPjKemenkoan && !pjAssignment && pjUnitAssignments?.length === 0;
+  const missingPjAssignment = profile.role === "pj_kementerian" && pjScopeRootUnitIds.size === 0;
 
   const raporIds = (reportRows ?? []).map((row) => row.id);
   const { data: reportDetailRows } = raporIds.length
@@ -297,7 +327,7 @@ export default async function AdminPage({
       }
     | undefined;
 
-  if (selectedEditRow) {
+  if (selectedEditRow && !(profile.role === "pj_kementerian" && selectedEditRow.user_nim === profile.nim)) {
     const selectedProfile = profileRecordByNim.get(selectedEditRow.user_nim);
     if (selectedProfile && !(profile.role === "pj_kementerian" && !scopedUnitIds.has(selectedProfile.unit_id))) {
       const { data: directDetailRows } = await supabase
@@ -397,7 +427,7 @@ export default async function AdminPage({
   }
 
   const visibleRows = profile.role === "pj_kementerian"
-    ? formattedRows.filter((row) => scopedUnitIds.has(row.unitId))
+    ? formattedRows.filter((row) => isWithinPjScope(row.unitId) && row.user_nim !== profile.nim)
     : formattedRows;
 
   const visibleGroupedReports = new Map<string, Map<string, typeof visibleRows>>();

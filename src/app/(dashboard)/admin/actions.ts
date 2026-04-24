@@ -536,3 +536,46 @@ export async function updatePeriodStatusByAdmin(formData: FormData) {
   revalidatePath("/penilai");
   revalidatePath("/pres_wapres");
 }
+
+export async function updatePeriodStatusByPjKemenkoan(formData: FormData) {
+  const supabase = createAdminSupabaseClient();
+  const profile = await requireSessionProfile();
+
+  // Only PJ Kemenkoan (pj_kementerian with is_pj_kemenkoan = true) can use this
+  if (profile.role !== "pj_kementerian" || profile.is_pj_kemenkoan !== true) {
+    return { ok: false, message: "Hanya PJ Kemenkoan yang dapat mengubah status periode." };
+  }
+
+  const periodId = String(formData.get("period_id") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim();
+
+  if (!periodId || (status !== "draft" && status !== "published")) {
+    return { ok: false, message: "Data tidak valid." };
+  }
+
+  const { error } = await supabase
+    .from("rapor_periods")
+    .update({ status: status as "draft" | "published" })
+    .eq("id", periodId);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/pj-kemenkoan");
+  revalidatePath("/staff");
+  revalidatePath("/menteri");
+  revalidatePath("/menteri/staff");
+  revalidatePath("/pj-kementerian");
+  revalidatePath("/pj-kementerian/staff-detail");
+  revalidatePath("/menko");
+  revalidatePath("/menko/menteri");
+  revalidatePath("/penilai");
+  revalidatePath("/pres_wapres");
+
+  return {
+    ok: true,
+    message: status === "published" ? "Periode berhasil di-publish." : "Periode dikembalikan ke draft.",
+  };
+}

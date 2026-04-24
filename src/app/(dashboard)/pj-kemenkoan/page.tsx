@@ -5,6 +5,7 @@ import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PjKemenkoSubIndicatorForm } from "@/components/dashboard/pj-kemenko-sub-indicator-form";
+import { updatePeriodStatusByPjKemenkoan } from "@/app/(dashboard)/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,63 @@ export default async function PjKemenkoPage() {
           Recap Kementerian
         </Link>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Publish Periode Rapor</CardTitle>
+          <CardDescription>
+            Publish periode agar staf dan pejabat dapat melihat rapor mereka. Berlaku untuk seluruh kemenko.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {(periods ?? []).length ? (
+            [...(periods ?? [])]
+              .sort((a, b) => {
+                if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+                return b.bulan - a.bulan;
+              })
+              .map((period) => (
+                <div
+                  key={period.id}
+                  className="flex flex-col gap-3 rounded-md border border-slate-200 px-3 py-3 md:flex-row md:items-center md:justify-between"
+                >
+                  <div>
+                    <p className="font-medium text-slate-800">
+                      {period.bulan}/{period.tahun}
+                    </p>
+                    <p className="text-xs text-slate-500">Status saat ini: {period.status}</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <form action={updatePeriodStatusByPjKemenkoan}>
+                      <input type="hidden" name="period_id" value={period.id} />
+                      <input type="hidden" name="status" value="draft" />
+                      <button
+                        type="submit"
+                        className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                      >
+                        Draft
+                      </button>
+                    </form>
+
+                    <form action={updatePeriodStatusByPjKemenkoan}>
+                      <input type="hidden" name="period_id" value={period.id} />
+                      <input type="hidden" name="status" value="published" />
+                      <button
+                        type="submit"
+                        className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100"
+                      >
+                        Publish
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ))
+          ) : (
+            <p className="text-sm text-slate-600">Belum ada periode rapor.</p>
+          )}
+        </CardContent>
+      </Card>
 
       {(kemenkoUnits ?? []).map((kemenko) => (
         <Card key={kemenko.id}>
