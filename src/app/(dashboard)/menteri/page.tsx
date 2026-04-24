@@ -26,18 +26,28 @@ export default async function MenteriPage() {
       .order("created_at", { ascending: false }),
   ]);
 
-  const periodById = new Map((periods ?? []).map((period) => [period.id, period]));
-  const rows = (selfScores ?? []).map((score) => {
-    const period = periodById.get(score.periode_id);
-    return {
-      id: score.id,
-      total_avg: Number(score.total_avg),
-      catatan: score.catatan,
-      bulan: period?.bulan ?? 0,
-      tahun: period?.tahun ?? 0,
-      status: period?.status ?? "draft",
-    };
-  });
+  const publishedPeriods = (periods ?? [])
+    .filter((period) => period.status === "published")
+    .sort((a, b) => {
+      if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+      return b.bulan - a.bulan;
+    });
+
+  const periodById = new Map(publishedPeriods.map((period) => [period.id, period]));
+
+  const rows = (selfScores ?? [])
+    .filter((score) => periodById.has(score.periode_id))
+    .map((score) => {
+      const period = periodById.get(score.periode_id);
+      return {
+        id: score.id,
+        total_avg: Number(score.total_avg),
+        catatan: score.catatan,
+        bulan: period?.bulan ?? 0,
+        tahun: period?.tahun ?? 0,
+        status: period?.status ?? "draft",
+      };
+    });
 
   const raporIds = rows.map((row) => row.id);
   const { data: detailRows } = raporIds.length
