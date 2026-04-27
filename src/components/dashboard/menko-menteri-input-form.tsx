@@ -250,7 +250,8 @@ export function MenkoMenteriInputForm({ periods, menteriOptions }: Props) {
                   <Button
                     type="button"
                     variant="ghost"
-                    size="icon"
+                    size="sm"
+                    className="h-9 w-9 p-0"
                     onClick={() => responsibilityFieldArray.remove(index)}
                     disabled={responsibilityFieldArray.fields.length <= 1}
                     aria-label="Hapus sub-indikator tanggung jawab"
@@ -302,7 +303,8 @@ export function MenkoMenteriInputForm({ periods, menteriOptions }: Props) {
                   <Button
                     type="button"
                     variant="ghost"
-                    size="icon"
+                    size="sm"
+                    className="h-9 w-9 p-0"
                     onClick={() => participationFieldArray.remove(index)}
                     disabled={participationFieldArray.fields.length <= 1}
                     aria-label="Hapus sub-indikator partisipasi"
