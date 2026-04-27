@@ -5,6 +5,7 @@ import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporDocument } from "@/components/dashboard/rapor-document";
 import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
+import { MenkoMenteriInputForm } from "@/components/dashboard/menko-menteri-input-form";
 
 export const dynamic = "force-dynamic";
 
@@ -107,12 +108,28 @@ export default async function AdminMenteriDetailPage() {
     });
   }
 
+  const sortedPeriods = [...(periods ?? [])].sort((a, b) => {
+    if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+    return b.bulan - a.bulan;
+  });
+
+  const menteriOptions = (menteriProfiles ?? []).map((item) => {
+    const unit = unitById.get(item.unit_id);
+    return {
+      nim: item.nim,
+      nama_lengkap: item.nama_lengkap,
+      unit_name: unit?.nama_unit ?? "-",
+    };
+  });
+
   return (
     <section className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Rapor Menteri</h2>
         <p className="text-sm text-slate-600">Seluruh rapor menteri/kepala biro dalam kabinet.</p>
       </div>
+
+      <MenkoMenteriInputForm periods={sortedPeriods} menteriOptions={menteriOptions} />
 
       <Card>
         <CardHeader>

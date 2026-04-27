@@ -109,6 +109,24 @@ export default async function DashboardLandingPage() {
 
   const cards = [...(featuresByRole[profile.role] ?? [])];
 
+  if (profile.role === "admin") {
+    cards.push({
+      href: "/admin/menteri-detail#input-rapor-menteri-form",
+      title: "Input Rapor Menteri",
+      description: "Input penilaian rapor untuk menteri/kepala biro se-kabinet.",
+      icon: ClipboardList,
+    });
+  }
+
+  if (profile.role === "menko") {
+    cards.push({
+      href: "/menko/menteri#input-rapor-menteri-form",
+      title: "Input Rapor Menteri",
+      description: "Input penilaian rapor untuk menteri/kepala biro di bawah koordinasi Anda.",
+      icon: ClipboardList,
+    });
+  }
+
   if (isPjKemenkoan) {
     cards.length = 0;
     cards.push({

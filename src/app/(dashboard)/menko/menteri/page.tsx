@@ -4,6 +4,7 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { MenkoMenteriInputForm } from "@/components/dashboard/menko-menteri-input-form";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,10 @@ export default async function MenkoMenteriPage() {
   const unitById = new Map((coordinatedUnits ?? []).map((unit) => [unit.id, unit.nama_unit]));
   const unitIds = [...unitById.keys()];
   const periodById = new Map((periods ?? []).map((period) => [period.id, period]));
+  const sortedPeriods = [...(periods ?? [])].sort((a, b) => {
+    if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+    return b.bulan - a.bulan;
+  });
 
   const { data: menteriProfiles } = unitIds.length
     ? await supabase
@@ -43,6 +48,11 @@ export default async function MenkoMenteriPage() {
 
   const menteriByNim = new Map((menteriProfiles ?? []).map((item) => [item.nim, item]));
   const menteriNims = [...menteriByNim.keys()];
+  const menteriOptions = (menteriProfiles ?? []).map((item) => ({
+    nim: item.nim,
+    nama_lengkap: item.nama_lengkap,
+    unit_name: unitById.get(item.unit_id) ?? "-",
+  }));
 
   const { data: scores } = menteriNims.length
     ? await supabase
@@ -84,6 +94,8 @@ export default async function MenkoMenteriPage() {
         <h2 className="text-2xl font-bold text-slate-900">Rapor Para Menteri</h2>
         <p className="text-sm text-slate-600">Rapor menteri/kepala biro di bawah koordinasi Anda.</p>
       </div>
+
+      <MenkoMenteriInputForm periods={sortedPeriods} menteriOptions={menteriOptions} />
 
       <Card>
         <CardHeader>
