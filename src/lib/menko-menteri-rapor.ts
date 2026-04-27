@@ -39,3 +39,17 @@ export function getResponsibilityScore(value: MenkoMenteriResponsibilityValue) {
 export function getParticipationScore(value: MenkoMenteriParticipationValue) {
   return MENKO_MENTERI_PARTICIPATION_OPTIONS.find((option) => option.value === value)?.score ?? 0;
 }
+
+export function getMenteriFinalStatus(score: number) {
+  if (score >= 86) return "sangat baik";
+  if (score >= 71) return "baik";
+  if (score >= 56) return "cukup baik";
+  return "kurang baik";
+}
+
+export function getMenteriFinalStatusTone(score: number) {
+  if (score >= 86) return "bg-emerald-100 text-emerald-800 border-emerald-200";
+  if (score >= 71) return "bg-sky-100 text-sky-800 border-sky-200";
+  if (score >= 56) return "bg-amber-100 text-amber-800 border-amber-200";
+  return "bg-rose-100 text-rose-800 border-rose-200";
+}

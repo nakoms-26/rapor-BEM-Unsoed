@@ -14,6 +14,11 @@ import {
 } from "@/lib/menko-menteri-rapor";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
+function getSectionAverage(values: number[]) {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 const responsibilityEnum = z.enum(
   MENKO_MENTERI_RESPONSIBILITY_OPTIONS.map((option) => option.value) as [
     MenkoMenteriResponsibilityValue,
@@ -128,11 +133,9 @@ export async function submitMenkoMenteriRapor(payload: MenkoMenteriInputForm) {
       value: item.kategori,
     }));
 
-  const allScores = [
-    ...responsibilityEntries.map((entry) => getResponsibilityScore(entry.value)),
-    ...participationEntries.map((entry) => getParticipationScore(entry.value)),
-  ];
-  const totalAverage = Number((allScores.reduce((sum, value) => sum + value, 0) / allScores.length).toFixed(2));
+  const responsibilityAverage = getSectionAverage(responsibilityEntries.map((entry) => getResponsibilityScore(entry.value)));
+  const participationAverage = getSectionAverage(participationEntries.map((entry) => getParticipationScore(entry.value)));
+  const totalAverage = Number((((responsibilityAverage / 4) * 50) + ((participationAverage / 4) * 50)).toFixed(2));
 
   const normalizedCatatan = parsed.data.catatan?.trim() || null;
   const { error: catatanProbeError } = await supabase.from("rapor_scores").select("catatan").limit(1);

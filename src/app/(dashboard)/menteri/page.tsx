@@ -98,6 +98,7 @@ export default async function MenteriPage() {
             userProfile={{ nama_lengkap: profile.nama_lengkap }}
             unitName={ownedUnit?.nama_unit ?? "-"}
             emptyMessage="Belum ada data rapor pribadi."
+            reportVariant="menteri"
           />
         </CardContent>
       </Card>

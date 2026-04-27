@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DownloadPdfButton } from "@/components/dashboard/download-pdf-button";
+import { getMenteriFinalStatus, getMenteriFinalStatusTone } from "@/lib/menko-menteri-rapor";
 
 type ReportDetail = {
   main_indicator_name: string;
@@ -47,6 +48,7 @@ type Props = {
   totalScore: number;
   catatan?: string | null;
   details: ReportDetail[];
+  reportVariant?: "staff" | "menteri";
 };
 
 const SECTION_LABELS: Record<string, string> = {
@@ -82,11 +84,6 @@ const SECTION_MAX_SCORE: Record<string, number> = {
 function scoreTone(score: number) {
   if (score >= 60) return "bg-emerald-100 text-emerald-800 border-emerald-200";
   return "bg-rose-100 text-rose-800 border-rose-200";
-}
-
-function categoryFromScore(score: number) {
-  if (score >= 60) return "SANGAT BAIK";
-  return "PERLU DITINGKATKAN";
 }
 
 function normalizeSectionName(name: string) {
@@ -180,9 +177,12 @@ export function RaporDocument({
   totalScore,
   catatan,
   details,
+  reportVariant = "staff",
 }: Props) {
   const sectionGroups = groupSectionItems(details);
-  const orderedSections = SECTION_ORDER.filter((section) => sectionGroups.has(normalizeSectionName(section)));
+  const orderedSections = reportVariant === "menteri"
+    ? ["Tanggung Jawab", "Partisipasi Internal"].filter((section) => sectionGroups.has(normalizeSectionName(section)))
+    : SECTION_ORDER.filter((section) => sectionGroups.has(normalizeSectionName(section)));
   const prestasiSection = sectionGroups.get("Nilai Prestasi") ?? [];
   const internalSection = sectionGroups.get("Partisipasi Internal") ?? [];
   const externalSection = sectionGroups.get("Partisipasi Eksternal") ?? sectionGroups.get("Partisipasi External") ?? [];
@@ -191,11 +191,25 @@ export function RaporDocument({
   const normalizedTotalScore = normalizeToHundredScale(totalScore);
   const prestasiScore = sectionTotal(prestasiSection);
 
+  const sectionWeights = reportVariant === "menteri"
+    ? {
+        "Tanggung Jawab": 50,
+        "Partisipasi Internal": 50,
+      }
+    : SECTION_WEIGHTS;
+
+  const sectionMaxScores = reportVariant === "menteri"
+    ? {
+        "Tanggung Jawab": 4,
+        "Partisipasi Internal": 4,
+      }
+    : SECTION_MAX_SCORE;
+
   const weightedBySection: Record<string, number> = {
-    "Keaktifan": weightedSectionScore(keaktifanSection, SECTION_WEIGHTS["Keaktifan"], SECTION_MAX_SCORE["Keaktifan"]),
-    "Tanggung Jawab": weightedSectionScore(tanggungJawabSection, SECTION_WEIGHTS["Tanggung Jawab"], SECTION_MAX_SCORE["Tanggung Jawab"]),
-    "Partisipasi Internal": weightedSectionScore(internalSection, SECTION_WEIGHTS["Partisipasi Internal"], SECTION_MAX_SCORE["Partisipasi Internal"]),
-    "Partisipasi Eksternal": weightedSectionScore(externalSection, SECTION_WEIGHTS["Partisipasi Eksternal"], SECTION_MAX_SCORE["Partisipasi Eksternal"]),
+    "Keaktifan": weightedSectionScore(keaktifanSection, sectionWeights["Keaktifan"] ?? 0, sectionMaxScores["Keaktifan"] ?? 5),
+    "Tanggung Jawab": weightedSectionScore(tanggungJawabSection, sectionWeights["Tanggung Jawab"] ?? 0, sectionMaxScores["Tanggung Jawab"] ?? 4),
+    "Partisipasi Internal": weightedSectionScore(internalSection, sectionWeights["Partisipasi Internal"] ?? 0, sectionMaxScores["Partisipasi Internal"] ?? 4),
+    "Partisipasi Eksternal": weightedSectionScore(externalSection, sectionWeights["Partisipasi Eksternal"] ?? 0, sectionMaxScores["Partisipasi Eksternal"] ?? 4),
   };
 
   const weightedTotalFromDetails = Number(
@@ -211,7 +225,9 @@ export function RaporDocument({
     keaktifanSection.length || tanggungJawabSection.length || internalSection.length || externalSection.length
       ? weightedTotalFromDetails
       : normalizedTotalScore;
-  const cumulativeCategory = categoryFromScore(displayTotalScore);
+  const cumulativeCategory = reportVariant === "menteri"
+    ? getMenteriFinalStatus(displayTotalScore)
+    : (displayTotalScore >= 60 ? "SANGAT BAIK" : "PERLU DITINGKATKAN");
   const participationItems = [...internalSection, ...externalSection];
   const terlambatCount = participationItems.filter((item) => item.score === 3).length;
   const izinCount = participationItems.filter((item) => item.score === 2).length;
@@ -236,6 +252,8 @@ export function RaporDocument({
       nilaiAkhir: null,
     });
   }
+
+  const scorePanelTone = reportVariant === "menteri" ? getMenteriFinalStatusTone(displayTotalScore) : scoreTone(displayTotalScore);
 
   return (
     <Card id={reportId} className="border-slate-200 bg-white shadow-sm">
@@ -271,26 +289,35 @@ export function RaporDocument({
               <p>{periodLabel}</p>
             </div>
           </div>
-          <div className={`rounded-lg border p-3 text-sm ${scoreTone(displayTotalScore)}`}>
+          <div className={`rounded-lg border p-3 text-sm ${scorePanelTone}`}>
             <div className="grid grid-cols-[130px_12px_1fr] gap-y-1">
-              <p className="font-semibold">KATEGORI</p>
+              <p className="font-semibold">{reportVariant === "menteri" ? "STATUS AKHIR" : "KATEGORI"}</p>
               <p>:</p>
               <p className="font-semibold">{cumulativeCategory}</p>
 
-              <p className="font-semibold">NILAI KUMULATIF</p>
-              <p>:</p>
-              <p className="font-semibold">{formatNumber(displayTotalScore, 2)}</p>
+              {reportVariant !== "menteri" ? (
+                <>
+                  <p className="font-semibold">NILAI KUMULATIF</p>
+                  <p>:</p>
+                  <p className="font-semibold">{formatNumber(displayTotalScore, 2)}</p>
+                </>
+              ) : null}
 
-              <p className="font-semibold">NILAI PRESTASI</p>
-              <p>:</p>
-              <p className="font-semibold">{formatNumber(prestasiScore, 1)}</p>
+              {reportVariant !== "menteri" ? (
+                <>
+                  <p className="font-semibold">NILAI PRESTASI</p>
+                  <p>:</p>
+                  <p className="font-semibold">{formatNumber(prestasiScore, 1)}</p>
+                </>
+              ) : null}
             </div>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-6 pt-6">
-        <div className="space-y-2">
+        {reportVariant !== "menteri" ? (
+          <div className="space-y-2">
           <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-700">Bobot Nilai</h3>
           <div className="grid gap-3 md:grid-cols-[1.5fr_1fr]">
             <div className="overflow-hidden rounded-lg border border-slate-200">
@@ -345,6 +372,7 @@ export function RaporDocument({
             </div>
           </div>
         </div>
+        ) : null}
 
         {keaktifanSection.length ? (
           <div className="space-y-3">

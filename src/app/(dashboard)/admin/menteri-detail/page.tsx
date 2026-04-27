@@ -6,6 +6,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporDocument } from "@/components/dashboard/rapor-document";
 import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
 import { MenkoMenteriInputForm } from "@/components/dashboard/menko-menteri-input-form";
+import { getMenteriFinalStatus } from "@/lib/menko-menteri-rapor";
 
 export const dynamic = "force-dynamic";
 
@@ -162,7 +163,7 @@ export default async function AdminMenteriDetailPage() {
                                   key={row.id}
                                   defaultOpen={index === 0}
                                   title={`${formatPeriode(period?.bulan ?? 0, period?.tahun ?? 0)} (${period?.status ?? "draft"})`}
-                                  scoreLabel={Number(row.total_avg).toFixed(2)}
+                                  scoreLabel={getMenteriFinalStatus(Number(row.total_avg))}
                                 >
                                   <RaporDocument
                                     reportId={`admin-menteri-${row.id}`}
@@ -175,6 +176,7 @@ export default async function AdminMenteriDetailPage() {
                                     totalScore={Number(row.total_avg)}
                                     catatan={row.catatan}
                                     details={detailsByRapor.get(row.id) ?? []}
+                                    reportVariant="menteri"
                                   />
                                 </ReportPeriodItem>
                               );

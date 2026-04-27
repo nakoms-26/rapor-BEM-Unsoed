@@ -3,6 +3,7 @@
 import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
 import { RaporDocument } from "@/components/dashboard/rapor-document";
 import { MonthFilterTabs, type RaporItem } from "@/components/dashboard/month-filter-tabs";
+import { getMenteriFinalStatus } from "@/lib/menko-menteri-rapor";
 
 const BULAN_LABEL: Record<number, string> = {
   1: "Januari",
@@ -50,6 +51,7 @@ interface RaporListWithMonthFilterProps {
   };
   unitName: string;
   emptyMessage?: string;
+  reportVariant?: "staff" | "menteri";
 }
 
 export function RaporListWithMonthFilter({
@@ -57,6 +59,7 @@ export function RaporListWithMonthFilter({
   userProfile,
   unitName,
   emptyMessage = "Belum ada rapor yang tersedia.",
+  reportVariant = "staff",
 }: RaporListWithMonthFilterProps) {
   return (
     <MonthFilterTabs items={raporItems}>
@@ -68,7 +71,7 @@ export function RaporListWithMonthFilter({
                 key={row.id}
                 defaultOpen={index === 0}
                 title={`${formatPeriode(row.bulan, row.tahun)} (${row.status})`}
-                scoreLabel={row.total_avg.toFixed(2)}
+                scoreLabel={reportVariant === "menteri" ? getMenteriFinalStatus(row.total_avg) : row.total_avg.toFixed(2)}
               >
                 <RaporDocument
                   reportId={`rapor-${row.id}`}
@@ -81,6 +84,7 @@ export function RaporListWithMonthFilter({
                   totalScore={Number(row.total_avg)}
                   catatan={row.catatan}
                   details={row.details ?? []}
+                  reportVariant={reportVariant}
                 />
               </ReportPeriodItem>
             ))

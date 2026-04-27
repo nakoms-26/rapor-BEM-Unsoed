@@ -27,6 +27,16 @@ export default async function MenkoPage() {
     .limit(1)
     .single();
 
+  const { data: publishedPeriods } = await supabase
+    .from("rapor_periods")
+    .select("id, bulan, tahun, status")
+    .eq("status", "published")
+    .order("tahun", { ascending: false })
+    .order("bulan", { ascending: false });
+
+  const latestPublished = (publishedPeriods ?? [])[0];
+  const previousPublished = (publishedPeriods ?? [])[1];
+
   const { data: coordinatedUnits } = isPjKemenkoan
     ? await supabase
         .from("ref_units")
@@ -51,41 +61,96 @@ export default async function MenkoPage() {
 
   const { data: staffProfiles } = await supabase
     .from("profiles")
-    .select("nim, unit_id")
+    .select("nim, nama_lengkap, unit_id")
     .in("unit_id", unitIds.length ? unitIds : ["00000000-0000-0000-0000-000000000000"])
     .in("role", ["staff", "user"]);
 
   const staffNims = (staffProfiles ?? []).map((item) => item.nim);
+  const staffNameByNim = new Map((staffProfiles ?? []).map((item) => [item.nim, item.nama_lengkap]));
   const unitByStaffNim = new Map((staffProfiles ?? []).map((item) => [item.nim, item.unit_id]));
 
-  const { data: scores } = activePeriod
+  const { data: scores } = (latestPublished || activePeriod)
     ? await supabase
         .from("rapor_scores")
-        .select("user_nim, total_avg")
-        .eq("periode_id", activePeriod.id)
+        .select("user_nim, periode_id, total_avg")
+        .in("periode_id", [latestPublished?.id ?? activePeriod?.id ?? "", previousPublished?.id ?? ""].filter(Boolean))
         .eq("report_type", "staf_unit")
         .in("user_nim", staffNims.length ? staffNims : ["-"])
-    : { data: [] as { user_nim: string; total_avg: number }[] };
+    : { data: [] as { user_nim: string; periode_id: string; total_avg: number }[] };
 
-  const scoreBuckets = new Map<string, number[]>();
+  const latestByNim = new Map<string, number>();
+  const previousByNim = new Map<string, number>();
   for (const score of scores ?? []) {
     const unitId = unitByStaffNim.get(score.user_nim);
     if (!unitId) continue;
-    if (!scoreBuckets.has(unitId)) {
-      scoreBuckets.set(unitId, []);
+    if (latestPublished && score.periode_id === latestPublished.id) {
+      latestByNim.set(score.user_nim, Number(score.total_avg));
     }
-    scoreBuckets.get(unitId)!.push(Number(score.total_avg));
+    if (previousPublished && score.periode_id === previousPublished.id) {
+      previousByNim.set(score.user_nim, Number(score.total_avg));
+    }
   }
 
   const rows = (coordinatedUnits ?? []).map((unit) => {
-    const unitScores = scoreBuckets.get(unit.id) ?? [];
-    const average = unitScores.length
-      ? Number((unitScores.reduce((sum, value) => sum + value, 0) / unitScores.length).toFixed(2))
+    const unitStaff = (staffProfiles ?? []).filter((staff) => staff.unit_id === unit.id);
+    const currentScores = unitStaff
+      .map((staff) => ({ nim: staff.nim, score: latestByNim.get(staff.nim) }))
+      .filter((item): item is { nim: string; score: number } => typeof item.score === "number");
+
+    const average = currentScores.length
+      ? Number((currentScores.reduce((sum, item) => sum + item.score, 0) / currentScores.length).toFixed(2))
       : 0;
+
+    let highestStaff = "-";
+    let highestScore = Number.NEGATIVE_INFINITY;
+    let lowestStaff = "-";
+    let lowestScore = Number.POSITIVE_INFINITY;
+    let highestGrowthStaff = "-";
+    let highestGrowthScore = Number.NEGATIVE_INFINITY;
+    let lowestGrowthStaff = "-";
+    let lowestGrowthScore = Number.POSITIVE_INFINITY;
+
+    for (const staff of unitStaff) {
+      const current = latestByNim.get(staff.nim);
+      if (typeof current !== "number") {
+        continue;
+      }
+
+      const staffName = staffNameByNim.get(staff.nim) ?? staff.nim;
+
+      if (current > highestScore) {
+        highestScore = current;
+        highestStaff = staffName;
+      }
+      if (current < lowestScore) {
+        lowestScore = current;
+        lowestStaff = staffName;
+      }
+
+      const prev = previousByNim.get(staff.nim) ?? current;
+      const growth = Number((current - prev).toFixed(2));
+      if (growth > highestGrowthScore) {
+        highestGrowthScore = growth;
+        highestGrowthStaff = staffName;
+      }
+      if (growth < lowestGrowthScore) {
+        lowestGrowthScore = growth;
+        lowestGrowthStaff = staffName;
+      }
+    }
+
     return {
       unit_name: unit.nama_unit,
       average_score: average,
-      staff_count: unitScores.length,
+      staff_count: currentScores.length,
+      highest_staff: highestStaff,
+      highest_score: Number.isFinite(highestScore) ? Number(highestScore.toFixed(2)) : 0,
+      lowest_staff: lowestStaff,
+      lowest_score: Number.isFinite(lowestScore) ? Number(lowestScore.toFixed(2)) : 0,
+      highest_growth_staff: highestGrowthStaff,
+      highest_growth_score: Number.isFinite(highestGrowthScore) ? Number(highestGrowthScore.toFixed(2)) : 0,
+      lowest_growth_staff: lowestGrowthStaff,
+      lowest_growth_score: Number.isFinite(lowestGrowthScore) ? Number(lowestGrowthScore.toFixed(2)) : 0,
     };
   });
 
@@ -126,7 +191,7 @@ export default async function MenkoPage() {
         <CardHeader>
           <CardTitle>Recap Periode Published</CardTitle>
           <CardDescription>
-            {activePeriod ? `Periode ${activePeriod.bulan}/${activePeriod.tahun}` : "Belum ada periode published"}
+            {latestPublished ? `Periode ${latestPublished.bulan}/${latestPublished.tahun}` : activePeriod ? `Periode ${activePeriod.bulan}/${activePeriod.tahun}` : "Belum ada periode published"}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
@@ -152,10 +217,10 @@ export default async function MenkoPage() {
         data={rows.map((item) => ({
           unit_name: item.unit_name,
           average_score: item.average_score,
-          highest_staff: "-",
-          highest_score: 0,
-          lowest_staff: "-",
-          lowest_score: 0,
+          highest_staff: item.highest_staff,
+          highest_score: item.highest_score,
+          lowest_staff: item.lowest_staff,
+          lowest_score: item.lowest_score,
         }))}
       />
 
@@ -166,8 +231,12 @@ export default async function MenkoPage() {
               <CardTitle>{item.unit_name}</CardTitle>
               <CardDescription>Rekap nilai staf unit periode aktif</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-1 text-sm text-slate-700">
+            <CardContent className="space-y-2 text-sm text-slate-700">
               <p>Rata-rata: {item.average_score.toFixed(2)}</p>
+              <p>Staf nilai tertinggi: {item.highest_staff} ({item.highest_score.toFixed(2)})</p>
+              <p>Staf nilai terendah: {item.lowest_staff} ({item.lowest_score.toFixed(2)})</p>
+              <p>Growth tertinggi: {item.highest_growth_staff} ({item.highest_growth_score.toFixed(2)})</p>
+              <p>Growth terendah: {item.lowest_growth_staff} ({item.lowest_growth_score.toFixed(2)})</p>
               <p>Jumlah staf terskor: {item.staff_count}</p>
             </CardContent>
           </Card>

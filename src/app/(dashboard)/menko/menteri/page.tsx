@@ -5,6 +5,7 @@ import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { MenkoMenteriInputForm } from "@/components/dashboard/menko-menteri-input-form";
+import { getMenteriFinalStatus } from "@/lib/menko-menteri-rapor";
 
 export const dynamic = "force-dynamic";
 
@@ -117,7 +118,7 @@ export default async function MenkoMenteriPage() {
                           <p className="font-medium text-slate-700">{row.nama}</p>
                           <p className="text-xs text-slate-500">{row.unit}</p>
                         </div>
-                        <span className="font-semibold text-slate-900">{row.total_avg.toFixed(2)}</span>
+                        <span className="font-semibold text-slate-900">{getMenteriFinalStatus(row.total_avg)}</span>
                       </div>
                       <p className="mt-1 text-xs text-slate-600">
                         {row.bulan}/{row.tahun} ({row.status})
