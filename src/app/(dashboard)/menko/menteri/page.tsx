@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { MenkoMenteriInputForm } from "@/components/dashboard/menko-menteri-input-form";
@@ -13,7 +12,8 @@ export default async function MenkoMenteriPage() {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (!canAccessKemenkoReports(profile)) {
+  // Only allow Menko and Admin to view menko->menteri pages. PJ roles should not see menteri rapor.
+  if (!(profile.role === "menko" || profile.role === "admin")) {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 

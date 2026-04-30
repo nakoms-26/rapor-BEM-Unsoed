@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import { MenkoRecapChart } from "@/components/dashboard/menko-recap-chart";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -14,7 +13,8 @@ export default async function MenkoPage() {
   const menkoProfile = await requireSessionProfile();
   const isPjKemenkoan = menkoProfile.role === "pj_kementerian" && menkoProfile.is_pj_kemenkoan === true;
 
-  if (!canAccessKemenkoReports(menkoProfile)) {
+  // Only allow Menko and Admin to access the Menko recap pages (exclude PJ roles).
+  if (!(menkoProfile.role === "menko" || menkoProfile.role === "admin")) {
     redirect(ROLE_HOME[menkoProfile.role] ?? "/dashboard");
   }
 

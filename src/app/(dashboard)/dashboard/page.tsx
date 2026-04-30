@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { BarChart3, ClipboardList, UserRoundCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -149,7 +148,8 @@ export default async function DashboardLandingPage() {
     });
   }
 
-  if (canAccessKemenkoReports(profile) && profile.role !== "menko" && !isPjKemenkoan) {
+  // Only Menko (not PJs) should see the menko recap/input cards here. Admin already has its own Menlu/Menteri card above.
+  if (profile.role === "menko") {
     cards.push(...featuresByRole.menko);
   }
 
