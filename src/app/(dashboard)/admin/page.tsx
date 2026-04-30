@@ -331,7 +331,11 @@ export default async function AdminPage({
       }
     | undefined;
 
-  if (selectedEditRow && !(profile.role === "pj_kementerian" && selectedEditRow.user_nim === profile.nim)) {
+  if (
+    selectedEditRow &&
+    !(profile.role === "pj_kementerian" && selectedEditRow.user_nim === profile.nim) &&
+    !(profile.role === "pj_kementerian" && selectedEditRow.report_type === "menteri_kepala_biro")
+  ) {
     const selectedProfile = profileRecordByNim.get(selectedEditRow.user_nim);
     if (selectedProfile && !(profile.role === "pj_kementerian" && !scopedUnitIds.has(selectedProfile.unit_id))) {
       const { data: directDetailRows } = await supabase
@@ -431,7 +435,9 @@ export default async function AdminPage({
   }
 
   const visibleRows = profile.role === "pj_kementerian"
-    ? formattedRows.filter((row) => isWithinPjScope(row.unitId) && row.user_nim !== profile.nim)
+    ? formattedRows.filter((row) =>
+        row.reportType === "staf_unit" && isWithinPjScope(row.unitId) && row.user_nim !== profile.nim,
+      )
     : formattedRows;
 
   const visibleGroupedReports = new Map<string, Map<string, typeof visibleRows>>();
