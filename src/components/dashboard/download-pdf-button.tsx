@@ -47,7 +47,7 @@ export function DownloadPdfButton({ reportId }: Props) {
             table {
               width: 100%;
               border-collapse: collapse;
-              table-layout: fixed;
+              table-layout: auto;
             }
 
             th,
@@ -55,7 +55,41 @@ export function DownloadPdfButton({ reportId }: Props) {
               border: 1px solid #e2e8f0;
               padding: 6px 8px;
               vertical-align: top;
-              word-wrap: break-word;
+              word-break: normal;
+              overflow-wrap: normal;
+              white-space: normal;
+            }
+
+            th {
+              line-height: 1.25;
+            }
+
+            .prestasi-table th:nth-child(1),
+            .prestasi-table td:nth-child(1) {
+              width: 34px;
+            }
+
+            .prestasi-table th:nth-child(2),
+            .prestasi-table td:nth-child(2) {
+              min-width: 150px;
+            }
+
+            .prestasi-table th:nth-child(3),
+            .prestasi-table td:nth-child(3) {
+              min-width: 120px;
+            }
+
+            .prestasi-table th:nth-child(4),
+            .prestasi-table td:nth-child(4),
+            .prestasi-table th:nth-child(5),
+            .prestasi-table td:nth-child(5),
+            .prestasi-table th:nth-child(6),
+            .prestasi-table td:nth-child(6),
+            .prestasi-table th:nth-child(7),
+            .prestasi-table td:nth-child(7),
+            .prestasi-table th:nth-child(8),
+            .prestasi-table td:nth-child(8) {
+              min-width: 70px;
             }
 
             h1,

@@ -525,7 +525,7 @@ export function RaporDocument({
         <div className="space-y-3">
           <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-700">D. Nilai Prestasi</h3>
           <div className="overflow-hidden rounded-lg border border-slate-200">
-            <table className="w-full border-collapse text-sm">
+            <table className="prestasi-table w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
                   <th className="w-14 px-3 py-2 text-left">No</th>
