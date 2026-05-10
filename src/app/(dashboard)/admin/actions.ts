@@ -254,9 +254,6 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     }
   }
 
-  const scoreList = parsed.data.indicators.flatMap((indicator) =>
-    indicator.items.map((item) => Number(item.score)),
-  );
   const normalizeMainIndicator = (name: string) => (name === "Partisipasi External" ? "Partisipasi Eksternal" : name);
   const sectionWeights: Record<string, number> = {
     "Keaktifan": 20,
@@ -271,18 +268,60 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     "Partisipasi Eksternal": 4,
   };
 
-  const indicatorsByName = new Map(
-    parsed.data.indicators.map((indicator) => [normalizeMainIndicator(indicator.main_indicator_name), indicator.items]),
+  const preparedDetailRows = parsed.data.indicators.flatMap((indicator) =>
+    indicator.items
+      .filter((item) => item.sub_indicator_name.trim().length > 0)
+      .map((item) => {
+        const normalizedMainIndicatorName = normalizeMainIndicator(indicator.main_indicator_name);
+        const isPrestasi = normalizedMainIndicatorName === PRESTASI_INDICATOR;
+        const responsibilityScore = getPrestasiResponsibilityScore(item.bentuk_tanggung_jawab ?? null);
+        const scaleScore = getPrestasiScaleScore(item.skala ?? null);
+        const qualitativeScore = Number(item.nilai_kualitatif ?? 0);
+        const finalScore = isPrestasi
+          ? Number((responsibilityScore + scaleScore + qualitativeScore).toFixed(2))
+          : Number(item.score);
+
+        return {
+          normalizedMainIndicatorName,
+          row: {
+            main_indicator_name: indicator.main_indicator_name,
+            sub_indicator_name: item.sub_indicator_name.trim(),
+            catatan: item.catatan?.trim() || null,
+            score: finalScore,
+            bentuk_tanggung_jawab: isPrestasi ? (item.bentuk_tanggung_jawab ?? null) : null,
+            nilai_kuantitatif_tanggung_jawab: isPrestasi ? responsibilityScore : null,
+            skala: isPrestasi ? (item.skala ?? null) : null,
+            nilai_kuantitatif_skala: isPrestasi ? scaleScore : null,
+            nilai_kualitatif: isPrestasi ? qualitativeScore : null,
+            nilai_akhir: isPrestasi ? finalScore : null,
+          },
+        };
+      }),
   );
 
+  if (preparedDetailRows.length === 0) {
+    return {
+      ok: false,
+      message: "Gagal menyimpan: detail sub-indikator kosong. Lengkapi sub-indikator dan skor terlebih dahulu.",
+    };
+  }
+
+  const sectionScoresByIndicator = new Map<string, number[]>();
+  for (const detail of preparedDetailRows) {
+    if (!sectionScoresByIndicator.has(detail.normalizedMainIndicatorName)) {
+      sectionScoresByIndicator.set(detail.normalizedMainIndicatorName, []);
+    }
+    sectionScoresByIndicator.get(detail.normalizedMainIndicatorName)!.push(Number(detail.row.score));
+  }
+
   const weightedTotal = Object.entries(sectionWeights).reduce((sum, [indicatorName, weight]) => {
-    const items = indicatorsByName.get(indicatorName) ?? [];
-    if (!items.length) {
+    const sectionScores = sectionScoresByIndicator.get(indicatorName) ?? [];
+    if (!sectionScores.length) {
       return sum;
     }
 
     const maxScore = sectionMaxScore[indicatorName] ?? 5;
-    const sectionAverage = items.reduce((acc, item) => acc + Number(item.score), 0) / items.length;
+    const sectionAverage = sectionScores.reduce((acc, score) => acc + score, 0) / sectionScores.length;
     const weightedScore = (sectionAverage / maxScore) * weight;
     return sum + weightedScore;
   }, 0);
@@ -337,40 +376,10 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     };
   }
 
-  const detailRows = parsed.data.indicators.flatMap((indicator) =>
-    indicator.items
-      .filter((item) => item.sub_indicator_name.trim().length > 0)
-      .map((item) => {
-        const isPrestasi = indicator.main_indicator_name === PRESTASI_INDICATOR;
-        const responsibilityScore = getPrestasiResponsibilityScore(item.bentuk_tanggung_jawab ?? null);
-        const scaleScore = getPrestasiScaleScore(item.skala ?? null);
-        const qualitativeScore = Number(item.nilai_kualitatif ?? 0);
-        const finalScore = isPrestasi
-          ? Number((responsibilityScore + scaleScore + qualitativeScore).toFixed(2))
-          : item.score;
-
-        return {
-          rapor_id: rapor.id,
-          main_indicator_name: indicator.main_indicator_name,
-          sub_indicator_name: item.sub_indicator_name.trim(),
-          catatan: item.catatan?.trim() || null,
-          score: finalScore,
-          bentuk_tanggung_jawab: isPrestasi ? (item.bentuk_tanggung_jawab ?? null) : null,
-          nilai_kuantitatif_tanggung_jawab: isPrestasi ? responsibilityScore : null,
-          skala: isPrestasi ? (item.skala ?? null) : null,
-          nilai_kuantitatif_skala: isPrestasi ? scaleScore : null,
-          nilai_kualitatif: isPrestasi ? qualitativeScore : null,
-          nilai_akhir: isPrestasi ? finalScore : null,
-        };
-      }),
-  );
-
-  if (existingRapor && detailRows.length === 0) {
-    return {
-      ok: false,
-      message: "Gagal menyimpan: detail sub-indikator kosong. Muat ulang halaman dan coba edit lagi.",
-    };
-  }
+  const detailRows = preparedDetailRows.map((detail) => ({
+    rapor_id: rapor.id,
+    ...detail.row,
+  }));
 
   if (existingRapor) {
     const { error: deleteDetailError } = await supabase.from("rapor_details").delete().eq("rapor_id", rapor.id);
