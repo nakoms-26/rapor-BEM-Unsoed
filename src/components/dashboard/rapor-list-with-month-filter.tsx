@@ -4,6 +4,7 @@ import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
 import { RaporDocument } from "@/components/dashboard/rapor-document";
 import { MonthFilterTabs, type RaporItem } from "@/components/dashboard/month-filter-tabs";
 import { getMenteriFinalStatus } from "@/lib/menko-menteri-rapor";
+import { resolveDisplayTotalScore } from "@/lib/rapor-score";
 
 const BULAN_LABEL: Record<number, string> = {
   1: "Januari",
@@ -66,28 +67,32 @@ export function RaporListWithMonthFilter({
       {(filteredItems) => (
         <div className="space-y-3">
           {filteredItems.length ? (
-            filteredItems.map((row, index) => (
-              <ReportPeriodItem
-                key={row.id}
-                defaultOpen={index === 0}
-                title={`${formatPeriode(row.bulan, row.tahun)} (${row.status})`}
-                scoreLabel={reportVariant === "menteri" ? getMenteriFinalStatus(row.total_avg) : row.total_avg.toFixed(2)}
-              >
-                <RaporDocument
-                  reportId={`rapor-${row.id}`}
-                  title="Rapor BEM UNSOED 2026"
-                  periodLabel={formatPeriode(row.bulan, row.tahun)}
-                  name={userProfile.nama_lengkap}
-                  jurusan={null}
-                  tahunAngkatan={null}
-                  unitName={unitName}
-                  totalScore={Number(row.total_avg)}
-                  catatan={row.catatan}
-                  details={row.details ?? []}
-                  reportVariant={reportVariant}
-                />
-              </ReportPeriodItem>
-            ))
+            filteredItems.map((row, index) => {
+              const displayTotalScore = resolveDisplayTotalScore(row.total_avg, row.details ?? [], reportVariant);
+
+              return (
+                <ReportPeriodItem
+                  key={row.id}
+                  defaultOpen={index === 0}
+                  title={`${formatPeriode(row.bulan, row.tahun)} (${row.status})`}
+                  scoreLabel={reportVariant === "menteri" ? getMenteriFinalStatus(displayTotalScore) : displayTotalScore.toFixed(2)}
+                >
+                  <RaporDocument
+                    reportId={`rapor-${row.id}`}
+                    title="Rapor BEM UNSOED 2026"
+                    periodLabel={formatPeriode(row.bulan, row.tahun)}
+                    name={userProfile.nama_lengkap}
+                    jurusan={null}
+                    tahunAngkatan={null}
+                    unitName={unitName}
+                    totalScore={displayTotalScore}
+                    catatan={row.catatan}
+                    details={row.details ?? []}
+                    reportVariant={reportVariant}
+                  />
+                </ReportPeriodItem>
+              );
+            })
           ) : (
             <p className="text-sm text-slate-600">{emptyMessage}</p>
           )}

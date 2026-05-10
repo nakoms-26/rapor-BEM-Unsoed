@@ -7,6 +7,7 @@ import { RaporDocument } from "@/components/dashboard/rapor-document";
 import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
 import { MenkoMenteriInputForm } from "@/components/dashboard/menko-menteri-input-form";
 import { getMenteriFinalStatus } from "@/lib/menko-menteri-rapor";
+import { resolveDisplayTotalScore } from "@/lib/rapor-score";
 
 export const dynamic = "force-dynamic";
 
@@ -158,12 +159,17 @@ export default async function AdminMenteriDetailPage() {
                           {rows.length ? (
                             rows.map((row, index) => {
                               const period = periodById.get(row.periode_id);
+                              const displayTotalScore = resolveDisplayTotalScore(
+                                Number(row.total_avg),
+                                detailsByRapor.get(row.id) ?? [],
+                                "menteri",
+                              );
                               return (
                                 <ReportPeriodItem
                                   key={row.id}
                                   defaultOpen={index === 0}
                                   title={`${formatPeriode(period?.bulan ?? 0, period?.tahun ?? 0)} (${period?.status ?? "draft"})`}
-                                  scoreLabel={getMenteriFinalStatus(Number(row.total_avg))}
+                                  scoreLabel={getMenteriFinalStatus(displayTotalScore)}
                                 >
                                   <RaporDocument
                                     reportId={`admin-menteri-${row.id}`}
@@ -173,7 +179,7 @@ export default async function AdminMenteriDetailPage() {
                                     jurusan={null}
                                     tahunAngkatan={null}
                                     unitName={item.unit}
-                                    totalScore={Number(row.total_avg)}
+                                    totalScore={displayTotalScore}
                                     catatan={row.catatan}
                                     details={detailsByRapor.get(row.id) ?? []}
                                     reportVariant="menteri"

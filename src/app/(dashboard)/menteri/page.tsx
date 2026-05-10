@@ -4,6 +4,7 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporListWithMonthFilter } from "@/components/dashboard/rapor-list-with-month-filter";
+import { isPublishedStatus } from "@/lib/period-status";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function MenteriPage() {
   ]);
 
   const publishedPeriods = (periods ?? [])
-    .filter((period) => period.status === "published")
+    .filter((period) => isPublishedStatus(period.status))
     .sort((a, b) => {
       if (a.tahun !== b.tahun) return b.tahun - a.tahun;
       return b.bulan - a.bulan;

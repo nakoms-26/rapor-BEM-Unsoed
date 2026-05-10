@@ -5,6 +5,7 @@ import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporDocument } from "@/components/dashboard/rapor-document";
 import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
+import { resolveDisplayTotalScore } from "@/lib/rapor-score";
 
 export const dynamic = "force-dynamic";
 
@@ -120,12 +121,17 @@ export default async function PjKementerianStaffDetailPage() {
                     {staffScores.length ? (
                       staffScores.map((score, index) => {
                         const period = periodById.get(score.periode_id);
+                        const displayTotalScore = resolveDisplayTotalScore(
+                          Number(score.total_avg),
+                          detailsByRapor.get(score.id) ?? [],
+                          "staff",
+                        );
                         return (
                           <ReportPeriodItem
                             key={score.id}
                             defaultOpen={index === 0}
                             title={`${formatPeriode(period?.bulan ?? 0, period?.tahun ?? 0)} (${period?.status ?? "draft"})`}
-                            scoreLabel={Number(score.total_avg).toFixed(2)}
+                            scoreLabel={displayTotalScore.toFixed(2)}
                           >
                              <RaporDocument
                                reportId={`pj-staff-rapor-${score.id}`}
@@ -135,7 +141,7 @@ export default async function PjKementerianStaffDetailPage() {
                               jurusan={null}
                               tahunAngkatan={null}
                               unitName={ownedUnit?.nama_unit ?? "-"}
-                              totalScore={Number(score.total_avg)}
+                              totalScore={displayTotalScore}
                               catatan={score.catatan}
                               details={detailsByRapor.get(score.id) ?? []}
                             />

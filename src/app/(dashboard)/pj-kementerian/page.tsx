@@ -4,6 +4,7 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporListWithMonthFilter } from "@/components/dashboard/rapor-list-with-month-filter";
+import { isPublishedStatus } from "@/lib/period-status";
 
 export const dynamic = "force-dynamic";
 
@@ -51,13 +52,19 @@ export default async function PjKementerianPage() {
   ]);
 
   const publishedPeriods = (periods ?? [])
-    .filter((period) => period.status === "published")
+    .filter((period) => isPublishedStatus(period.status))
     .sort((a, b) => {
       if (a.tahun !== b.tahun) return b.tahun - a.tahun;
       return b.bulan - a.bulan;
     });
 
+  const allPeriodsSorted = [...(periods ?? [])].sort((a, b) => {
+    if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+    return b.bulan - a.bulan;
+  });
+
   const periodById = new Map(publishedPeriods.map((period) => [period.id, period]));
+  const allPeriodById = new Map(allPeriodsSorted.map((period) => [period.id, period]));
 
   const rows = (selfScores ?? [])
     .filter((score) => periodById.has(score.periode_id))
@@ -73,7 +80,24 @@ export default async function PjKementerianPage() {
       };
     });
 
-  const raporIds = rows.map((row) => row.id);
+  const rowsAnyPeriod = (selfScores ?? [])
+    .filter((score) => allPeriodById.has(score.periode_id))
+    .map((score) => {
+      const period = allPeriodById.get(score.periode_id);
+      return {
+        id: score.id,
+        total_avg: Number(score.total_avg),
+        catatan: score.catatan,
+        bulan: period?.bulan ?? 0,
+        tahun: period?.tahun ?? 0,
+        status: period?.status ?? "draft",
+      };
+    });
+
+  const displayRows = rows.length > 0 ? rows : rowsAnyPeriod;
+  const isFallbackToAnyPeriod = rows.length === 0 && rowsAnyPeriod.length > 0;
+
+  const raporIds = displayRows.map((row) => row.id);
   const { data: detailRows } = raporIds.length
     ? await supabase
         .from("rapor_details")
@@ -114,8 +138,13 @@ export default async function PjKementerianPage() {
           <CardDescription>Urut dari periode terbaru.</CardDescription>
         </CardHeader>
         <CardContent>
+          {isFallbackToAnyPeriod ? (
+            <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Menampilkan rapor dari periode non-published karena belum ada rapor yang cocok dengan periode published.
+            </p>
+          ) : null}
           <RaporListWithMonthFilter
-            raporItems={rows.map((row) => ({
+            raporItems={displayRows.map((row) => ({
               ...row,
               details: detailsByRapor.get(row.id),
             }))}

@@ -4,6 +4,8 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporListWithMonthFilter } from "@/components/dashboard/rapor-list-with-month-filter";
+import { resolveDisplayTotalScore } from "@/lib/rapor-score";
+import { isPublishedStatus } from "@/lib/period-status";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,7 @@ export default async function StaffPage() {
     redirect(ROLE_HOME[profile.role] ?? "/login");
   }
 
-  const [{ data: periods }, { data: allScores }] = await Promise.all([
+  const [{ data: periods }, { data: allScores }, { data: anyTypeScores }] = await Promise.all([
     supabase.from("rapor_periods").select("id, bulan, tahun, status"),
     supabase
       .from("rapor_scores")
@@ -46,16 +48,26 @@ export default async function StaffPage() {
       .eq("user_nim", profile.nim)
       .eq("report_type", "staf_unit")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("rapor_scores")
+      .select("id, report_type")
+      .eq("user_nim", profile.nim),
   ]);
 
   const publishedPeriods = (periods ?? [])
-    .filter((period) => period.status === "published")
+    .filter((period) => isPublishedStatus(period.status))
     .sort((a, b) => {
       if (a.tahun !== b.tahun) return b.tahun - a.tahun;
       return b.bulan - a.bulan;
     });
 
+  const allPeriodsSorted = [...(periods ?? [])].sort((a, b) => {
+    if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+    return b.bulan - a.bulan;
+  });
+
   const periodById = new Map(publishedPeriods.map((period) => [period.id, period]));
+  const allPeriodById = new Map(allPeriodsSorted.map((period) => [period.id, period]));
 
   const raporByPeriod = (allScores ?? [])
     .filter((score) => periodById.has(score.periode_id))
@@ -71,8 +83,31 @@ export default async function StaffPage() {
       };
     });
 
-  const latestScore = raporByPeriod[0];
-  const raporIds = raporByPeriod.map((row) => row.id);
+  const raporAnyPeriod = (allScores ?? [])
+    .filter((score) => allPeriodById.has(score.periode_id))
+    .map((score) => {
+      const period = allPeriodById.get(score.periode_id);
+      return {
+        id: score.id,
+        total_avg: Number(score.total_avg),
+        catatan: score.catatan,
+        bulan: period?.bulan ?? 0,
+        tahun: period?.tahun ?? 0,
+        status: period?.status ?? "draft",
+      };
+    });
+
+  const hasAnyScore = (allScores ?? []).length > 0;
+  const hasPublishedPeriod = publishedPeriods.length > 0;
+  const hasPublishedRapor = raporByPeriod.length > 0;
+  const hasAnyTypeScore = (anyTypeScores ?? []).length > 0;
+  const hasOnlyDifferentReportType = !hasAnyScore && hasAnyTypeScore;
+  const isFallbackToAnyPeriod = !hasPublishedRapor && raporAnyPeriod.length > 0;
+
+  const displayRaporRows = hasPublishedRapor ? raporByPeriod : raporAnyPeriod;
+
+  const latestScore = displayRaporRows[0];
+  const raporIds = displayRaporRows.map((row) => row.id);
 
   const detailRows = raporIds.length
     ? await supabase
@@ -126,6 +161,10 @@ export default async function StaffPage() {
     });
   }
 
+  const latestDisplayScore = latestScore
+    ? resolveDisplayTotalScore(latestScore.total_avg, detailsByRapor.get(latestScore.id) ?? [], "staff")
+    : null;
+
   const latestUnit = await supabase
     .from("ref_units")
     .select("nama_unit")
@@ -145,7 +184,7 @@ export default async function StaffPage() {
           <CardDescription>Skala 0 - 100 (tanpa nilai prestasi)</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-4xl font-bold text-slate-900">{latestScore?.total_avg?.toFixed(2) ?? "0.00"}</p>
+          <p className="text-4xl font-bold text-slate-900">{latestDisplayScore?.toFixed(2) ?? "0.00"}</p>
           <p className="mt-1 text-xs text-slate-500">
             {latestScore ? `${formatPeriode(latestScore.bulan, latestScore.tahun)} (${latestScore.status})` : "Belum ada data"}
           </p>
@@ -157,8 +196,23 @@ export default async function StaffPage() {
           <CardTitle>Riwayat Periode Rapor</CardTitle>
         </CardHeader>
         <CardContent>
+          {hasOnlyDifferentReportType ? (
+            <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Data rapor ditemukan, tetapi tipenya bukan staf_unit. Silakan cek tipe laporan pada data rapor Anda.
+            </p>
+          ) : null}
+          {hasAnyScore && !hasPublishedPeriod ? (
+            <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Data rapor ditemukan, tetapi belum ada periode dengan status published yang valid.
+            </p>
+          ) : null}
+          {isFallbackToAnyPeriod ? (
+            <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Menampilkan rapor dari periode non-published karena belum ada rapor yang cocok dengan periode published.
+            </p>
+          ) : null}
           <RaporListWithMonthFilter
-            raporItems={raporByPeriod.map((row) => ({
+            raporItems={displayRaporRows.map((row) => ({
               ...row,
               details: detailsByRapor.get(row.id),
             }))}
