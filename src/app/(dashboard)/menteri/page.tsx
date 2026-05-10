@@ -4,7 +4,7 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporListWithMonthFilter } from "@/components/dashboard/rapor-list-with-month-filter";
-import { isPublishedStatus } from "@/lib/period-status";
+import { isPublishedStatus, periodMonthYearKey, resolvePublishedPeriodByScorePeriodId } from "@/lib/period-status";
 
 export const dynamic = "force-dynamic";
 
@@ -35,20 +35,23 @@ export default async function MenteriPage() {
     });
 
   const periodById = new Map(publishedPeriods.map((period) => [period.id, period]));
+  const allPeriodById = new Map((periods ?? []).map((period) => [period.id, period]));
+  const publishedByMonthYear = new Map(publishedPeriods.map((period) => [periodMonthYearKey(period), period]));
 
   const rows = (selfScores ?? [])
-    .filter((score) => periodById.has(score.periode_id))
     .map((score) => {
-      const period = periodById.get(score.periode_id);
+      const period = resolvePublishedPeriodByScorePeriodId(score.periode_id, periodById, allPeriodById, publishedByMonthYear);
+      if (!period) return null;
       return {
         id: score.id,
         total_avg: Number(score.total_avg),
         catatan: score.catatan,
-        bulan: period?.bulan ?? 0,
-        tahun: period?.tahun ?? 0,
-        status: period?.status ?? "draft",
+        bulan: period.bulan,
+        tahun: period.tahun,
+        status: period.status,
       };
-    });
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
 
   const raporIds = rows.map((row) => row.id);
   const { data: detailRows } = raporIds.length

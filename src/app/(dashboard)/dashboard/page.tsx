@@ -17,7 +17,9 @@ type FeatureCard = {
 export default async function DashboardLandingPage() {
   const profile = await requireSessionProfile();
   const supabase = createAdminSupabaseClient();
-  const isPjKemenkoan = profile.role === "pj_kementerian" && profile.is_pj_kemenkoan === true;
+  const isPjKemenkoan =
+    profile.is_pj_kemenkoan === true &&
+    (profile.role === "pj_kementerian" || profile.role === "admin");
 
   const featuresByRole: Record<string, FeatureCard[]> = {
     admin: [
