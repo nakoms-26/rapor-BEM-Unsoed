@@ -137,6 +137,12 @@ export default async function DashboardLandingPage() {
       icon: ClipboardList,
     });
     cards.push({
+      href: "/pj-kemenkoan/rapor-diri",
+      title: "Rapor Diri Sendiri",
+      description: "Lihat seluruh periode rapor pribadi PJ Kemenkoan.",
+      icon: UserRoundCheck,
+    });
+    cards.push({
       href: "/admin",
       title: "Input Kementerian Diampu",
       description: "Input rapor kementerian/biro yang berada di bawah kemenko Anda.",
