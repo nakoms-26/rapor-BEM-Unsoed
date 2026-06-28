@@ -232,7 +232,7 @@ export function MenkoMenteriInputForm({ periods, menteriOptions }: Props) {
             </div>
             <div className="space-y-2">
               {responsibilityFieldArray.fields.map((field, index) => (
-                <div key={field.id} className="grid gap-2 md:grid-cols-[1fr_220px_auto]">
+                <div key={field.id} className="flex flex-col gap-2 rounded-md border border-slate-100 p-2 sm:flex-row sm:items-center sm:border-0 sm:p-0 sm:grid sm:grid-cols-[1fr_200px_auto]">
                   <Input
                     placeholder="Nama sub-indikator tanggung jawab"
                     {...form.register(`tanggung_jawab.${index}.sub_indicator_name`)}
@@ -251,7 +251,7 @@ export function MenkoMenteriInputForm({ periods, menteriOptions }: Props) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 p-0"
+                    className="h-9 w-full sm:w-9 p-0"
                     onClick={() => responsibilityFieldArray.remove(index)}
                     disabled={responsibilityFieldArray.fields.length <= 1}
                     aria-label="Hapus sub-indikator tanggung jawab"
@@ -285,7 +285,7 @@ export function MenkoMenteriInputForm({ periods, menteriOptions }: Props) {
             </div>
             <div className="space-y-2">
               {participationFieldArray.fields.map((field, index) => (
-                <div key={field.id} className="grid gap-2 md:grid-cols-[1fr_220px_auto]">
+                <div key={field.id} className="flex flex-col gap-2 rounded-md border border-slate-100 p-2 sm:flex-row sm:items-center sm:border-0 sm:p-0 sm:grid sm:grid-cols-[1fr_200px_auto]">
                   <Input
                     placeholder="Nama sub-indikator partisipasi"
                     {...form.register(`partisipasi.${index}.sub_indicator_name`)}
@@ -304,7 +304,7 @@ export function MenkoMenteriInputForm({ periods, menteriOptions }: Props) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 p-0"
+                    className="h-9 w-full sm:w-9 p-0"
                     onClick={() => participationFieldArray.remove(index)}
                     disabled={participationFieldArray.fields.length <= 1}
                     aria-label="Hapus sub-indikator partisipasi"

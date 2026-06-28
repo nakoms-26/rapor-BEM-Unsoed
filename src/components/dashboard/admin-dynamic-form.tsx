@@ -300,7 +300,7 @@ export function AdminDynamicForm({
         ) : null}
 
         <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)}>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Periode (Bulan)</label>
               <select

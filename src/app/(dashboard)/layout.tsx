@@ -76,27 +76,79 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">Rapor BEM Bulanan</h1>
-            <p className="text-xs text-slate-600">{profile.nama_lengkap} - {profile.role}</p>
+          <div className="min-w-0 mr-4">
+            <h1 className="text-base font-bold text-slate-900 leading-tight">Rapor BEM Bulanan</h1>
+            <p className="text-xs text-slate-500 truncate max-w-[180px] sm:max-w-xs">{profile.nama_lengkap} · {profile.role}</p>
           </div>
-          <nav className="flex items-center gap-2">
+
+          {/* Desktop nav */}
+          <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => (
-              <Link key={item.href} className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100" href={item.href}>
-                <item.icon className="h-4 w-4" /> {item.label}
+              <Link
+                key={item.href}
+                className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 whitespace-nowrap transition-colors"
+                href={item.href}
+              >
+                <item.icon className="h-4 w-4 flex-shrink-0" />
+                <span>{item.label}</span>
               </Link>
             ))}
             <form action={signOutAction}>
-              <button className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50" type="submit">
-                <LogOut className="h-4 w-4" /> Keluar
+              <button
+                className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50 whitespace-nowrap transition-colors"
+                type="submit"
+              >
+                <LogOut className="h-4 w-4 flex-shrink-0" />
+                <span>Keluar</span>
               </button>
             </form>
           </nav>
+
+          {/* Mobile/Tablet hamburger toggle */}
+          <label
+            htmlFor="mobile-nav-toggle"
+            className="lg:hidden flex-shrink-0 cursor-pointer rounded-md p-2 text-slate-600 hover:bg-slate-100 transition-colors"
+            aria-label="Buka navigasi"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </label>
         </div>
+
+        {/* Mobile nav drawer — pure CSS checkbox trick */}
+        <input type="checkbox" id="mobile-nav-toggle" className="peer sr-only" />
+        <nav
+          className="hidden peer-checked:block lg:hidden border-t border-slate-100 bg-white"
+          aria-label="Navigasi mobile"
+        >
+          <div className="mx-auto max-w-7xl px-2 py-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                href={item.href}
+              >
+                <item.icon className="h-4 w-4 flex-shrink-0 text-slate-500" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+            <form action={signOutAction}>
+              <button
+                className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                type="submit"
+              >
+                <LogOut className="h-4 w-4 flex-shrink-0" />
+                <span>Keluar</span>
+              </button>
+            </form>
+          </div>
+        </nav>
       </header>
-      <div className="mx-auto max-w-7xl px-4 py-6">{children}</div>
+
+      <div className="mx-auto max-w-7xl px-4 py-4 md:py-6">{children}</div>
     </div>
   );
 }

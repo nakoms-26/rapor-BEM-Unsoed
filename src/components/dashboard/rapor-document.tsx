@@ -269,7 +269,7 @@ export function RaporDocument({
           </CardDescription>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-[1.4fr_1fr]">
+        <div className="grid gap-3 sm:grid-cols-[1.4fr_1fr]">
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
             <div className="grid grid-cols-[150px_12px_1fr] gap-y-1">
               <p className="font-medium text-slate-500">Nama</p>
@@ -319,8 +319,8 @@ export function RaporDocument({
         {reportVariant !== "menteri" ? (
           <div className="space-y-2">
           <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-700">Bobot Nilai</h3>
-          <div className="grid gap-3 md:grid-cols-[1.5fr_1fr]">
-            <div className="overflow-hidden rounded-lg border border-slate-200">
+          <div className="grid gap-3 sm:grid-cols-[1.5fr_1fr]">
+            <div className="overflow-x-auto overflow-hidden rounded-lg border border-slate-200">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -349,7 +349,7 @@ export function RaporDocument({
               </table>
             </div>
 
-            <div className="overflow-hidden rounded-lg border border-slate-200">
+            <div className="overflow-x-auto overflow-hidden rounded-lg border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                 Ketidakhadiran Agenda
               </div>
@@ -377,7 +377,7 @@ export function RaporDocument({
         {keaktifanSection.length ? (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-700">Keaktifan</h3>
-            <div className="overflow-hidden rounded-lg border border-slate-200">
+            <div className="overflow-x-auto overflow-hidden rounded-lg border border-slate-200">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
@@ -408,7 +408,7 @@ export function RaporDocument({
         {tanggungJawabSection.length ? (
           <div className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-700">Tanggung Jawab</h3>
-            <div className="overflow-hidden rounded-lg border border-slate-200">
+            <div className="overflow-x-auto overflow-hidden rounded-lg border border-slate-200">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
@@ -447,7 +447,7 @@ export function RaporDocument({
               <p>Hadir = 4, Terlambat = 3, Izin = 2, Tanpa keterangan = 1 (maksimal skor: 4)</p>
             </div>
             {internalSection.length ? (
-              <div className="overflow-hidden rounded-lg border border-slate-200">
+              <div className="overflow-x-auto overflow-hidden rounded-lg border border-slate-200">
                 <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Partisipasi Internal</div>
                 <table className="w-full border-collapse text-sm">
                   <thead>
@@ -484,7 +484,7 @@ export function RaporDocument({
             ) : null}
 
             {externalSection.length ? (
-              <div className="overflow-hidden rounded-lg border border-slate-200">
+              <div className="overflow-x-auto overflow-hidden rounded-lg border border-slate-200">
                 <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Partisipasi Eksternal</div>
                 <table className="w-full border-collapse text-sm">
                   <thead>
@@ -524,7 +524,7 @@ export function RaporDocument({
 
         <div className="space-y-3">
           <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-700">D. Nilai Prestasi</h3>
-          <div className="overflow-hidden rounded-lg border border-slate-200">
+          <div className="overflow-x-auto overflow-hidden rounded-lg border border-slate-200">
             <table className="prestasi-table w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
