@@ -156,11 +156,6 @@ export default async function DashboardLandingPage() {
     });
   }
 
-  // Only Menko (not PJs) should see the menko recap/input cards here. Admin already has its own Menlu/Menteri card above.
-  if (profile.role === "menko") {
-    cards.push(...featuresByRole.menko);
-  }
-
   if (profile.role === "staff") {
     const { data: assignment } = await supabase
       .from("evaluator_unit_assignments")

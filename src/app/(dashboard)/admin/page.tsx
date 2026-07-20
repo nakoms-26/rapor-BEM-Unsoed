@@ -288,12 +288,45 @@ export default async function AdminPage({
   const missingPjAssignment = profile.role === "pj_kementerian" && pjScopeRootUnitIds.size === 0;
 
   const raporIds = (reportRows ?? []).map((row) => row.id);
-  const { data: reportDetailRows } = raporIds.length
-    ? await supabase
-        .from("rapor_details")
-        .select("rapor_id, main_indicator_name, sub_indicator_name, catatan, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
-        .in("rapor_id", raporIds)
-    : { data: [] as { rapor_id: string; main_indicator_name: string; sub_indicator_name: string; catatan: string | null; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[] };
+
+  type RaporDetailRow = {
+    rapor_id: string;
+    main_indicator_name: string;
+    sub_indicator_name: string;
+    catatan: string | null;
+    score: number;
+    bentuk_tanggung_jawab: string | null;
+    nilai_kuantitatif_tanggung_jawab: number | null;
+    skala: string | null;
+    nilai_kuantitatif_skala: number | null;
+    nilai_kualitatif: number | null;
+    nilai_akhir: number | null;
+  };
+
+  // PostgREST has a ~8 KB URL limit. Batching into chunks of 50 prevents 400 errors
+  // when there are many rapor entries. All batches are fetched in parallel.
+  const BATCH_SIZE = 50;
+  const reportDetailRows: RaporDetailRow[] = [];
+  if (raporIds.length > 0) {
+    const batches: string[][] = [];
+    for (let i = 0; i < raporIds.length; i += BATCH_SIZE) {
+      batches.push(raporIds.slice(i, i + BATCH_SIZE));
+    }
+    const batchResults = await Promise.all(
+      batches.map((batch) =>
+        supabase
+          .from("rapor_details")
+          .select(
+            "rapor_id, main_indicator_name, sub_indicator_name, catatan, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir",
+          )
+          .in("rapor_id", batch),
+      ),
+    );
+    for (const { data } of batchResults) {
+      if (data) reportDetailRows.push(...(data as RaporDetailRow[]));
+    }
+  }
+
 
   const detailsByRaporId = new Map<string, { main_indicator_name: string; sub_indicator_name: string; catatan: string | null; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[]>();
   for (const detail of reportDetailRows ?? []) {

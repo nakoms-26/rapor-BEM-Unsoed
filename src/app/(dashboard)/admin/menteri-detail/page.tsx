@@ -62,12 +62,43 @@ export default async function AdminMenteriDetailPage() {
     : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null; created_at: string }[] };
 
   const raporIds = (scores ?? []).map((score) => score.id);
-  const { data: detailRows } = raporIds.length
-    ? await supabase
-        .from("rapor_details")
-        .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
-        .in("rapor_id", raporIds)
-    : { data: [] as { rapor_id: string; main_indicator_name: string; sub_indicator_name: string; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[] };
+
+  type MenteriDetailRow = {
+    rapor_id: string;
+    main_indicator_name: string;
+    sub_indicator_name: string;
+    score: number;
+    bentuk_tanggung_jawab: string | null;
+    nilai_kuantitatif_tanggung_jawab: number | null;
+    skala: string | null;
+    nilai_kuantitatif_skala: number | null;
+    nilai_kualitatif: number | null;
+    nilai_akhir: number | null;
+  };
+
+  // Batch into chunks of 50 to avoid PostgREST ~8 KB URL limit
+  const BATCH_SIZE = 50;
+  const detailRows: MenteriDetailRow[] = [];
+  if (raporIds.length > 0) {
+    const batches: string[][] = [];
+    for (let i = 0; i < raporIds.length; i += BATCH_SIZE) {
+      batches.push(raporIds.slice(i, i + BATCH_SIZE));
+    }
+    const batchResults = await Promise.all(
+      batches.map((batch) =>
+        supabase
+          .from("rapor_details")
+          .select(
+            "rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir",
+          )
+          .in("rapor_id", batch),
+      ),
+    );
+    for (const { data } of batchResults) {
+      if (data) detailRows.push(...(data as MenteriDetailRow[]));
+    }
+  }
+
 
   const detailsByRapor = new Map<string, { main_indicator_name: string; sub_indicator_name: string; score: number; bentuk_tanggung_jawab: string | null; nilai_kuantitatif_tanggung_jawab: number | null; skala: string | null; nilai_kuantitatif_skala: number | null; nilai_kualitatif: number | null; nilai_akhir: number | null }[]>();
   for (const item of detailRows ?? []) {

@@ -63,8 +63,7 @@ export default async function MenkoPage() {
     .from("profiles")
     .select("nim, nama_lengkap, unit_id")
     .in("unit_id", unitIds.length ? unitIds : ["00000000-0000-0000-0000-000000000000"])
-    .in("role", ["staff", "user"]);
-
+    .in("role", ["staff", "user", "pj_kementerian"]);
   const staffNims = (staffProfiles ?? []).map((item) => item.nim);
   const staffNameByNim = new Map((staffProfiles ?? []).map((item) => [item.nim, item.nama_lengkap]));
   const unitByStaffNim = new Map((staffProfiles ?? []).map((item) => [item.nim, item.unit_id]));
