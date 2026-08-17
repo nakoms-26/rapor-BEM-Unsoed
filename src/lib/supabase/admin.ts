@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 export function createAdminSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SECRET_KEY ||
@@ -9,7 +9,7 @@ export function createAdminSupabaseClient() {
 
   if (!url || !serviceRoleKey) {
     throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL dan key Supabase wajib diisi (SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEY / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).",
+      "URL dan key Supabase wajib diisi (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_URL serta SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEY / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).",
     );
   }
 
