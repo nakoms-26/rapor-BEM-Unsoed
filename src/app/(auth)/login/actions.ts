@@ -69,17 +69,22 @@ function isUnitAllowedForRole(
 export async function getSignUpOptions() {
   try {
     const supabase = createAdminSupabaseClient();
-    const { data: units } = await supabase
+    const { data: units, error } = await supabase
       .from("ref_units")
       .select("id, nama_unit, kategori")
       .order("kategori")
       .order("nama_unit");
 
+    if (error) {
+      console.error("[getSignUpOptions] Error fetching ref_units:", error.message, error.details);
+    }
+
     return {
       roleOptions: SIGN_UP_ROLE_OPTIONS,
       unitOptions: (units ?? []) as SignUpUnitOption[],
     };
-  } catch {
+  } catch (err) {
+    console.error("[getSignUpOptions] Exception:", err);
     return {
       roleOptions: SIGN_UP_ROLE_OPTIONS,
       unitOptions: [] as SignUpUnitOption[],
