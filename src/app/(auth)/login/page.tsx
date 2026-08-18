@@ -5,9 +5,9 @@ export const dynamic = "force-dynamic";
 
 const FALLBACK_ROLE_OPTIONS: SignUpRoleOption[] = [
   {
-    value: "menko",
-    label: "Menko",
-    description: "Melihat rekap seluruh kementerian di bawah koordinasi kemenko.",
+    value: "staff",
+    label: "Staff",
+    description: "Melihat rapor pribadi dan dapat ditugaskan sebagai penilai unit oleh admin.",
   },
   {
     value: "menteri",
@@ -15,9 +15,9 @@ const FALLBACK_ROLE_OPTIONS: SignUpRoleOption[] = [
     description: "Melihat rapor diri dan rapor staff unit.",
   },
   {
-    value: "staff",
-    label: "Staff",
-    description: "Melihat rapor pribadi dan dapat ditugaskan sebagai penilai unit oleh admin.",
+    value: "menko",
+    label: "Menko",
+    description: "Melihat rekap seluruh kementerian di bawah koordinasi kemenko.",
   },
 ];
 

@@ -212,10 +212,15 @@ export function LoginForm({ roleOptions, unitOptions }: Props) {
                   <option value="">Pilih unit</option>
                   {filteredUnitOptions.map((unit) => (
                     <option key={unit.id} value={unit.id}>
-                        {unit.nama_unit}
+                      {unit.nama_unit}
                     </option>
                   ))}
                 </select>
+                {filteredUnitOptions.length === 0 ? (
+                  <p className="text-xs text-amber-600">
+                    Tidak ada unit yang sesuai dengan role {selectedRole.toUpperCase()}. Coba ganti Role/Jabatan.
+                  </p>
+                ) : null}
               </div>
             </>
           ) : null}
