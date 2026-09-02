@@ -10,7 +10,7 @@ export type Database = {
           jurusan: string | null;
           tahun_angkatan: number | null;
           unit_id: string;
-          role: "admin" | "pj_kementerian" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
+          role: "admin" | "pj_kementerian" | "menko" | "user" | "pres_wapres" | "menteri" | "staff" | "internship" | "the_meridian" | "pj_ppm_intern";
           can_access_kemenko_report: boolean;
           is_pj_kemenkoan: boolean;
           created_at: string;
@@ -22,7 +22,7 @@ export type Database = {
           jurusan?: string | null;
           tahun_angkatan?: number | null;
           unit_id: string;
-          role?: "admin" | "pj_kementerian" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
+          role?: "admin" | "pj_kementerian" | "menko" | "user" | "pres_wapres" | "menteri" | "staff" | "internship" | "the_meridian" | "pj_ppm_intern";
           can_access_kemenko_report?: boolean;
           is_pj_kemenkoan?: boolean;
           created_at?: string;
@@ -102,7 +102,7 @@ export type Database = {
           user_nim: string;
           periode_id: string;
           penilai_nim: string;
-          report_type: "staf_unit" | "menteri_kepala_biro";
+          report_type: "staf_unit" | "menteri_kepala_biro" | "internship";
           total_avg: number;
           catatan: string | null;
           created_at: string;
@@ -112,7 +112,7 @@ export type Database = {
           user_nim: string;
           periode_id: string;
           penilai_nim: string;
-          report_type?: "staf_unit" | "menteri_kepala_biro";
+          report_type?: "staf_unit" | "menteri_kepala_biro" | "internship";
           total_avg?: number;
           catatan?: string | null;
           created_at?: string;
@@ -137,6 +137,27 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["evaluator_unit_assignments"]["Insert"]>;
+      };
+      pj_assignments: {
+        Row: {
+          id: string;
+          nim: string;
+          target_unit_id: string;
+          scope: "kemenko" | "unit" | "internship";
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          nim: string;
+          target_unit_id: string;
+          scope: "kemenko" | "unit" | "internship";
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pj_assignments"]["Insert"]>;
       };
       rapor_details: {
         Row: {
@@ -175,10 +196,11 @@ export type Database = {
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
-      app_role: "admin" | "pj_kementerian" | "menko" | "user" | "pres_wapres" | "menteri" | "staff";
+      app_role: "admin" | "pj_kementerian" | "menko" | "user" | "pres_wapres" | "menteri" | "staff" | "internship" | "the_meridian" | "pj_ppm_intern";
       unit_kategori: "kemenko" | "kementerian" | "biro";
       period_status: "draft" | "published";
-      rapor_type: "staf_unit" | "menteri_kepala_biro";
+      rapor_type: "staf_unit" | "menteri_kepala_biro" | "internship";
+      pj_assignment_scope: "kemenko" | "unit" | "internship";
     };
     CompositeTypes: Record<string, never>;
   };

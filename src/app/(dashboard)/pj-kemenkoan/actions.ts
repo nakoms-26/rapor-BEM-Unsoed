@@ -48,7 +48,7 @@ export async function saveKemenkoSubIndicators(payload: {
     .maybeSingle();
 
   if (!assignment) {
-    return { ok: false, message: "Anda tidak memiliki assignment aktif untuk kemenko tersebut." };
+    return { ok: false, message: "Kamu tidak memiliki assignment aktif untuk kemenko tersebut." };
   }
 
   const normalizedRows = parsed.data.indicators

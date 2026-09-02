@@ -93,7 +93,7 @@ export default async function MenkoMenteriPage() {
     <section className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Rapor Para Menteri</h2>
-        <p className="text-sm text-slate-600">Rapor menteri/kepala biro di bawah koordinasi Anda.</p>
+        <p className="text-sm text-slate-600">Rapor menteri/kepala biro di bawah koordinasi Kamu.</p>
       </div>
 
       <MenkoMenteriInputForm periods={sortedPeriods} menteriOptions={menteriOptions} />
@@ -101,7 +101,7 @@ export default async function MenkoMenteriPage() {
       <Card>
         <CardHeader>
           <CardTitle>Daftar Rapor Menteri (Struktur Folder)</CardTitle>
-          <CardDescription>Pengelompokan: Kemenko Anda &gt; Kementerian/Biro.</CardDescription>
+          <CardDescription>Pengelompokan: Kemenko Kamu &gt; Kementerian/Biro.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {rows.length ? (

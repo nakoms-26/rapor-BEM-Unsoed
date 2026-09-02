@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
-import Link from "next/link";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { isPublishedStatus } from "@/lib/period-status";
+import {
+  MenteriStaffTabs,
+  type StaffRaporRow,
+  type TabAnalyticsData,
+} from "@/components/dashboard/menteri-staff-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -16,29 +19,52 @@ export default async function MenteriStaffPage() {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
-  const [{ data: ownedUnit }, { data: periods }, { data: staffs }] = await Promise.all([
+  const [{ data: ownedUnit }, { data: periods }, { data: allMembers }] = await Promise.all([
     supabase.from("ref_units").select("id, nama_unit").eq("id", profile.unit_id).single(),
     supabase.from("rapor_periods").select("id, bulan, tahun, status"),
     supabase
       .from("profiles")
-      .select("nim, nama_lengkap")
+      .select("nim, nama_lengkap, role")
       .eq("unit_id", profile.unit_id)
-      .eq("role", "staff")
+      .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern"])
       .order("nama_lengkap"),
   ]);
 
-  const staffByNim = new Map((staffs ?? []).map((staff) => [staff.nim, staff.nama_lengkap]));
-  const staffNims = [...staffByNim.keys()];
+  const regularStaffs = (allMembers ?? []).filter((m) => m.role === "staff" || m.role === "pj_kementerian");
+  const internStaffs = (allMembers ?? []).filter((m) => m.role === "internship" || m.role === "pj_ppm_intern");
+
+  const regularNims = regularStaffs.map((s) => s.nim);
+  const internNims = internStaffs.map((s) => s.nim);
+  const allNims = [...regularNims, ...internNims];
+
+  const memberNameByNim = new Map((allMembers ?? []).map((m) => [m.nim, m.nama_lengkap]));
   const periodById = new Map((periods ?? []).map((period) => [period.id, period]));
 
-  const { data: scores } = staffNims.length
+  const { data: scores } = allNims.length
     ? await supabase
         .from("rapor_scores")
         .select("id, user_nim, periode_id, total_avg, catatan, report_type, created_at")
-        .in("user_nim", staffNims)
-        .eq("report_type", "staf_unit")
+        .in("user_nim", allNims)
+        .in("report_type", ["staf_unit", "internship"])
         .order("created_at", { ascending: false })
-    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null; report_type: "staf_unit" | "menteri_kepala_biro" }[] };
+    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null; report_type: string; created_at: string }[] };
+
+  // Fetch indicator details for deep analysis
+  const scoreIds = (scores ?? []).map((s) => s.id);
+  const { data: details } = scoreIds.length
+    ? await supabase
+        .from("rapor_details")
+        .select("rapor_id, main_indicator_name, score")
+        .in("rapor_id", scoreIds)
+    : { data: [] as { rapor_id: string; main_indicator_name: string; score: number }[] };
+
+  const detailsByRaporId = new Map<string, { main_indicator_name: string; score: number }[]>();
+  for (const item of details ?? []) {
+    if (!detailsByRaporId.has(item.rapor_id)) {
+      detailsByRaporId.set(item.rapor_id, []);
+    }
+    detailsByRaporId.get(item.rapor_id)!.push(item);
+  }
 
   const publishedPeriods = (periods ?? [])
     .filter((period) => isPublishedStatus(period.status))
@@ -50,156 +76,168 @@ export default async function MenteriStaffPage() {
   const latestPublished = publishedPeriods[0];
   const previousPublished = publishedPeriods[1];
 
-  const latestByNim = new Map<string, number>();
-  const previousByNim = new Map<string, number>();
+  function computeStatsAndRows(nims: string[]) {
+    const nimSet = new Set(nims);
+    const subsetScores = (scores ?? []).filter((s) => nimSet.has(s.user_nim));
 
-  for (const item of scores ?? []) {
-    if (latestPublished && item.periode_id === latestPublished.id) {
-      latestByNim.set(item.user_nim, Number(item.total_avg));
-    }
-    if (previousPublished && item.periode_id === previousPublished.id) {
-      previousByNim.set(item.user_nim, Number(item.total_avg));
-    }
-  }
+    const latestByNim = new Map<string, number>();
+    const previousByNim = new Map<string, number>();
+    const latestScoreIdByNim = new Map<string, string>();
 
-  let highestScoreName = "-";
-  let highestScoreValue = Number.NEGATIVE_INFINITY;
-  let lowestScoreName = "-";
-  let lowestScoreValue = Number.POSITIVE_INFINITY;
-  let highestGrowthName = "-";
-  let highestGrowthValue = Number.NEGATIVE_INFINITY;
-  let lowestGrowthName = "-";
-  let lowestGrowthValue = Number.POSITIVE_INFINITY;
-
-  for (const nim of staffNims) {
-    const current = latestByNim.get(nim);
-    if (typeof current !== "number") {
-      continue;
+    for (const item of subsetScores) {
+      if (latestPublished && item.periode_id === latestPublished.id) {
+        latestByNim.set(item.user_nim, Number(item.total_avg));
+        latestScoreIdByNim.set(item.user_nim, item.id);
+      }
+      if (previousPublished && item.periode_id === previousPublished.id) {
+        previousByNim.set(item.user_nim, Number(item.total_avg));
+      }
     }
 
-    const name = staffByNim.get(nim) ?? nim;
-    if (current > highestScoreValue) {
-      highestScoreValue = current;
-      highestScoreName = name;
-    }
-    if (current < lowestScoreValue) {
-      lowestScoreValue = current;
-      lowestScoreName = name;
+    let highestScoreName = "-";
+    let highestScoreValue = Number.NEGATIVE_INFINITY;
+    let lowestScoreName = "-";
+    let lowestScoreValue = Number.POSITIVE_INFINITY;
+    let highestGrowthName = "-";
+    let highestGrowthValue = Number.NEGATIVE_INFINITY;
+    let lowestGrowthName = "-";
+    let lowestGrowthValue = Number.POSITIVE_INFINITY;
+
+    const performanceList: { name: string; score: number }[] = [];
+    const indicatorAccumulator = new Map<string, { sum: number; count: number }>();
+
+    for (const nim of nims) {
+      const current = latestByNim.get(nim);
+      const name = memberNameByNim.get(nim) ?? nim;
+
+      if (typeof current === "number") {
+        performanceList.push({ name, score: current });
+
+        if (current > highestScoreValue) {
+          highestScoreValue = current;
+          highestScoreName = name;
+        }
+        if (current < lowestScoreValue) {
+          lowestScoreValue = current;
+          lowestScoreName = name;
+        }
+
+        const prev = previousByNim.get(nim) ?? current;
+        const growth = Number((current - prev).toFixed(2));
+        if (growth > highestGrowthValue) {
+          highestGrowthValue = growth;
+          highestGrowthName = name;
+        }
+        if (growth < lowestGrowthValue) {
+          lowestGrowthValue = growth;
+          lowestGrowthName = name;
+        }
+
+        // Accumulate indicator details
+        const scoreId = latestScoreIdByNim.get(nim);
+        if (scoreId) {
+          const detailItems = detailsByRaporId.get(scoreId) ?? [];
+          for (const det of detailItems) {
+            if (!indicatorAccumulator.has(det.main_indicator_name)) {
+              indicatorAccumulator.set(det.main_indicator_name, { sum: 0, count: 0 });
+            }
+            const acc = indicatorAccumulator.get(det.main_indicator_name)!;
+            acc.sum += Number(det.score);
+            acc.count += 1;
+          }
+        }
+      }
     }
 
-    const prev = previousByNim.get(nim) ?? current;
-    const growth = Number((current - prev).toFixed(2));
-    if (growth > highestGrowthValue) {
-      highestGrowthValue = growth;
-      highestGrowthName = name;
-    }
-    if (growth < lowestGrowthValue) {
-      lowestGrowthValue = growth;
-      lowestGrowthName = name;
-    }
-  }
+    const rows: StaffRaporRow[] = subsetScores.map((score) => {
+      const period = periodById.get(score.periode_id);
+      return {
+        id: score.id,
+        staffName: memberNameByNim.get(score.user_nim) ?? score.user_nim,
+        total_avg: Number(score.total_avg),
+        catatan: score.catatan,
+        bulan: period?.bulan ?? 0,
+        tahun: period?.tahun ?? 0,
+        status: period?.status ?? "draft",
+      };
+    });
 
-  const highestGrowthLabel = Number.isFinite(highestGrowthValue) ? highestGrowthValue.toFixed(2) : "0.00";
-  const lowestGrowthLabel = Number.isFinite(lowestGrowthValue) ? lowestGrowthValue.toFixed(2) : "0.00";
-  const highestScoreLabel = Number.isFinite(highestScoreValue) ? highestScoreValue.toFixed(2) : "0.00";
-  const lowestScoreLabel = Number.isFinite(lowestScoreValue) ? lowestScoreValue.toFixed(2) : "0.00";
-
-  const rows = (scores ?? []).map((score) => {
-    const period = periodById.get(score.periode_id);
-    return {
-      id: score.id,
-      staffName: staffByNim.get(score.user_nim) ?? score.user_nim,
-      total_avg: Number(score.total_avg),
-      catatan: score.catatan,
-      bulan: period?.bulan ?? 0,
-      tahun: period?.tahun ?? 0,
-      status: period?.status ?? "draft",
+    const stats = {
+      highestScoreName,
+      highestScoreLabel: Number.isFinite(highestScoreValue) ? highestScoreValue.toFixed(2) : "0.00",
+      lowestScoreName,
+      lowestScoreLabel: Number.isFinite(lowestScoreValue) ? lowestScoreValue.toFixed(2) : "0.00",
+      highestGrowthName,
+      highestGrowthLabel: Number.isFinite(highestGrowthValue) ? highestGrowthValue.toFixed(2) : "0.00",
+      lowestGrowthName,
+      lowestGrowthLabel: Number.isFinite(lowestGrowthValue) ? lowestGrowthValue.toFixed(2) : "0.00",
     };
-  });
+
+    // Calculate indicator averages
+    const indicatorScores = Array.from(indicatorAccumulator.entries()).map(([indicatorName, acc]) => ({
+      indicatorName,
+      averageScore: Number((acc.sum / (acc.count || 1)).toFixed(2)),
+      totalEvaluated: acc.count,
+    }));
+
+    const sortedIndicators = [...indicatorScores].sort((a, b) => b.averageScore - a.averageScore);
+    const topStrengthIndicator = sortedIndicators[0]
+      ? { name: sortedIndicators[0].indicatorName, score: sortedIndicators[0].averageScore }
+      : undefined;
+    const improvementIndicator = sortedIndicators[sortedIndicators.length - 1]
+      ? { name: sortedIndicators[sortedIndicators.length - 1].indicatorName, score: sortedIndicators[sortedIndicators.length - 1].averageScore }
+      : undefined;
+
+    const highPerformersCount = performanceList.filter((item) => item.score >= 3.5).length;
+    const highPerformersRatio = performanceList.length
+      ? Math.round((highPerformersCount / performanceList.length) * 100)
+      : 0;
+
+    const overallAverage = performanceList.length
+      ? Number((performanceList.reduce((acc, curr) => acc + curr.score, 0) / performanceList.length).toFixed(2))
+      : 0;
+
+    const analytics: TabAnalyticsData = {
+      performanceList,
+      indicatorScores,
+      insights: {
+        topStrengthIndicator,
+        improvementIndicator,
+        highPerformersRatio,
+        totalMembers: nims.length,
+        overallAverage,
+      },
+    };
+
+    return { rows, stats, analytics };
+  }
+
+  const staffResult = computeStatsAndRows(regularNims);
+  const internResult = computeStatsAndRows(internNims);
+
+  const latestPeriodLabel = latestPublished
+    ? `Periode ${latestPublished.bulan}/${latestPublished.tahun} (Published)`
+    : "Belum ada periode published";
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">Rapor Staff Unit</h2>
-        <p className="text-sm text-slate-600">Seluruh rapor staff untuk unit {ownedUnit?.nama_unit ?? "-"}.</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Rapor Staff & Internship Unit</h2>
+        <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+          Visualisasi performa, analisis indikator, dan rekap nilai untuk unit {ownedUnit?.nama_unit ?? "-"}.
+        </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recap 1 Bulan Terbaru (Published)</CardTitle>
-          <CardDescription>
-            {latestPublished
-              ? `Periode ${latestPublished.bulan}/${latestPublished.tahun}`
-              : "Belum ada periode published"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border border-slate-200 px-3 py-2">
-            <p className="text-xs text-slate-500">Nilai Tertinggi</p>
-            <p className="text-sm font-semibold text-slate-900">{highestScoreName}</p>
-            <p className="text-xs text-slate-600">{highestScoreLabel}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 px-3 py-2">
-            <p className="text-xs text-slate-500">Nilai Terendah</p>
-            <p className="text-sm font-semibold text-slate-900">{lowestScoreName}</p>
-            <p className="text-xs text-slate-600">{lowestScoreLabel}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 px-3 py-2">
-            <p className="text-xs text-slate-500">Growth Tertinggi</p>
-            <p className="text-sm font-semibold text-slate-900">{highestGrowthName}</p>
-            <p className="text-xs text-slate-600">{highestGrowthLabel}</p>
-          </div>
-          <div className="rounded-lg border border-slate-200 px-3 py-2">
-            <p className="text-xs text-slate-500">Growth Terendah</p>
-            <p className="text-sm font-semibold text-slate-900">{lowestGrowthName}</p>
-            <p className="text-xs text-slate-600">{lowestGrowthLabel}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Rapor Staff</CardTitle>
-          <CardDescription>Urut dari data terbaru.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Link
-              href="/menteri/staff-detail"
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="h-4 w-4"
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l5 5v11a2 2 0 0 1-2 2Z" />
-              </svg>
-              <span>Lihat Rincian Rapor</span>
-            </Link>
-          </div>
-          {rows.length ? (
-            rows.map((row) => (
-              <div key={row.id} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-700">{row.staffName}</span>
-                  <span className="font-semibold text-slate-900">{row.total_avg.toFixed(2)}</span>
-                </div>
-                <p className="mt-1 text-xs text-slate-600">
-                  {row.bulan}/{row.tahun} ({row.status})
-                </p>
-                {row.catatan ? <p className="mt-1 text-xs text-slate-600">Catatan: {row.catatan}</p> : null}
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-slate-600">Belum ada rapor staff untuk unit ini.</p>
-          )}
-        </CardContent>
-      </Card>
+      <MenteriStaffTabs
+        unitName={ownedUnit?.nama_unit ?? "-"}
+        latestPeriodLabel={latestPeriodLabel}
+        staffRows={staffResult.rows}
+        staffStats={staffResult.stats}
+        staffAnalytics={staffResult.analytics}
+        internRows={internResult.rows}
+        internStats={internResult.stats}
+        internAnalytics={internResult.analytics}
+      />
     </section>
   );
 }

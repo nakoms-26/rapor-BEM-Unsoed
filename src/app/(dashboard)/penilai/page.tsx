@@ -35,7 +35,7 @@ export default async function PenilaiPage() {
             <CardTitle>Akses Tidak Tersedia</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-slate-600">Akun Anda tidak termasuk unit penilai untuk input rapor staf kementerian/biro.</p>
+            <p className="text-sm text-slate-600">Akun Kamu tidak termasuk unit penilai untuk input rapor staf kementerian/biro.</p>
           </CardContent>
         </Card>
       </section>
@@ -64,7 +64,7 @@ export default async function PenilaiPage() {
         <Card>
           <CardHeader>
             <CardTitle>Belum Ada Assignment</CardTitle>
-            <CardDescription>Silakan hubungi admin agar unit pegangan Anda diaktifkan.</CardDescription>
+            <CardDescription>Silakan hubungi admin agar unit pegangan Kamu diaktifkan.</CardDescription>
           </CardHeader>
         </Card>
       </section>
@@ -90,7 +90,7 @@ export default async function PenilaiPage() {
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Input Rapor Unit Pegangan</h2>
         <p className="text-sm text-slate-600">
-          Anda hanya dapat input rapor staf untuk 1 unit yang ditetapkan: {targetUnit?.nama_unit ?? "-"}.
+          Kamu hanya dapat input rapor staf untuk 1 unit yang ditetapkan: {targetUnit?.nama_unit ?? "-"}.
         </p>
       </div>
 

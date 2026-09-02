@@ -24,7 +24,17 @@ export const PRESTASI_QUALITATIVE_OPTIONS = [1, 2, 3, 4, 5] as const;
 
 export type MainIndicatorName = (typeof MAIN_INDICATORS)[number];
 
-export const APP_ROLES = ["admin", "pj_kementerian", "pres_wapres", "menko", "menteri", "staff"] as const;
+export const APP_ROLES = [
+  "admin",
+  "pj_kementerian",
+  "pres_wapres",
+  "menko",
+  "menteri",
+  "staff",
+  "internship",
+  "the_meridian",
+  "pj_ppm_intern",
+] as const;
 export type AppRole = (typeof APP_ROLES)[number];
 
 export const ROLE_HOME: Record<string, string> = {
@@ -35,4 +45,8 @@ export const ROLE_HOME: Record<string, string> = {
   menko: "/dashboard",
   menteri: "/dashboard",
   staff: "/dashboard",
+  internship: "/dashboard",
+  the_meridian: "/dashboard",
+  pj_ppm_intern: "/dashboard",
 };
+

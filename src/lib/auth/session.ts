@@ -117,8 +117,8 @@ const getCurrentSessionProfileByToken = cache(async (sessionToken: string): Prom
   return {
     nim: profile.nim,
     nama_lengkap: profile.nama_lengkap,
-    jurusan: null,
-    tahun_angkatan: null,
+    jurusan: (profile.jurusan as string | null) ?? null,
+    tahun_angkatan: typeof profile.tahun_angkatan === "number" ? profile.tahun_angkatan : (profile.tahun_angkatan ? Number(profile.tahun_angkatan) : null),
     role: normalizeProfileRole(String(profile.role ?? "staff")),
     unit_id: profile.unit_id,
     can_access_kemenko_report: Boolean(profile.can_access_kemenko_report),

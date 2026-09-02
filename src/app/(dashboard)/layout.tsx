@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BarChart3, ClipboardList, Home, LogOut, UserRoundCheck } from "lucide-react";
+import { BarChart3, ClipboardList, Home, LogOut, UserRoundCheck, User } from "lucide-react";
 import { requireSessionProfile } from "@/lib/auth/session";
 import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { signOutTableAccount } from "@/app/(auth)/login/actions";
@@ -52,7 +52,7 @@ export default async function DashboardLayout({
 
   if (profile.role === "menteri") {
     navItems.push({ href: "/menteri", label: "Rapor Diri", icon: UserRoundCheck });
-    navItems.push({ href: "/menteri/staff", label: "Rapor Staff", icon: BarChart3 });
+    navItems.push({ href: "/menteri/staff", label: "Rapor Staff & Intern", icon: BarChart3 });
   }
 
   if (profile.role === "staff") {
@@ -69,19 +69,42 @@ export default async function DashboardLayout({
     }
   }
 
+  if (profile.role === "internship") {
+    navItems.push({ href: "/staff", label: "Rapor Cakrawala", icon: UserRoundCheck });
+  }
+
+  if (profile.role === "the_meridian") {
+    navItems.push({ href: "/the-meridian", label: "Rapor Internship Unit", icon: BarChart3 });
+  }
+
+  if (profile.role === "pj_ppm_intern") {
+    navItems.push({ href: "/staff", label: "Rapor Diri", icon: UserRoundCheck });
+    navItems.push({ href: "/pj-ppm-intern", label: "Rapor Internship [Kementerian/Biro]", icon: BarChart3 });
+  }
+
   if (profile.role === "admin") {
     navItems.push({ href: "/admin/staff-recap", label: "Recap Staff Kabinet", icon: BarChart3 });
     navItems.push({ href: "/admin/menteri-detail", label: "Rapor Menteri", icon: UserRoundCheck });
   }
 
+  // Profil item for all logged-in users
+  navItems.push({ href: "/profile", label: "Profil", icon: User });
+
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div className="min-w-0 mr-4">
-            <h1 className="text-base font-bold text-slate-900 leading-tight">Rapor BEM Bulanan</h1>
-            <p className="text-xs text-slate-500 truncate max-w-[180px] sm:max-w-xs">{profile.nama_lengkap} · {profile.role}</p>
-          </div>
+          <Link href="/profile" className="group min-w-0 mr-4 flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 text-slate-700 font-bold group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors">
+              {profile.nama_lengkap ? profile.nama_lengkap.charAt(0).toUpperCase() : "U"}
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight">
+                {profile.nama_lengkap}
+              </h1>
+              <p className="text-xs text-slate-500 truncate max-w-[180px] sm:max-w-xs">{profile.nim} · {profile.role}</p>
+            </div>
+          </Link>
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-1">
@@ -118,29 +141,29 @@ export default async function DashboardLayout({
           </label>
         </div>
 
-        {/* Mobile nav drawer — pure CSS checkbox trick */}
+        {/* Mobile nav drawer — pure CSS checkbox trick with smooth transition */}
         <input type="checkbox" id="mobile-nav-toggle" className="peer sr-only" />
         <nav
-          className="hidden peer-checked:block lg:hidden border-t border-slate-100 bg-white"
+          className="hidden peer-checked:block lg:hidden border-t border-slate-100 bg-white/95 backdrop-blur shadow-lg transition-all"
           aria-label="Navigasi mobile"
         >
-          <div className="mx-auto max-w-7xl px-2 py-2">
+          <div className="mx-auto max-w-7xl px-3 py-3 space-y-1">
             {navItems.map((item) => (
               <Link
                 key={item.href}
-                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                className="flex items-center gap-3 rounded-lg px-3.5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200 transition-colors"
                 href={item.href}
               >
-                <item.icon className="h-4 w-4 flex-shrink-0 text-slate-500" />
+                <item.icon className="h-4.5 w-4.5 flex-shrink-0 text-slate-500" />
                 <span>{item.label}</span>
               </Link>
             ))}
-            <form action={signOutAction}>
+            <form action={signOutAction} className="pt-1 border-t border-slate-100">
               <button
-                className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                className="flex w-full items-center gap-3 rounded-lg px-3.5 py-3 text-sm font-medium text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors"
                 type="submit"
               >
-                <LogOut className="h-4 w-4 flex-shrink-0" />
+                <LogOut className="h-4.5 w-4.5 flex-shrink-0" />
                 <span>Keluar</span>
               </button>
             </form>
@@ -148,7 +171,7 @@ export default async function DashboardLayout({
         </nav>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-4 md:py-6">{children}</div>
+      <main className="mx-auto max-w-7xl px-3 sm:px-6 py-4 sm:py-6 md:py-8">{children}</main>
     </div>
   );
 }

@@ -36,7 +36,7 @@ VALUES
   ('Abu Akhsin Ismail Husna', 'Kementerian Pengembangan Sumber Daya Mahasiswa'),
   ('Muhammad Fairuzy Alsya''Bani', 'Kementerian Prestasi dan Inovasi'),
   ('Zahra Indria Puspita', 'Kementerian Seni dan Olahraga'),
-  ('Danish Arinal Haq', 'Kementerian Advokasi dan Kesejahteraan Mahasiswa'),
+  ('Danish Arinal Haq', 'Kementerian Advokasi Kesejahteraan Mahasiswa'),
   ('Tita Willy Nurlatifah', 'Kementerian Aksi dan Propaganda'),
   ('Aman Santoso', 'Kementerian Analisis Isu Strategis'),
   ('Meylani Trihapsari', 'Kementerian Pemberdayaan Perempuan'),

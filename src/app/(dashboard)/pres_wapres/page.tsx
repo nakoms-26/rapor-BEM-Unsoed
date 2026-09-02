@@ -6,8 +6,12 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-function reportTypeLabel(type: "staf_unit" | "menteri_kepala_biro") {
-  return type === "menteri_kepala_biro" ? "Menteri/Kepala Biro" : "Staf Unit";
+function reportTypeLabel(type: string, role?: string) {
+  if (type === "menteri_kepala_biro" || role === "menteri") return "Menteri/Kepala Biro";
+  if (type === "internship" || role === "internship") return "Cakrawala (Internship)";
+  if (role === "the_meridian") return "The Meridian";
+  if (role === "pj_ppm_intern") return "PJ PPM Intern";
+  return "Staf Unit";
 }
 
 function scoreTone(score: number) {
@@ -32,7 +36,7 @@ export default async function PresidenWakilPresidenPage() {
       .from("rapor_scores")
       .select("id, user_nim, penilai_nim, periode_id, report_type, total_avg, catatan, created_at")
       .order("created_at", { ascending: false })
-      .limit(200),
+      .limit(300),
   ]);
 
   const unitById = new Map((units ?? []).map((item) => [item.id, item]));
@@ -57,6 +61,7 @@ export default async function PresidenWakilPresidenPage() {
       evaluatorName: evaluator?.nama_lengkap ?? score.penilai_nim,
       totalAvg: Number(score.total_avg),
       reportType: score.report_type,
+      displayTypeLabel: reportTypeLabel(score.report_type, target?.role),
       catatan: score.catatan,
       periodeLabel: period ? `${period.bulan}/${period.tahun} (${period.status})` : "Periode tidak ditemukan",
     };
@@ -133,8 +138,8 @@ export default async function PresidenWakilPresidenPage() {
                               <div className="space-y-1">
                                 <p className="font-medium text-slate-800">{row.targetName}</p>
                                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5">
-                                    {reportTypeLabel(row.reportType)}
+                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 font-medium">
+                                    {row.displayTypeLabel}
                                   </span>
                                   <span>{row.periodeLabel}</span>
                                 </div>

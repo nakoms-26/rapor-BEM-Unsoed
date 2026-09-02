@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import Link from "next/link";
+import { ArrowLeft, Sparkles } from "lucide-react";
 
 const BULAN_LABEL: Record<number, string> = {
   1: "Januari",
@@ -25,23 +27,23 @@ function formatPeriode(bulan: number, tahun: number) {
 
 export const dynamic = "force-dynamic";
 
-export default async function MenteriStaffDetailPage() {
+export default async function TheMeridianStaffDetailPage() {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (profile.role !== "menteri") {
+  if (profile.role !== "the_meridian") {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
-  // Get all staff and interns under this menteri
-  const { data: staffProfiles } = await supabase
+  // Get all internship staff under this meridian unit
+  const { data: internProfiles } = await supabase
     .from("profiles")
-    .select("nim, nama_lengkap, role")
+    .select("nim, nama_lengkap")
     .eq("unit_id", profile.unit_id)
-    .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern"])
+    .eq("role", "internship")
     .order("nama_lengkap");
 
-  const staffNims = (staffProfiles ?? []).map((s) => s.nim);
+  const internNims = (internProfiles ?? []).map((s) => s.nim);
 
   // Get all rapor periods
   const { data: periods } = await supabase
@@ -50,14 +52,14 @@ export default async function MenteriStaffDetailPage() {
     .order("tahun", { ascending: false })
     .order("bulan", { ascending: false });
 
-  // Get all rapor scores for staff and internship
-  const { data: scores } = staffNims.length
+  // Get all rapor scores for internship
+  const { data: scores } = internNims.length
     ? await supabase
         .from("rapor_scores")
         .select("id, user_nim, periode_id, total_avg, catatan")
-        .in("user_nim", staffNims)
-        .in("report_type", ["staf_unit", "internship"])
-    : { data: [] };
+        .in("user_nim", internNims)
+        .in("report_type", ["internship", "staf_unit"])
+    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null }[] };
 
   // Get all rapor details
   const scoreIds = (scores ?? []).map((s) => s.id);
@@ -66,13 +68,25 @@ export default async function MenteriStaffDetailPage() {
         .from("rapor_details")
         .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
         .in("rapor_id", scoreIds)
-    : { data: [] };
+    : {
+        data: [] as {
+          rapor_id: string;
+          main_indicator_name: string;
+          sub_indicator_name: string;
+          score: number;
+          bentuk_tanggung_jawab: string | null;
+          nilai_kuantitatif_tanggung_jawab: number | null;
+          skala: string | null;
+          nilai_kuantitatif_skala: number | null;
+          nilai_kualitatif: number | null;
+          nilai_akhir: number | null;
+        }[],
+      };
 
-  // Build maps
-  const staffByNim = new Map((staffProfiles ?? []).map((s) => [s.nim, s]));
   const periodById = new Map((periods ?? []).map((p) => [p.id, p]));
   
-  const detailsByRaporId = new Map<string, any[]>();
+  type DetailRow = NonNullable<typeof details>[number];
+  const detailsByRaporId = new Map<string, DetailRow[]>();
   for (const detail of details ?? []) {
     if (!detailsByRaporId.has(detail.rapor_id)) {
       detailsByRaporId.set(detail.rapor_id, []);
@@ -81,7 +95,8 @@ export default async function MenteriStaffDetailPage() {
   }
 
   // Group scores by staff and period
-  const scoresByStaffAndPeriod = new Map<string, Map<string, any[]>>();
+  type ScoreRow = NonNullable<typeof scores>[number];
+  const scoresByStaffAndPeriod = new Map<string, Map<string, ScoreRow[]>>();
   for (const score of scores ?? []) {
     if (!scoresByStaffAndPeriod.has(score.user_nim)) {
       scoresByStaffAndPeriod.set(score.user_nim, new Map());
@@ -95,54 +110,58 @@ export default async function MenteriStaffDetailPage() {
 
   return (
     <section className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Rincian Rapor Staff</h2>
-        <p className="text-sm text-slate-600">
-          Detail penilaian untuk seluruh staff di unit Kamu.
-        </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Link
+            href="/the-meridian"
+            className="mb-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Kembali ke Dashboard The Meridian</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-slate-900">Rincian Indikator Rapor Cakrawala</h2>
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+              <Sparkles className="h-3 w-3" />
+              The Meridian
+            </span>
+          </div>
+          <p className="text-sm text-slate-600">
+            Rincian penilaian per indikator untuk seluruh staf magang Cakrawala di kementerian/biro Kamu.
+          </p>
+        </div>
       </div>
 
-      {staffProfiles && staffProfiles.length > 0 ? (
+      {internProfiles && internProfiles.length > 0 ? (
         <div className="space-y-6">
-          {staffProfiles.map((staff) => {
-            const staffScores = scoresByStaffAndPeriod.get(staff.nim);
-            const hasScores = staffScores && staffScores.size > 0;
+          {internProfiles.map((intern) => {
+            const internScores = scoresByStaffAndPeriod.get(intern.nim);
+            const hasScores = internScores && internScores.size > 0;
 
             return (
-              <Card key={staff.nim}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <div>
-                    <CardTitle className="text-base">{staff.nama_lengkap}</CardTitle>
-                    <CardDescription>NIM: {staff.nim}</CardDescription>
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
-                      staff.role === "internship"
-                        ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                        : "bg-blue-50 border-blue-200 text-blue-700"
-                    }`}
-                  >
-                    {staff.role === "internship" ? "Cakrawala (Intern)" : "Staf"}
-                  </span>
+              <Card key={intern.nim} className="border-slate-200 shadow-sm">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+                  <CardTitle className="text-lg text-slate-900">{intern.nama_lengkap}</CardTitle>
+                  <CardDescription>NIM: {intern.nim}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                   {hasScores ? (
                     <div className="space-y-4">
-                      {Array.from(staffScores!.entries()).map(([periodId, scoresInPeriod]) => {
+                      {Array.from(internScores!.entries()).map(([periodId, scoresInPeriod]) => {
                         const period = periodById.get(periodId);
                         return (
-                          <div key={periodId} className="border rounded-lg p-4 space-y-3">
+                          <div key={periodId} className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-xs">
                             <div className="flex justify-between items-start">
                               <div>
                                 <p className="font-semibold text-slate-900">
                                   {formatPeriode(period?.bulan ?? 0, period?.tahun ?? 0)}
                                 </p>
-                                <p className="text-sm text-slate-600">Status: {period?.status}</p>
+                                <p className="text-xs text-slate-500 capitalize">Status: {period?.status}</p>
                               </div>
                               {scoresInPeriod.length > 0 && (
                                 <div className="text-right">
-                                  <p className="text-sm text-slate-600">Nilai Total</p>
-                                  <p className="text-lg font-bold text-slate-900">
+                                  <p className="text-xs text-slate-500">Nilai Rata-rata</p>
+                                  <p className="text-lg font-bold text-indigo-700">
                                     {Number(scoresInPeriod[0].total_avg).toFixed(2)}
                                   </p>
                                 </div>
@@ -150,20 +169,22 @@ export default async function MenteriStaffDetailPage() {
                             </div>
 
                             {scoresInPeriod[0]?.catatan && (
-                              <div className="bg-slate-50 rounded p-2 text-sm">
-                                <p className="text-slate-700">Catatan: {scoresInPeriod[0].catatan}</p>
+                              <div className="bg-slate-50 rounded-lg p-2.5 text-xs text-slate-700 border border-slate-100">
+                                <span className="font-semibold">Catatan Penilai:</span> {scoresInPeriod[0].catatan}
                               </div>
                             )}
 
                             {/* Rincian per indikator */}
-                            <div className="space-y-2">
-                              <p className="font-medium text-slate-900 text-sm">Rincian per Indikator:</p>
+                            <div className="space-y-3 pt-2">
+                              <p className="font-semibold text-slate-800 text-xs uppercase tracking-wider">
+                                Rincian per Indikator:
+                              </p>
                               {scoresInPeriod.length > 0 && (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                   {(() => {
                                     const raporDetails =
                                       detailsByRaporId.get(scoresInPeriod[0].id) ?? [];
-                                    const groupedByMain = new Map<string, any[]>();
+                                    const groupedByMain = new Map<string, DetailRow[]>();
                                     for (const detail of raporDetails) {
                                       if (!groupedByMain.has(detail.main_indicator_name)) {
                                         groupedByMain.set(detail.main_indicator_name, []);
@@ -173,15 +194,15 @@ export default async function MenteriStaffDetailPage() {
 
                                     return Array.from(groupedByMain.entries()).map(
                                       ([mainIndicator, subIndicators]) => (
-                                        <div key={mainIndicator} className="ml-2">
-                                          <p className="font-medium text-slate-700 text-sm mb-1">
+                                        <div key={mainIndicator} className="rounded-lg border border-slate-100 bg-slate-50/40 p-3">
+                                          <p className="font-medium text-slate-900 text-xs mb-2">
                                             {mainIndicator}
                                           </p>
-                                          <div className="ml-4 space-y-1">
+                                          <div className="space-y-1.5">
                                             {subIndicators.map((sub, idx) => (
-                                              <div key={idx} className="flex justify-between text-xs">
+                                              <div key={idx} className="flex justify-between items-center text-xs py-0.5">
                                                 <span className="text-slate-600">{sub.sub_indicator_name}</span>
-                                                <span className="font-semibold text-slate-900">
+                                                <span className="font-semibold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
                                                   {Number(sub.score).toFixed(2)}
                                                 </span>
                                               </div>
@@ -199,7 +220,7 @@ export default async function MenteriStaffDetailPage() {
                       })}
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-600">Belum ada data rapor untuk staff ini.</p>
+                    <p className="text-sm text-slate-500 py-3 text-center">Belum ada data rapor untuk staf magang ini.</p>
                   )}
                 </CardContent>
               </Card>
@@ -209,7 +230,7 @@ export default async function MenteriStaffDetailPage() {
       ) : (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-600">Tidak ada staff di unit Kamu.</p>
+            <p className="text-sm text-slate-600 text-center py-6">Tidak ada staf magang (Cakrawala) terdaftar di unit Kamu.</p>
           </CardContent>
         </Card>
       )}

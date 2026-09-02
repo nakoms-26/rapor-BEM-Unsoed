@@ -118,7 +118,7 @@ export async function submitMenkoMenteriRapor(payload: MenkoMenteriInputForm) {
   }
 
   if (isMenko && targetUnit.parent_id !== evaluatorProfile.unit_id) {
-    return { ok: false, message: "Anda hanya dapat menilai menteri/kepala biro pada unit koordinasi Anda." };
+    return { ok: false, message: "Kamu hanya dapat menilai menteri/kepala biro pada unit koordinasi Kamu." };
   }
 
   const responsibilityEntries: Array<{ subIndicator: string; value: MenkoMenteriResponsibilityValue }> =

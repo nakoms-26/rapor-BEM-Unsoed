@@ -53,7 +53,7 @@ from (
     ('Biro Pengembangan Sumber Daya Anggota', 'biro', 'Satuan Pengawas Internal'),
     ('Biro Pengendali & Penjamin Mutu', 'biro', 'Satuan Pengawas Internal'),
 
-    ('Kementerian Advokasi dan Kesejahteraan Mahasiswa', 'kementerian', 'Politik Pergerakan'),
+    ('Kementerian Advokasi Kesejahteraan Mahasiswa', 'kementerian', 'Politik Pergerakan'),
     ('Kementerian Aksi dan Propaganda', 'kementerian', 'Politik Pergerakan'),
     ('Kementerian Analisis Isu Strategis', 'kementerian', 'Politik Pergerakan'),
     ('Kementerian Pemberdayaan Perempuan', 'kementerian', 'Politik Pergerakan'),

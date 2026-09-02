@@ -40,11 +40,11 @@ export default async function PjKemenkoPage() {
       <section className="space-y-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Kelola Sub-Indikator Kemenko</h2>
-          <p className="text-sm text-slate-600">Pengaturan rincian kegiatan (sub-indikator) untuk kemenko yang Anda pimpin.</p>
+          <p className="text-sm text-slate-600">Pengaturan rincian kegiatan (sub-indikator) untuk kemenko yang Kamu pimpin.</p>
         </div>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-600">Tidak ada kemenko yang di-assign. Hubungi admin untuk menetapkan kemenko pegangan Anda.</p>
+            <p className="text-sm text-slate-600">Tidak ada kemenko yang di-assign. Hubungi admin untuk menetapkan kemenko pegangan Kamu.</p>
           </CardContent>
         </Card>
       </section>

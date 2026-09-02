@@ -36,7 +36,7 @@ export default async function StaffPage() {
     redirect("/login");
   }
 
-  if (profile.role !== "staff") {
+  if (profile.role !== "staff" && profile.role !== "internship" && profile.role !== "pj_ppm_intern") {
     redirect(ROLE_HOME[profile.role] ?? "/login");
   }
 
@@ -46,7 +46,7 @@ export default async function StaffPage() {
       .from("rapor_scores")
       .select("id, periode_id, total_avg, catatan, created_at")
       .eq("user_nim", profile.nim)
-      .eq("report_type", "staf_unit")
+      .in("report_type", ["staf_unit", "internship"])
       .order("created_at", { ascending: false }),
     supabase
       .from("rapor_scores")
@@ -173,33 +173,35 @@ export default async function StaffPage() {
     .single();
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-5">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">Rapor Personal</h2>
-        <p className="text-sm text-slate-600">Semua periode rapor bulanan untuk {profile.nama_lengkap}.</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          {profile.role === "internship" || profile.role === "pj_ppm_intern" ? "Rapor Personal Cakrawala (Internship)" : "Rapor Personal"}
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-600 mt-0.5">Semua periode rapor bulanan untuk {profile.nama_lengkap}.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Nilai Kumulatif</CardTitle>
-          <CardDescription>Skala 0 - 100 (tanpa nilai prestasi)</CardDescription>
+      <Card className="border-slate-200/80 bg-white shadow-xs">
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-base sm:text-lg text-slate-900">Nilai Kumulatif</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Skala 0 - 100 (tanpa nilai prestasi)</CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-4xl font-bold text-slate-900">{latestDisplayScore?.toFixed(2) ?? "0.00"}</p>
+        <CardContent className="p-4 sm:p-6 pt-0">
+          <p className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">{latestDisplayScore?.toFixed(2) ?? "0.00"}</p>
           <p className="mt-1 text-xs text-slate-500">
             {latestScore ? `${formatPeriode(latestScore.bulan, latestScore.tahun)} (${latestScore.status})` : "Belum ada data"}
           </p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Riwayat Periode Rapor</CardTitle>
+      <Card className="border-slate-200/80 bg-white shadow-xs">
+        <CardHeader className="p-4 sm:p-6 pb-3">
+          <CardTitle className="text-base sm:text-lg text-slate-900">Riwayat Periode Rapor</CardTitle>
         </CardHeader>
         <CardContent>
           {hasOnlyDifferentReportType ? (
             <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              Data rapor ditemukan, tetapi tipenya bukan staf_unit. Silakan cek tipe laporan pada data rapor Anda.
+              Data rapor ditemukan, tetapi tipenya bukan staf_unit. Silakan cek tipe laporan pada data rapor Kamu.
             </p>
           ) : null}
           {hasAnyScore && !hasPublishedPeriod ? (

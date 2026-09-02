@@ -116,7 +116,7 @@ export default async function MenkoMenteriDetailPage() {
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Rincian Rapor Menteri/Kepala Biro</h2>
         <p className="text-sm text-slate-600">
-          Detail penilaian untuk seluruh menteri/kepala biro di bawah koordinasi Anda.
+          Detail penilaian untuk seluruh menteri/kepala biro di bawah koordinasi Kamu.
         </p>
       </div>
 
@@ -219,7 +219,7 @@ export default async function MenkoMenteriDetailPage() {
       ) : (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-slate-600">Tidak ada menteri/kepala biro di bawah koordinasi Anda.</p>
+            <p className="text-sm text-slate-600">Tidak ada menteri/kepala biro di bawah koordinasi Kamu.</p>
           </CardContent>
         </Card>
       )}

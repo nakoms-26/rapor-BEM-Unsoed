@@ -8,22 +8,13 @@ import type { SignUpRoleOption, SignUpUnitOption } from "@/types/app";
 
 const ADMIN_ALLOWED_UNITS = new Set(["Admin"]);
 const PRES_WAPRES_ALLOWED_UNITS = new Set(["Lingkar Presiden"]);
+const PPM_ALLOWED_UNITS = new Set(["Biro PPM", "Biro Pengendali & Penjamin Mutu"]);
 
 const SIGN_UP_ROLE_OPTIONS: SignUpRoleOption[] = [
   {
-    value: "staff",
-    label: "Staff",
-    description: "Melihat rapor pribadi dan dapat ditugaskan sebagai penilai unit oleh admin.",
-  },
-  {
-    value: "menteri",
-    label: "Menteri / Kepala Biro",
-    description: "Melihat rapor diri dan rapor staff unit.",
-  },
-  {
-    value: "menko",
-    label: "Menko",
-    description: "Melihat rekap seluruh kementerian di bawah koordinasi kemenko.",
+    value: "internship",
+    label: "Internship (Cakrawala)",
+    description: "Melihat rapor internship personal. Staf magang dari Biro PPM otomatis ditetapkan sebagai PJ PPM Intern.",
   },
 ];
 
@@ -36,19 +27,23 @@ function isAppRole(value: string): value is AppRole {
 }
 
 function isSignupRoleAllowed(role: AppRole) {
-  return role === "menko" || role === "menteri" || role === "staff" || role === "pres_wapres";
+  return role === "internship";
 }
 
 function isUnitAllowedForRole(
   role: AppRole,
   unit: { nama_unit: string; kategori: "kemenko" | "kementerian" | "biro" },
 ) {
-  if (role === "menko") {
-    return unit.kategori === "kemenko";
+  if (role === "internship") {
+    return unit.kategori === "kementerian" || unit.kategori === "biro";
   }
 
-  if (role === "menteri" || role === "staff") {
+  if (role === "the_meridian" || role === "pj_ppm_intern" || role === "menteri" || role === "staff") {
     return unit.kategori === "kementerian" || unit.kategori === "biro";
+  }
+
+  if (role === "menko") {
+    return unit.kategori === "kemenko";
   }
 
   if (role === "pres_wapres") {
@@ -203,14 +198,12 @@ export async function signUpWithTableAccount(payload: {
   if (!isUnitAllowedForRole(requestedRole, selectedUnit)) {
     return {
       ok: false,
-      message:
-        requestedRole === "pres_wapres"
-          ? "Akun Presiden & Wakil Presiden hanya boleh menggunakan unit Lingkar Presiden."
-          : requestedRole === "menko"
-            ? "Akun Menko wajib menggunakan unit kategori kemenko."
-            : "Akun Menteri/Staff wajib menggunakan unit kategori kementerian atau biro.",
+      message: "Unit yang dipilih tidak sesuai untuk role pendaftaran ini (wajib Kementerian atau Biro).",
     };
   }
+
+  const isPpmUnit = PPM_ALLOWED_UNITS.has(selectedUnit.nama_unit);
+  const finalRole: AppRole = requestedRole === "internship" && isPpmUnit ? "pj_ppm_intern" : (requestedRole as AppRole);
 
   let { data: profile } = await supabase
     .from("profiles")
@@ -227,7 +220,7 @@ export async function signUpWithTableAccount(payload: {
         jurusan,
         tahun_angkatan: tahunAngkatan,
         unit_id: selectedUnit.id,
-        role: requestedRole,
+        role: finalRole,
       })
       .select("nim, role, unit_id")
       .single();
@@ -244,14 +237,14 @@ export async function signUpWithTableAccount(payload: {
         nama_lengkap: namaLengkap,
         jurusan,
         tahun_angkatan: tahunAngkatan,
-        role: requestedRole,
+        role: finalRole,
         unit_id: selectedUnit.id,
       })
       .eq("nim", nim);
 
     profile = {
       ...profile,
-      role: requestedRole,
+      role: finalRole,
       unit_id: selectedUnit.id,
     };
   }

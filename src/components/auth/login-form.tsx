@@ -23,6 +23,9 @@ function isUnitEligibleForRole(
   role: string,
   unit: { nama_unit: string; kategori: "kemenko" | "kementerian" | "biro" },
 ) {
+  if (role === "internship" || role === "the_meridian" || role === "pj_ppm_intern") {
+    return unit.kategori === "kementerian" || unit.kategori === "biro";
+  }
   if (role === "menko") {
     return unit.kategori === "kemenko";
   }
@@ -47,7 +50,7 @@ export function LoginForm({ roleOptions, unitOptions }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [selectedRole, setSelectedRole] = useState<AppRole>(roleOptions[0]?.value ?? "staff");
+  const [selectedRole, setSelectedRole] = useState<AppRole>(roleOptions[0]?.value ?? "internship");
 
   const filteredUnitOptions = useMemo(
     () => unitOptions.filter((unit) => isUnitEligibleForRole(selectedRole, unit)),
@@ -126,7 +129,7 @@ export function LoginForm({ roleOptions, unitOptions }: Props) {
         return;
       }
 
-      setSuccessMessage("Registrasi berhasil. Akun Anda sudah aktif, mengarahkan ke dashboard...");
+      setSuccessMessage("Registrasi berhasil. Akun Kamu sudah aktif, mengarahkan ke dashboard...");
       router.push(result.redirectTo ?? "/staff");
       router.refresh();
       return;
@@ -153,7 +156,7 @@ export function LoginForm({ roleOptions, unitOptions }: Props) {
         <CardTitle className="text-2xl">{mode === "signin" ? "Login Internal BEM" : "Registrasi Akun BEM"}</CardTitle>
         <CardDescription>
           {mode === "signin"
-            ? "Gunakan NIM dan password akun internal Anda."
+            ? "Gunakan NIM dan password akun internal Kamu."
             : "Daftarkan akun baru dengan NIM untuk bisa login ke depannya."}
         </CardDescription>
       </CardHeader>

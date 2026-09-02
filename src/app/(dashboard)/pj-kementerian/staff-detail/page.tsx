@@ -6,6 +6,9 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporDocument } from "@/components/dashboard/rapor-document";
 import { ReportPeriodItem } from "@/components/dashboard/report-period-item";
 import { resolveDisplayTotalScore } from "@/lib/rapor-score";
+import { StaffPerformanceBarChart } from "@/components/dashboard/staff-performance-bar-chart";
+import { IndicatorBreakdownChart } from "@/components/dashboard/indicator-breakdown-chart";
+import { PerformanceInsightsCard } from "@/components/dashboard/performance-insights-card";
 
 export const dynamic = "force-dynamic";
 
@@ -93,31 +96,109 @@ export default async function PjKementerianStaffDetailPage() {
     scoresByStaff.get(score.user_nim)!.push(score);
   }
 
+  // Calculate analytics for latest scores
+  const latestPeriod = (periods ?? [])[0];
+  const performanceList: { name: string; score: number }[] = [];
+  const indicatorAccumulator = new Map<string, { sum: number; count: number }>();
+
+  for (const staff of staffProfiles ?? []) {
+    const staffScores = scoresByStaff.get(staff.nim) ?? [];
+    const latestScore = staffScores[0];
+    if (latestScore) {
+      performanceList.push({
+        name: staff.nama_lengkap,
+        score: Number(latestScore.total_avg),
+      });
+
+      const details = detailsByRapor.get(latestScore.id) ?? [];
+      for (const det of details) {
+        if (!indicatorAccumulator.has(det.main_indicator_name)) {
+          indicatorAccumulator.set(det.main_indicator_name, { sum: 0, count: 0 });
+        }
+        const acc = indicatorAccumulator.get(det.main_indicator_name)!;
+        acc.sum += Number(det.score);
+        acc.count += 1;
+      }
+    }
+  }
+
+  const indicatorScores = Array.from(indicatorAccumulator.entries()).map(([indicatorName, acc]) => ({
+    indicatorName,
+    averageScore: Number((acc.sum / (acc.count || 1)).toFixed(2)),
+    totalEvaluated: acc.count,
+  }));
+
+  const sortedIndicators = [...indicatorScores].sort((a, b) => b.averageScore - a.averageScore);
+  const topStrengthIndicator = sortedIndicators[0]
+    ? { name: sortedIndicators[0].indicatorName, score: sortedIndicators[0].averageScore }
+    : undefined;
+  const improvementIndicator = sortedIndicators[sortedIndicators.length - 1]
+    ? { name: sortedIndicators[sortedIndicators.length - 1].indicatorName, score: sortedIndicators[sortedIndicators.length - 1].averageScore }
+    : undefined;
+
+  const highPerformersCount = performanceList.filter((item) => item.score >= 3.5).length;
+  const highPerformersRatio = performanceList.length
+    ? Math.round((highPerformersCount / performanceList.length) * 100)
+    : 0;
+
+  const overallAverage = performanceList.length
+    ? Number((performanceList.reduce((acc, curr) => acc + curr.score, 0) / performanceList.length).toFixed(2))
+    : 0;
+
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">Rapor Staff Unit</h2>
-        <p className="text-sm text-slate-600">
-          Detail rapor staff untuk unit {ownedUnit?.nama_unit ?? "-"}.
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Rapor Staff Unit</h2>
+        <p className="text-xs sm:text-sm text-slate-600">
+          Visualisasi performa dan detail rincian penilaian rapor staff untuk unit {ownedUnit?.nama_unit ?? "-"}.
         </p>
       </div>
 
+      {/* Analytical Insights */}
+      <PerformanceInsightsCard
+        insights={{
+          topStrengthIndicator,
+          improvementIndicator,
+          highPerformersRatio,
+          totalMembers: staffNims.length,
+          overallAverage,
+        }}
+        title="Insight Evaluasi Kinerja Staf Unit"
+      />
+
+      {/* Visual Analytics Charts Grid */}
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <StaffPerformanceBarChart
+          data={performanceList}
+          title="Ranking Skor Staf Unit"
+          subtitle={`Unit ${ownedUnit?.nama_unit ?? "-"} · ${latestPeriod ? formatPeriode(latestPeriod.bulan, latestPeriod.tahun) : "Periode Terbaru"}`}
+          emptyText="Belum ada data nilai staf unit untuk periode ini."
+        />
+
+        <IndicatorBreakdownChart
+          data={indicatorScores}
+          title="Capaian per Indikator Utama Unit"
+          subtitle={`Rata-rata aspek penilaian pada unit ${ownedUnit?.nama_unit ?? "-"}`}
+        />
+      </div>
+
+      {/* Detailed Report List */}
       <Card>
         <CardHeader>
-          <CardTitle>Daftar Staff dan Rapor</CardTitle>
-          <CardDescription>Versi print-friendly untuk melihat detail isi rapor staff.</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Daftar Staff dan Rapor</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Versi print-friendly untuk melihat detail isi rapor staff.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {staffProfiles && staffProfiles.length > 0 ? (
             staffProfiles.map((staff) => {
               const staffScores = scoresByStaff.get(staff.nim) ?? [];
               return (
-                <Card key={staff.nim} className="border-slate-200">
-                  <CardHeader>
-                    <CardTitle>{staff.nama_lengkap}</CardTitle>
-                    <CardDescription>NIM: {staff.nim}</CardDescription>
+                <Card key={staff.nim} className="border-slate-200/80 shadow-2xs">
+                  <CardHeader className="p-4 pb-3">
+                    <CardTitle className="text-base text-slate-900">{staff.nama_lengkap}</CardTitle>
+                    <CardDescription className="text-xs">NIM: {staff.nim}</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="p-4 pt-0 space-y-3">
                     {staffScores.length ? (
                       staffScores.map((score, index) => {
                         const period = periodById.get(score.periode_id);
@@ -149,14 +230,14 @@ export default async function PjKementerianStaffDetailPage() {
                         );
                       })
                     ) : (
-                      <p className="text-sm text-slate-600">Belum ada data rapor untuk staff ini.</p>
+                      <p className="text-xs sm:text-sm text-slate-500">Belum ada data rapor untuk staff ini.</p>
                     )}
                   </CardContent>
                 </Card>
               );
             })
           ) : (
-            <p className="text-sm text-slate-600">Tidak ada staff di unit Anda.</p>
+            <p className="text-sm text-slate-600">Tidak ada staff di unit Kamu.</p>
           )}
         </CardContent>
       </Card>

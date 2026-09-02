@@ -12,6 +12,7 @@ import {
 } from "@/app/(dashboard)/admin/actions";
 import { AdminDynamicForm } from "@/components/dashboard/admin-dynamic-form";
 import { DeleteRaporForm } from "@/components/dashboard/delete-rapor-form";
+import { AdminBackupCard } from "@/components/dashboard/admin-backup-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -495,14 +496,16 @@ export default async function AdminPage({
         <h2 className="text-2xl font-bold text-slate-900">Dashboard Admin</h2>
         <p className="text-sm text-slate-600">Input rapor bulanan staf berdasarkan unit.</p>
       </div>
+
+      {profile.role === "admin" ? <AdminBackupCard /> : null}
       {missingPjAssignment ? (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Assignment PJ Kementerian belum ditetapkan. Hubungi admin untuk menetapkan 1 kementerian pegangan Anda.
+          Assignment PJ Kementerian belum ditetapkan. Hubungi admin untuk menetapkan 1 kementerian pegangan Kamu.
         </p>
       ) : null}
       {profile.role === "pj_kementerian" && isPjKemenkoan && scopedUnits.length === 0 ? (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Assignment PJ Kemenkoan belum ditetapkan. Hubungi admin untuk menetapkan kemenko ampuan Anda.
+          Assignment PJ Kemenkoan belum ditetapkan. Hubungi admin untuk menetapkan kemenko ampuan Kamu.
         </p>
       ) : null}
       {noReferenceData ? (

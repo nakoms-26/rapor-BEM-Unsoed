@@ -18,19 +18,19 @@ export default async function AdminStaffRecapPage() {
     supabase.from("ref_units").select("id, nama_unit, kategori, parent_id").order("kategori").order("nama_unit"),
     supabase
       .from("profiles")
-      .select("nim, nama_lengkap, unit_id")
-      .in("role", ["staff", "pj_kementerian"])
+      .select("nim, nama_lengkap, unit_id, role")
+      .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern"])
       .order("nama_lengkap"),
     supabase.from("rapor_periods").select("id, bulan, tahun, status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
     supabase
       .from("rapor_scores")
       .select("id, user_nim, periode_id, total_avg, catatan, created_at")
-      .eq("report_type", "staf_unit")
+      .in("report_type", ["staf_unit", "internship"])
       .order("created_at", { ascending: false }),
   ]);
 
   const unitById = new Map((units ?? []).map((unit) => [unit.id, unit]));
-  const staffByUnit = new Map<string, { nim: string; nama_lengkap: string; unit_id: string }[]>();
+  const staffByUnit = new Map<string, { nim: string; nama_lengkap: string; unit_id: string; role: string }[]>();
   for (const staff of staffs ?? []) {
     if (!staffByUnit.has(staff.unit_id)) {
       staffByUnit.set(staff.unit_id, []);
@@ -84,7 +84,14 @@ export default async function AdminStaffRecapPage() {
                         <div key={staff.nim} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <p className="font-medium text-slate-800">{staff.nama_lengkap}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-slate-800">{staff.nama_lengkap}</p>
+                                {staff.role === "internship" ? (
+                                  <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.2 text-[10px] font-semibold text-indigo-700">
+                                    Cakrawala
+                                  </span>
+                                ) : null}
+                              </div>
                               <p className="text-xs text-slate-500">NIM: {staff.nim}</p>
                             </div>
                             <div className="text-right">

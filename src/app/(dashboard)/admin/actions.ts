@@ -66,7 +66,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
 
   if (!isAdmin) {
     if (!isEvaluatorStaff) {
-      return { ok: false, message: "Anda tidak memiliki akses untuk input rapor." };
+      return { ok: false, message: "Kamu tidak memiliki akses untuk input rapor." };
     }
 
     if (!allowedEvaluatorTarget) {
@@ -75,7 +75,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
 
     const allowedByAssignment = await canInputAsEvaluator(evaluatorProfile.nim, targetProfile.unit_id);
     if (!allowedByAssignment) {
-      return { ok: false, message: "Anda hanya boleh input rapor untuk 1 unit pegangan yang ditetapkan admin." };
+      return { ok: false, message: "Kamu hanya boleh input rapor untuk 1 unit pegangan yang ditetapkan admin." };
     }
   }
 
@@ -433,7 +433,7 @@ export async function deleteRaporByAdmin(raporId: string) {
   const profile = await requireSessionProfile();
 
   if (profile.role !== "admin" && profile.role !== "pj_kementerian") {
-    return { ok: false, message: "Anda tidak memiliki akses untuk menghapus rapor." };
+    return { ok: false, message: "Kamu tidak memiliki akses untuk menghapus rapor." };
   }
 
   if (profile.role === "pj_kementerian") {
