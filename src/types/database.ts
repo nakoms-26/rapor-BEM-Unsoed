@@ -192,6 +192,83 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["rapor_details"]["Insert"]>;
       };
+      intern_rapor_scores: {
+        Row: {
+          id: string;
+          user_nim: string;
+          periode_id: string;
+          penilai_nim: string;
+          total_avg: number;
+          catatan: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_nim: string;
+          periode_id: string;
+          penilai_nim: string;
+          total_avg?: number;
+          catatan?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["intern_rapor_scores"]["Insert"]>;
+      };
+      intern_rapor_details: {
+        Row: {
+          id: string;
+          rapor_id: string;
+          main_indicator_name: string;
+          sub_indicator_name: string;
+          catatan: string | null;
+          score: number;
+          bentuk_tanggung_jawab: string | null;
+          nilai_kuantitatif_tanggung_jawab: number | null;
+          skala: string | null;
+          nilai_kuantitatif_skala: number | null;
+          nilai_kualitatif: number | null;
+          nilai_akhir: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          rapor_id: string;
+          main_indicator_name: string;
+          sub_indicator_name: string;
+          catatan?: string | null;
+          score: number;
+          bentuk_tanggung_jawab?: string | null;
+          nilai_kuantitatif_tanggung_jawab?: number | null;
+          skala?: string | null;
+          nilai_kuantitatif_skala?: number | null;
+          nilai_kualitatif?: number | null;
+          nilai_akhir?: number | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["intern_rapor_details"]["Insert"]>;
+      };
+      intern_sub_indicator_templates: {
+        Row: {
+          id: string;
+          kemenko_unit_id: string;
+          periode_id: string;
+          main_indicator_name: string;
+          sub_indicator_name: string;
+          created_by_nim: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          kemenko_unit_id: string;
+          periode_id: string;
+          main_indicator_name: string;
+          sub_indicator_name: string;
+          created_by_nim: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["intern_sub_indicator_templates"]["Insert"]>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

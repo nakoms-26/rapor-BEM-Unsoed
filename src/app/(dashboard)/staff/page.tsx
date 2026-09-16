@@ -36,22 +36,39 @@ export default async function StaffPage() {
     redirect("/login");
   }
 
-  if (profile.role !== "staff" && profile.role !== "internship" && profile.role !== "pj_ppm_intern") {
+  if (profile.role !== "staff" && profile.role !== "internship" && profile.role !== "pj_ppm_intern" && profile.role !== "the_meridian") {
     redirect(ROLE_HOME[profile.role] ?? "/login");
   }
 
+  const isInternRole = profile.role === "internship";
+
+  // For internship role: read from intern tables
+  // For staff/the_meridian/pj_ppm_intern: read from regular rapor_scores
+  const scoresTable = isInternRole ? "intern_rapor_scores" : "rapor_scores";
+
   const [{ data: periods }, { data: allScores }, { data: anyTypeScores }] = await Promise.all([
     supabase.from("rapor_periods").select("id, bulan, tahun, status"),
-    supabase
-      .from("rapor_scores")
-      .select("id, periode_id, total_avg, catatan, created_at")
-      .eq("user_nim", profile.nim)
-      .in("report_type", ["staf_unit", "internship"])
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("rapor_scores")
-      .select("id, report_type")
-      .eq("user_nim", profile.nim),
+    isInternRole
+      ? supabase
+          .from("intern_rapor_scores")
+          .select("id, periode_id, total_avg, catatan, created_at")
+          .eq("user_nim", profile.nim)
+          .order("created_at", { ascending: false })
+      : supabase
+          .from("rapor_scores")
+          .select("id, periode_id, total_avg, catatan, created_at")
+          .eq("user_nim", profile.nim)
+          .in("report_type", ["staf_unit", "internship"])
+          .order("created_at", { ascending: false }),
+    isInternRole
+      ? supabase
+          .from("intern_rapor_scores")
+          .select("id")
+          .eq("user_nim", profile.nim)
+      : supabase
+          .from("rapor_scores")
+          .select("id, report_type")
+          .eq("user_nim", profile.nim),
   ]);
 
   const publishedPeriods = (periods ?? [])
@@ -111,10 +128,15 @@ export default async function StaffPage() {
   const raporIds = displayRaporRows.map((row) => row.id);
 
   const detailRows = raporIds.length
-    ? await supabase
-        .from("rapor_details")
-        .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
-        .in("rapor_id", raporIds)
+    ? await (isInternRole
+        ? supabase
+            .from("intern_rapor_details")
+            .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
+            .in("rapor_id", raporIds)
+        : supabase
+            .from("rapor_details")
+            .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
+            .in("rapor_id", raporIds))
     : {
         data: [] as {
           rapor_id: string;

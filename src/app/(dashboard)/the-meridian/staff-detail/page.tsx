@@ -52,20 +52,19 @@ export default async function TheMeridianStaffDetailPage() {
     .order("tahun", { ascending: false })
     .order("bulan", { ascending: false });
 
-  // Get all rapor scores for internship
+  // Get all rapor scores for internship from intern tables
   const { data: scores } = internNims.length
     ? await supabase
-        .from("rapor_scores")
+        .from("intern_rapor_scores")
         .select("id, user_nim, periode_id, total_avg, catatan")
         .in("user_nim", internNims)
-        .in("report_type", ["internship", "staf_unit"])
     : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null }[] };
 
   // Get all rapor details
   const scoreIds = (scores ?? []).map((s) => s.id);
   const { data: details } = scoreIds.length
     ? await supabase
-        .from("rapor_details")
+        .from("intern_rapor_details")
         .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
         .in("rapor_id", scoreIds)
     : {

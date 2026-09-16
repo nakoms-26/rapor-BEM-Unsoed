@@ -74,12 +74,15 @@ export default async function DashboardLayout({
   }
 
   if (profile.role === "the_meridian") {
+    navItems.push({ href: "/staff", label: "Rapor Diri", icon: UserRoundCheck });
     navItems.push({ href: "/the-meridian", label: "Rapor Internship Unit", icon: BarChart3 });
   }
 
   if (profile.role === "pj_ppm_intern") {
     navItems.push({ href: "/staff", label: "Rapor Diri", icon: UserRoundCheck });
-    navItems.push({ href: "/pj-ppm-intern", label: "Rapor Internship [Kementerian/Biro]", icon: BarChart3 });
+    navItems.push({ href: "/pj-ppm-intern/input", label: "Input Rapor Internship", icon: ClipboardList });
+    navItems.push({ href: "/pj-ppm-intern/kelola-indikator", label: "Kelola Indikator Intern", icon: ClipboardList });
+    navItems.push({ href: "/pj-ppm-intern", label: "Monitoring Internship", icon: BarChart3 });
   }
 
   if (profile.role === "admin") {

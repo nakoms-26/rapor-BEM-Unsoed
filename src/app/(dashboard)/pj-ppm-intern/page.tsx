@@ -95,7 +95,7 @@ export default async function PjPpmInternPage() {
           .from("profiles")
           .select("nim, nama_lengkap, unit_id")
           .in("unit_id", effectiveUnitIds)
-          .in("role", ["internship", "pj_ppm_intern"])
+          .eq("role", "internship")
           .order("nama_lengkap")
       : { data: [] },
   ]);
@@ -105,21 +105,20 @@ export default async function PjPpmInternPage() {
   const internNims = (interns ?? []).map((i) => i.nim);
   const periodById = new Map((periods ?? []).map((period) => [period.id, period]));
 
-  // 3. Fetch scores
+  // 3. Fetch scores from intern_rapor_scores
   const { data: scores } = internNims.length
     ? await supabase
-        .from("rapor_scores")
-        .select("id, user_nim, periode_id, total_avg, catatan, report_type, created_at")
+        .from("intern_rapor_scores")
+        .select("id, user_nim, periode_id, total_avg, catatan, created_at")
         .in("user_nim", internNims)
-        .in("report_type", ["internship", "staf_unit"])
         .order("created_at", { ascending: false })
-    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null; report_type: string; created_at: string }[] };
+    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null; created_at: string }[] };
 
   // Fetch indicator details for analysis
   const scoreIds = (scores ?? []).map((s) => s.id);
   const { data: details } = scoreIds.length
     ? await supabase
-        .from("rapor_details")
+        .from("intern_rapor_details")
         .select("rapor_id, main_indicator_name, score")
         .in("rapor_id", scoreIds)
     : { data: [] as { rapor_id: string; main_indicator_name: string; score: number }[] };
@@ -265,13 +264,27 @@ export default async function PjPpmInternPage() {
           </p>
         </div>
 
-        <Link
-          href="/pj-ppm-intern/staff-detail"
-          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-xs sm:text-sm font-medium text-white shadow-sm hover:bg-teal-700 transition-colors self-start sm:self-auto"
-        >
-          <FileText className="h-4 w-4" />
-          <span>Lihat Rincian Per Indikator</span>
-        </Link>
+        <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          <Link
+            href="/pj-ppm-intern/input"
+            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-xs sm:text-sm font-medium text-white shadow-sm hover:bg-teal-700 transition-colors"
+          >
+            <FileText className="h-4 w-4" />
+            <span>Input Rapor Intern</span>
+          </Link>
+          <Link
+            href="/pj-ppm-intern/kelola-indikator"
+            className="inline-flex items-center gap-2 rounded-lg border border-teal-300 bg-white px-4 py-2 text-xs sm:text-sm font-medium text-teal-700 shadow-sm hover:bg-teal-50 transition-colors"
+          >
+            <span>Kelola Indikator</span>
+          </Link>
+          <Link
+            href="/pj-ppm-intern/staff-detail"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            <span>Rincian Per Indikator</span>
+          </Link>
+        </div>
       </div>
 
       {/* Analytical Insights */}
