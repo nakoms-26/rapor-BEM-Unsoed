@@ -1,28 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+import { createMySQLClient } from "@/lib/db/mysql";
 
+/**
+ * Global database client.
+ * Migrated to MySQL backend while preserving full Supabase-compatible query interface.
+ */
 export function createAdminSupabaseClient() {
-  const url =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    process.env.SUPABASE_URL;
-
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SECRET_KEY ||
-    process.env.SUPABASE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_ANON_KEY;
-
-  if (!url || !serviceRoleKey) {
-    throw new Error(
-      "URL dan key Supabase wajib diisi (NEXT_PUBLIC_SUPABASE_URL/SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SECRET_KEY/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/NEXT_PUBLIC_SUPABASE_ANON_KEY).",
-    );
-  }
-
-  return createClient(url, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+  return createMySQLClient();
 }
+
+export { createMySQLClient };

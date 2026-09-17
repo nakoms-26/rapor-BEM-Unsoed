@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
           tableData = await fetchAllRows(supabase, "evaluator_unit_assignments", { orderCol: "created_at", ascending: false });
           break;
         case "kemenko_sub_indicators":
-          tableData = await fetchAllRows(supabase, "kemenko_sub_indicators", { orderCol: "id" });
+          tableData = await fetchAllRows(supabase, "kemenko_sub_indicator_templates", { orderCol: "id" });
           break;
         default:
           return NextResponse.json(
@@ -303,7 +303,7 @@ export async function GET(request: NextRequest) {
       fetchAllRows(supabase, "rapor_periods", { orderCol: "tahun", secondaryOrderCol: "bulan" }),
       isExcel ? fetchAllRows(supabase, "pj_assignments", { orderCol: "created_at", ascending: false }) : Promise.resolve([]),
       isExcel ? fetchAllRows(supabase, "evaluator_unit_assignments", { orderCol: "created_at", ascending: false }) : Promise.resolve([]),
-      isExcel ? fetchAllRows(supabase, "kemenko_sub_indicators", { orderCol: "id" }) : Promise.resolve([]),
+      isExcel ? fetchAllRows(supabase, "kemenko_sub_indicator_templates", { orderCol: "id" }) : Promise.resolve([]),
     ]);
 
     const profileByNim = new Map((profiles ?? []).map((p: any) => [p.nim, p]));

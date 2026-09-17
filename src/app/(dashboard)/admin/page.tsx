@@ -17,8 +17,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export const dynamic = "force-dynamic";
 
-function reportTypeLabel(type: "staf_unit" | "menteri_kepala_biro") {
-  return type === "menteri_kepala_biro" ? "Menteri/Kepala Biro" : "Staf Unit";
+function reportTypeLabel(type: "staf_unit" | "menteri_kepala_biro" | "internship" | string) {
+  if (type === "internship") return "Rapor Internship";
+  return type === "menteri_kepala_biro" ? "Menteri / Kepala Biro" : "Staf Unit";
 }
 
 function scoreTone(score: number) {

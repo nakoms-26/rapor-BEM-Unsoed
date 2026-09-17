@@ -60,7 +60,7 @@ export default async function PjKementerianStaffDetailPage() {
         .in("user_nim", staffNims)
         .eq("report_type", "staf_unit")
         .order("created_at", { ascending: false })
-    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null; created_at: string }[] };
+    : { data: [] as any[] };
 
   const scoreIds = (scores ?? []).map((score) => score.id);
   const { data: detailRows } = scoreIds.length
