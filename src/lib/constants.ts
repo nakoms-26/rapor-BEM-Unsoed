@@ -50,3 +50,38 @@ export const ROLE_HOME: Record<string, string> = {
   pj_ppm_intern: "/dashboard",
 };
 
+export function formatRoleName(role?: string | null, isPjKemenkoan?: boolean): string {
+  if (!role) return "-";
+  if (role === "pj_ppm_intern") {
+    return isPjKemenkoan ? "PJ Kemenkoan Intern" : "PJ PPM Intern";
+  }
+  if (isPjKemenkoan) return "PJ Kemenkoan";
+  switch (role) {
+    case "the_meridian":
+      return "The Meridian";
+    case "pj_kementerian":
+      return "PJ Kementerian";
+    case "pj_ppm_intern":
+      return "PJ PPM Intern";
+    case "pres_wapres":
+      return "Presiden & Wapres";
+    case "admin":
+      return "Admin";
+    case "menko":
+      return "Menko";
+    case "menteri":
+      return "Menteri";
+    case "internship":
+      return "Internship";
+    case "staff":
+      return "Staff";
+    case "user":
+      return "User";
+    default:
+      return role
+        .split("_")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+  }
+}
+

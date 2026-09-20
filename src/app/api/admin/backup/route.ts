@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSessionProfile } from "@/lib/auth/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { formatRoleName } from "@/lib/constants";
 import ExcelJS from "exceljs";
 
 export const dynamic = "force-dynamic";
@@ -325,7 +326,7 @@ export async function GET(request: NextRequest) {
         "ID Rapor": detail.rapor_id,
         "NIM Anggota": score?.user_nim ?? "",
         "Nama Anggota": userProfile?.nama_lengkap ?? "",
-        "Role/Jabatan": userProfile?.role ?? "",
+        "Role/Jabatan": formatRoleName(userProfile?.role),
         "Jurusan": userProfile?.jurusan ?? "",
         "Tahun Angkatan": userProfile?.tahun_angkatan ?? "",
         "Unit Kerja": userUnit?.nama_unit ?? "",

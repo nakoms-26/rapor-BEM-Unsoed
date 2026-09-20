@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { ROLE_HOME } from "@/lib/constants";
+import { ROLE_HOME, formatRoleName } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +55,7 @@ export default async function PresidenWakilPresidenPage() {
     return {
       id: score.id,
       targetName: target?.nama_lengkap ?? score.user_nim,
-      targetRole: target?.role ?? "-",
+      targetRole: target?.role ? formatRoleName(target.role) : "-",
       unitName: targetUnit?.nama_unit ?? "-",
       kemenkoName: parentKemenko?.nama_unit ?? "Tanpa Kemenko",
       evaluatorName: evaluator?.nama_lengkap ?? score.penilai_nim,
@@ -143,7 +143,7 @@ export default async function PresidenWakilPresidenPage() {
                                   </span>
                                   <span>{row.periodeLabel}</span>
                                 </div>
-                                <p className="text-xs text-slate-500">{row.unitName} - role: {row.targetRole}</p>
+                                <p className="text-xs text-slate-500">{row.unitName} - Role: {row.targetRole}</p>
                                 <p className="text-xs text-slate-500">Penilai: {row.evaluatorName}</p>
                                 {row.catatan ? <p className="text-xs text-slate-500">Catatan: {row.catatan}</p> : null}
                               </div>

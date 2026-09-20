@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { formatRoleName } from "@/lib/constants";
 import Link from "next/link";
 import {
   User,
@@ -18,7 +19,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-function formatRoleLabel(role: string): { label: string; badgeClass: string; icon: typeof User } {
+function formatRoleLabel(role: string, isPjKemenkoan?: boolean): { label: string; badgeClass: string; icon: typeof User } {
   switch (role) {
     case "admin":
       return {
@@ -46,25 +47,25 @@ function formatRoleLabel(role: string): { label: string; badgeClass: string; ico
       };
     case "pj_kementerian":
       return {
-        label: "PJ Kementerian (Biro PPM)",
+        label: isPjKemenkoan ? "PJ Kemenkoan" : "PJ Kementerian",
         badgeClass: "bg-cyan-50 text-cyan-700 border-cyan-200",
         icon: ShieldCheck,
       };
     case "the_meridian":
       return {
-        label: "The Meridian (Koordinator Internship)",
+        label: "The Meridian",
         badgeClass: "bg-indigo-50 text-indigo-700 border-indigo-200",
         icon: Sparkles,
       };
     case "pj_ppm_intern":
       return {
-        label: "PJ PPM Internship",
+        label: isPjKemenkoan ? "PJ Kemenkoan Intern" : "PJ PPM Intern",
         badgeClass: "bg-teal-50 text-teal-700 border-teal-200",
         icon: ShieldCheck,
       };
     case "internship":
       return {
-        label: "Staf Magang (Cakrawala)",
+        label: "Internship (Cakrawala)",
         badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
         icon: User,
       };
@@ -76,7 +77,7 @@ function formatRoleLabel(role: string): { label: string; badgeClass: string; ico
       };
     default:
       return {
-        label: role,
+        label: formatRoleName(role, isPjKemenkoan),
         badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
         icon: User,
       };
@@ -122,7 +123,7 @@ export default async function ProfilePage() {
     }
   }
 
-  const roleInfo = formatRoleLabel(profile.role);
+  const roleInfo = formatRoleLabel(profile.role, profile.is_pj_kemenkoan);
   const RoleIcon = roleInfo.icon;
 
   const profileFields = [

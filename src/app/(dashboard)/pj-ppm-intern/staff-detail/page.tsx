@@ -75,19 +75,36 @@ export default async function PjPpmInternStaffDetailPage() {
     );
   }
 
-  const { data: managedUnits } = assignedUnitIds.length
-    ? await supabase
-        .from("ref_units")
-        .select("id, nama_unit, kategori, parent_id")
-        .in("id", assignedUnitIds)
-        .order("nama_unit")
-    : await supabase
-        .from("ref_units")
-        .select("id, nama_unit, kategori, parent_id")
-        .in("kategori", ["kementerian", "biro"])
-        .order("nama_unit");
+  // Fetch units to resolve kementerian/biro under assigned kemenko, or direct unit assignments
+  const { data: allUnits } = await supabase
+    .from("ref_units")
+    .select("id, nama_unit, kategori, parent_id")
+    .order("nama_unit");
 
-  const effectiveUnitIds = (managedUnits ?? []).map((u) => u.id);
+  const unitsByParent = new Map<string, typeof allUnits>();
+  for (const unit of allUnits ?? []) {
+    if (unit.parent_id) {
+      if (!unitsByParent.has(unit.parent_id)) {
+        unitsByParent.set(unit.parent_id, []);
+      }
+      unitsByParent.get(unit.parent_id)!.push(unit);
+    }
+  }
+
+  const scopeUnitIds = new Set<string>();
+  for (const assignedId of assignedUnitIds) {
+    scopeUnitIds.add(assignedId);
+    const children = unitsByParent.get(assignedId) ?? [];
+    for (const child of children) {
+      scopeUnitIds.add(child.id);
+    }
+  }
+
+  const managedUnits = (allUnits ?? [])
+    .filter((u) => profile.role === "admin" || scopeUnitIds.has(u.id))
+    .filter((u) => u.kategori === "kementerian" || u.kategori === "biro");
+
+  const effectiveUnitIds = managedUnits.map((u) => u.id);
   const unitById = new Map((managedUnits ?? []).map((u) => [u.id, u]));
 
   // 2. Fetch periods and internship profiles in these units

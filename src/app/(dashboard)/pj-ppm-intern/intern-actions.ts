@@ -13,7 +13,7 @@ import { adminInputSchema, type AdminInputForm } from "@/types/app";
 
 // ─── Permission helpers ──────────────────────────────────────
 function canInputInternRapor(role: string) {
-  return role === "admin" || role === "pj_ppm_intern";
+  return role === "admin" || role === "pj_ppm_intern" || role === "pj_kementerian";
 }
 
 function getPrestasiResponsibilityScore(value?: string | null) {
@@ -71,8 +71,8 @@ export async function submitInternRapor(payload: AdminInputForm) {
     return { ok: false, message: "Rapor internship hanya untuk akun dengan role internship." };
   }
 
-  // PJ PPM Intern: verify assignment
-  if (evaluatorProfile.role === "pj_ppm_intern") {
+  // Evaluator assignment check (PJ PPM Intern or PJ Kementerian)
+  if (evaluatorProfile.role === "pj_ppm_intern" || evaluatorProfile.role === "pj_kementerian") {
     const { data: pjAssignments } = await supabase
       .from("pj_assignments")
       .select("target_unit_id")
@@ -82,7 +82,7 @@ export async function submitInternRapor(payload: AdminInputForm) {
     const assignedUnitIds = new Set((pjAssignments ?? []).map((a) => a.target_unit_id));
 
     if (assignedUnitIds.size === 0) {
-      return { ok: false, message: "Assignment PJ PPM Intern belum ditetapkan. Hubungi admin." };
+      return { ok: false, message: "Assignment penilai belum ditetapkan. Hubungi admin." };
     }
 
     // Check if the target unit (or its parent) is within assignments
@@ -100,7 +100,7 @@ export async function submitInternRapor(payload: AdminInputForm) {
     }
 
     if (!withinScope) {
-      return { ok: false, message: "PJ PPM Intern hanya dapat menginput rapor untuk unit yang ditetapkan assignment." };
+      return { ok: false, message: "Penilai hanya dapat menginput rapor untuk unit yang ditetapkan assignment." };
     }
   }
 
@@ -318,7 +318,7 @@ export async function deleteInternRapor(raporId: string) {
     return { ok: false, message: "Kamu tidak memiliki akses untuk menghapus rapor internship." };
   }
 
-  if (profile.role === "pj_ppm_intern") {
+  if (profile.role === "pj_ppm_intern" || profile.role === "pj_kementerian") {
     const { data: rapor } = await supabase
       .from("intern_rapor_scores")
       .select("id, user_nim")
@@ -329,7 +329,7 @@ export async function deleteInternRapor(raporId: string) {
       return { ok: false, message: "Rapor tidak ditemukan." };
     }
 
-    // Validate PJ PPM Intern has assignment scope
+    // Validate assignment scope
     const { data: targetProfile } = await supabase
       .from("profiles")
       .select("unit_id")
@@ -361,7 +361,7 @@ export async function deleteInternRapor(raporId: string) {
     }
 
     if (!withinScope) {
-      return { ok: false, message: "PJ PPM Intern hanya dapat menghapus rapor dalam unit ampuan." };
+      return { ok: false, message: "Penilai hanya dapat menghapus rapor dalam unit ampuan." };
     }
   }
 

@@ -4,6 +4,7 @@ import { BarChart3, ClipboardList, UserRoundCheck, Database } from "lucide-react
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { formatRoleName } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -51,8 +52,14 @@ export default async function DashboardLandingPage() {
       },
       {
         href: "/admin",
-        title: "Input Kementerian Diampu",
-        description: "Input rapor untuk kementerian yang diampu sesuai batasan role.",
+        title: "Input Staf Kementerian",
+        description: "Input rapor untuk staf kementerian/biro yang diampu.",
+        icon: ClipboardList,
+      },
+      {
+        href: "/pj-ppm-intern/input",
+        title: "Input Rapor Internship",
+        description: "Input rapor anak magang (Cakrawala) kementerian/biro yang Kamu ampu.",
         icon: ClipboardList,
       },
     ],
@@ -82,11 +89,17 @@ export default async function DashboardLandingPage() {
       {
         href: "/staff",
         title: "Rapor Cakrawala",
-        description: "Lihat seluruh periode rapor pribadi internship Cakrawala.",
+        description: "Lihat seluruh periode rapor pribadi Kamu sebagai staf magang.",
         icon: UserRoundCheck,
       },
     ],
     the_meridian: [
+      {
+        href: "/staff",
+        title: "Rapor Diri",
+        description: "Lihat seluruh periode rapor pribadi Kamu sebagai staf magang.",
+        icon: UserRoundCheck,
+      },
       {
         href: "/the-meridian",
         title: "Rapor Internship Unit",
@@ -96,16 +109,22 @@ export default async function DashboardLandingPage() {
     ],
     pj_ppm_intern: [
       {
+        href: "/pj-ppm-intern/kelola-indikator",
+        title: "Kelola Sub-Indikator Intern",
+        description: "Atur rincian kegiatan (sub-indikator) internship untuk kemenko yang diampu.",
+        icon: ClipboardList,
+      },
+      {
+        href: "/pj-ppm-intern",
+        title: "Monitoring Internship",
+        description: "Lihat dan pantau rekap performa rapor anak intern kementerian/biro di bawah kemenko Kamu.",
+        icon: BarChart3,
+      },
+      {
         href: "/staff",
         title: "Rapor Diri",
         description: "Lihat seluruh periode rapor pribadi Kamu sebagai staf magang Biro PPM.",
         icon: UserRoundCheck,
-      },
-      {
-        href: "/pj-ppm-intern",
-        title: "Rapor Internship [Kementerian/Biro]",
-        description: "Lihat dan pantau seluruh rapor anak intern kementerian/biro yang diampu.",
-        icon: BarChart3,
       },
     ],
     menteri: [
@@ -196,14 +215,14 @@ export default async function DashboardLandingPage() {
 
     if (!assignment) {
       const withoutEvaluator = cards.filter((card) => card.href !== "/penilai");
-      return renderCards(withoutEvaluator, profile.role);
+      return renderCards(withoutEvaluator, profile.role, isPjKemenkoan);
     }
   }
 
-  return renderCards(cards, profile.role);
+  return renderCards(cards, profile.role, isPjKemenkoan);
 }
 
-function renderCards(cards: FeatureCard[], role: string) {
+function renderCards(cards: FeatureCard[], role: string, isPjKemenkoan?: boolean) {
   if (!cards.length) {
     redirect("/login");
   }
@@ -212,7 +231,7 @@ function renderCards(cards: FeatureCard[], role: string) {
     <section className="space-y-5">
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Pilih Fitur Dashboard</h2>
-        <p className="text-xs sm:text-sm text-slate-600 mt-0.5">Akses fitur berdasarkan role Kamu: <span className="font-semibold text-slate-800">{role}</span>.</p>
+        <p className="text-xs sm:text-sm text-slate-600 mt-0.5">Akses fitur berdasarkan role Kamu: <span className="font-semibold text-slate-800">{formatRoleName(role, isPjKemenkoan)}</span>.</p>
       </div>
 
       <div className="grid gap-3.5 sm:gap-4 grid-cols-1 sm:grid-cols-2">

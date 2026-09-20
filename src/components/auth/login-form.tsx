@@ -4,7 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn, UserPlus } from "lucide-react";
 import { signInWithTableAccount, signUpWithTableAccount } from "@/app/(auth)/login/actions";
-import { ROLE_HOME, type AppRole } from "@/lib/constants";
+import { ROLE_HOME, formatRoleName, type AppRole } from "@/lib/constants";
 import type { SignUpRoleOption, SignUpUnitOption } from "@/types/app";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -221,7 +221,7 @@ export function LoginForm({ roleOptions, unitOptions }: Props) {
                 </select>
                 {filteredUnitOptions.length === 0 ? (
                   <p className="text-xs text-amber-600">
-                    Tidak ada unit yang sesuai dengan role {selectedRole.toUpperCase()}. Coba ganti Role/Jabatan.
+                    Tidak ada unit yang sesuai dengan role {formatRoleName(selectedRole)}. Coba ganti Role/Jabatan.
                   </p>
                 ) : null}
               </div>

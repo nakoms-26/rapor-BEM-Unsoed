@@ -5,6 +5,7 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import { canAccessKemenkoReports } from "@/lib/auth/permissions";
 import { signOutTableAccount } from "@/app/(auth)/login/actions";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { formatRoleName } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
   }
 
   if (profile.role === "pj_kementerian" && !profile.is_pj_kemenkoan) {
+    navItems.push({ href: "/pj-ppm-intern/input", label: "Input Internship", icon: ClipboardList });
     navItems.push({ href: "/pj-kementerian", label: "Rapor Diri", icon: UserRoundCheck });
   }
 
@@ -79,10 +81,9 @@ export default async function DashboardLayout({
   }
 
   if (profile.role === "pj_ppm_intern") {
-    navItems.push({ href: "/staff", label: "Rapor Diri", icon: UserRoundCheck });
-    navItems.push({ href: "/pj-ppm-intern/input", label: "Input Rapor Internship", icon: ClipboardList });
     navItems.push({ href: "/pj-ppm-intern/kelola-indikator", label: "Kelola Indikator Intern", icon: ClipboardList });
     navItems.push({ href: "/pj-ppm-intern", label: "Monitoring Internship", icon: BarChart3 });
+    navItems.push({ href: "/staff", label: "Rapor Diri", icon: UserRoundCheck });
   }
 
   if (profile.role === "admin") {
@@ -105,7 +106,7 @@ export default async function DashboardLayout({
               <h1 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight">
                 {profile.nama_lengkap}
               </h1>
-              <p className="text-xs text-slate-500 truncate max-w-[180px] sm:max-w-xs">{profile.nim} · {profile.role}</p>
+              <p className="text-xs text-slate-500 truncate max-w-[180px] sm:max-w-xs">{profile.nim} · {formatRoleName(profile.role, profile.is_pj_kemenkoan)}</p>
             </div>
           </Link>
 

@@ -47,7 +47,7 @@ export default async function PjPpmInternInputPage({
   const profile = await requireSessionProfile();
   const supabase = createAdminSupabaseClient();
 
-  if (profile.role !== "pj_ppm_intern" && profile.role !== "admin") {
+  if (profile.role !== "pj_ppm_intern" && profile.role !== "admin" && profile.role !== "pj_kementerian") {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 

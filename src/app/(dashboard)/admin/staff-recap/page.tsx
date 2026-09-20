@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { ROLE_HOME } from "@/lib/constants";
+import { ROLE_HOME, formatRoleName } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function AdminStaffRecapPage() {
     supabase
       .from("profiles")
       .select("nim, nama_lengkap, unit_id, role")
-      .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern"])
+      .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern", "the_meridian"])
       .order("nama_lengkap"),
     supabase.from("rapor_periods").select("id, bulan, tahun, status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
     supabase
@@ -86,9 +86,9 @@ export default async function AdminStaffRecapPage() {
                             <div>
                               <div className="flex items-center gap-2">
                                 <p className="font-medium text-slate-800">{staff.nama_lengkap}</p>
-                                {staff.role === "internship" ? (
+                                {staff.role !== "staff" ? (
                                   <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.2 text-[10px] font-semibold text-indigo-700">
-                                    Cakrawala
+                                    {formatRoleName(staff.role)}
                                   </span>
                                 ) : null}
                               </div>

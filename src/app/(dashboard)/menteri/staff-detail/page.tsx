@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { ROLE_HOME } from "@/lib/constants";
+import { ROLE_HOME, formatRoleName } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const BULAN_LABEL: Record<number, string> = {
@@ -122,7 +122,7 @@ export default async function MenteriStaffDetailPage() {
                         : "bg-blue-50 border-blue-200 text-blue-700"
                     }`}
                   >
-                    {staff.role === "internship" ? "Cakrawala (Intern)" : "Staf"}
+                    {formatRoleName(staff.role)}
                   </span>
                 </CardHeader>
                 <CardContent>
