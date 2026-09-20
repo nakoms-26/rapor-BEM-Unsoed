@@ -123,8 +123,17 @@ export default async function MenkoPage() {
     const latestByNim = new Map<string, number>();
     const previousByNim = new Map<string, number>();
     const latestScoreIdByNim = new Map<string, string>();
+    const publishedScoresByNim = new Map<string, number[]>();
+
+    const publishedPeriodIds = new Set((publishedPeriods ?? []).map((p) => p.id));
 
     for (const score of filteredScores) {
+      if (publishedPeriodIds.has(score.periode_id)) {
+        if (!publishedScoresByNim.has(score.user_nim)) {
+          publishedScoresByNim.set(score.user_nim, []);
+        }
+        publishedScoresByNim.get(score.user_nim)!.push(Number(score.total_avg));
+      }
       if (latestPublished && score.periode_id === latestPublished.id) {
         latestByNim.set(score.user_nim, Number(score.total_avg));
         latestScoreIdByNim.set(score.user_nim, score.id);
@@ -134,17 +143,23 @@ export default async function MenkoPage() {
       }
     }
 
+    const cumulativeByNim = new Map<string, number>();
+    for (const [nim, scList] of publishedScoresByNim.entries()) {
+      const avg = scList.reduce((sum, v) => sum + v, 0) / scList.length;
+      cumulativeByNim.set(nim, Number(avg.toFixed(2)));
+    }
+
     const indicatorAccumulator = new Map<string, { sum: number; count: number }>();
     const allLatestScores: number[] = [];
 
     const rows = (coordinatedUnits ?? []).map((unit) => {
       const unitMembers = profiles.filter((p) => p.unit_id === unit.id);
-      const currentScores = unitMembers
-        .map((m) => ({ nim: m.nim, score: latestByNim.get(m.nim) }))
+      const memberCumulativeScores = unitMembers
+        .map((m) => ({ nim: m.nim, score: cumulativeByNim.get(m.nim) ?? latestByNim.get(m.nim) }))
         .filter((item): item is { nim: string; score: number } => typeof item.score === "number");
 
-      const average = currentScores.length
-        ? Number((currentScores.reduce((sum, item) => sum + item.score, 0) / currentScores.length).toFixed(2))
+      const average = memberCumulativeScores.length
+        ? Number((memberCumulativeScores.reduce((sum, item) => sum + item.score, 0) / memberCumulativeScores.length).toFixed(2))
         : 0;
 
       let highestStaff = "-";
@@ -157,31 +172,35 @@ export default async function MenkoPage() {
       let lowestGrowthScore = Number.POSITIVE_INFINITY;
 
       for (const m of unitMembers) {
+        const cumulativeScore = cumulativeByNim.get(m.nim) ?? latestByNim.get(m.nim);
         const current = latestByNim.get(m.nim);
-        if (typeof current !== "number") continue;
 
-        allLatestScores.push(current);
+        if (typeof cumulativeScore === "number") {
+          allLatestScores.push(cumulativeScore);
+          const name = nameByNim.get(m.nim) ?? m.nim;
 
-        const name = nameByNim.get(m.nim) ?? m.nim;
-
-        if (current > highestScore) {
-          highestScore = current;
-          highestStaff = name;
+          if (cumulativeScore > highestScore) {
+            highestScore = cumulativeScore;
+            highestStaff = name;
+          }
+          if (cumulativeScore < lowestScore) {
+            lowestScore = cumulativeScore;
+            lowestStaff = name;
+          }
         }
-        if (current < lowestScore) {
-          lowestScore = current;
-          lowestStaff = name;
-        }
 
-        const prev = previousByNim.get(m.nim) ?? current;
-        const growth = Number((current - prev).toFixed(2));
-        if (growth > highestGrowthScore) {
-          highestGrowthScore = growth;
-          highestGrowthStaff = name;
-        }
-        if (growth < lowestGrowthScore) {
-          lowestGrowthScore = growth;
-          lowestGrowthStaff = name;
+        if (typeof current === "number") {
+          const name = nameByNim.get(m.nim) ?? m.nim;
+          const prev = previousByNim.get(m.nim) ?? current;
+          const growth = Number((current - prev).toFixed(2));
+          if (growth > highestGrowthScore) {
+            highestGrowthScore = growth;
+            highestGrowthStaff = name;
+          }
+          if (growth < lowestGrowthScore) {
+            lowestGrowthScore = growth;
+            lowestGrowthStaff = name;
+          }
         }
 
         // Accumulate indicator details
@@ -202,7 +221,7 @@ export default async function MenkoPage() {
       return {
         unit_name: unit.nama_unit,
         average_score: average,
-        staff_count: currentScores.length,
+        staff_count: memberCumulativeScores.length,
         highest_staff: highestStaff,
         highest_score: Number.isFinite(highestScore) ? Number(highestScore.toFixed(2)) : 0,
         lowest_staff: lowestStaff,

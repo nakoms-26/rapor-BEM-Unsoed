@@ -27,11 +27,12 @@ type Props = {
 };
 
 function getScoreColor(score: number): string {
-  if (score >= 4.0) return "#10b981"; // Emerald / Sangat Baik
-  if (score >= 3.5) return "#3b82f6"; // Blue / Baik
-  if (score >= 2.5) return "#f59e0b"; // Amber / Cukup
-  if (score > 0) return "#ef4444";    // Red / Perlu Bimbingan
-  return "#cbd5e1";                   // Slate / Belum dinilai
+  const s5 = score > 5 ? score / 20 : score;
+  if (s5 >= 4.0) return "#10b981"; // Emerald / Sangat Baik (>= 80)
+  if (s5 >= 3.5) return "#3b82f6"; // Blue / Baik (>= 70)
+  if (s5 >= 2.5) return "#f59e0b"; // Amber / Cukup (>= 50)
+  if (s5 > 0) return "#ef4444";    // Red / Perlu Bimbingan
+  return "#cbd5e1";                // Slate / Belum dinilai
 }
 
 function CustomBarLabel(props: {
@@ -61,7 +62,7 @@ function CustomBarLabel(props: {
 export function StaffPerformanceBarChart({
   data,
   title = "Grafik Performa Individu",
-  subtitle = "Skor rata-rata berdasarkan periode rapor terbaru",
+  subtitle = "Skor rata-rata kumulatif seluruh periode rapor",
   emptyText = "Belum ada data nilai individu.",
 }: Props) {
   if (!data || data.length === 0) {
@@ -74,6 +75,7 @@ export function StaffPerformanceBarChart({
 
   // Sort descending by score for a clean ranking visual
   const sortedData = [...data].sort((a, b) => b.score - a.score);
+  const isHundredScale = sortedData.some((item) => item.score > 5);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-2xs">
@@ -85,16 +87,20 @@ export function StaffPerformanceBarChart({
       {/* Legend */}
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[10.5px] text-slate-600">
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> &gt;= 4.0 (Sangat Baik)
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />{" "}
+          {isHundredScale ? ">= 80 (Sangat Baik)" : ">= 4.0 (Sangat Baik)"}
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> 3.5 - 3.99 (Baik)
+          <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />{" "}
+          {isHundredScale ? "70 - 79.9 (Baik)" : "3.5 - 3.99 (Baik)"}
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> 2.5 - 3.49 (Cukup)
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />{" "}
+          {isHundredScale ? "50 - 69.9 (Cukup)" : "2.5 - 3.49 (Cukup)"}
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-red-500" /> &lt; 2.5 (Perhatian)
+          <span className="h-2.5 w-2.5 rounded-full bg-red-500" />{" "}
+          {isHundredScale ? "< 50 (Perhatian)" : "< 2.5 (Perhatian)"}
         </span>
       </div>
 
@@ -117,7 +123,11 @@ export function StaffPerformanceBarChart({
                 textAnchor="end"
                 height={45}
               />
-              <YAxis domain={[0, 5]} tick={{ fill: "#475569", fontSize: 11 }} width={35} />
+              <YAxis
+                domain={isHundredScale ? [0, 100] : [0, 5]}
+                tick={{ fill: "#475569", fontSize: 11 }}
+                width={35}
+              />
               <Tooltip
                 contentStyle={{
                   borderRadius: 10,
@@ -125,9 +135,9 @@ export function StaffPerformanceBarChart({
                   fontSize: 12,
                   padding: "6px 10px",
                 }}
-                formatter={(_val: any, _name: any, item: any) => [
+                formatter={(_val: unknown, _name: unknown, item: { payload?: { score?: number } }) => [
                   Number(item.payload?.score ?? 0).toFixed(2),
-                  "Nilai Rata-rata",
+                  "Nilai Kumulatif",
                 ]}
                 labelFormatter={(name) => `Nama: ${name}`}
               />

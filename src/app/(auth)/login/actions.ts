@@ -12,8 +12,23 @@ const PPM_ALLOWED_UNITS = new Set(["Biro PPM", "Biro Pengendali & Penjamin Mutu"
 
 const SIGN_UP_ROLE_OPTIONS: SignUpRoleOption[] = [
   {
+    value: "staff",
+    label: "Staff",
+    description: "Melihat rapor pribadi dan dapat ditugaskan sebagai penilai unit oleh admin.",
+  },
+  {
+    value: "menteri",
+    label: "Menteri / Kepala Biro",
+    description: "Melihat rapor diri dan rapor staff unit.",
+  },
+  {
+    value: "menko",
+    label: "Menko",
+    description: "Melihat rekap seluruh kementerian di bawah koordinasi kemenko.",
+  },
+  {
     value: "internship",
-    label: "Internship (Cakrawala)",
+    label: "Intern / Internship (Cakrawala)",
     description: "Melihat rapor internship personal. Staf magang dari Biro PPM otomatis ditetapkan sebagai PJ PPM Intern.",
   },
 ];
@@ -27,13 +42,17 @@ function isAppRole(value: string): value is AppRole {
 }
 
 function isSignupRoleAllowed(role: AppRole) {
-  return role === "internship";
+  return role === "staff" || role === "menteri" || role === "menko" || role === "internship";
 }
 
 function isUnitAllowedForRole(
   role: AppRole,
   unit: { nama_unit: string; kategori: "kemenko" | "kementerian" | "biro" },
 ) {
+  if (unit.nama_unit.toLowerCase() === "admin") {
+    return false;
+  }
+
   if (role === "internship") {
     return unit.kategori === "kementerian" || unit.kategori === "biro";
   }
@@ -74,9 +93,13 @@ export async function getSignUpOptions() {
       console.error("[getSignUpOptions] Error fetching ref_units:", error.message, error.details);
     }
 
+    const filteredUnits = (units ?? []).filter(
+      (u) => u.nama_unit.toLowerCase() !== "admin",
+    );
+
     return {
       roleOptions: SIGN_UP_ROLE_OPTIONS,
-      unitOptions: (units ?? []) as SignUpUnitOption[],
+      unitOptions: filteredUnits as SignUpUnitOption[],
     };
   } catch (err) {
     console.error("[getSignUpOptions] Exception:", err);

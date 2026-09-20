@@ -74,7 +74,16 @@ export default async function TheMeridianPage() {
   const previousByNim = new Map<string, number>();
   const latestScoreIdByNim = new Map<string, string>();
 
+  const publishedPeriodIds = new Set(publishedPeriods.map((p) => p.id));
+  const publishedScoresByNim = new Map<string, number[]>();
+
   for (const item of scores ?? []) {
+    if (publishedPeriodIds.has(item.periode_id)) {
+      if (!publishedScoresByNim.has(item.user_nim)) {
+        publishedScoresByNim.set(item.user_nim, []);
+      }
+      publishedScoresByNim.get(item.user_nim)!.push(Number(item.total_avg));
+    }
     if (latestPublished && item.periode_id === latestPublished.id) {
       latestByNim.set(item.user_nim, Number(item.total_avg));
       latestScoreIdByNim.set(item.user_nim, item.id);
@@ -82,6 +91,12 @@ export default async function TheMeridianPage() {
     if (previousPublished && item.periode_id === previousPublished.id) {
       previousByNim.set(item.user_nim, Number(item.total_avg));
     }
+  }
+
+  const cumulativeByNim = new Map<string, number>();
+  for (const [nim, scList] of publishedScoresByNim.entries()) {
+    const avg = scList.reduce((sum, v) => sum + v, 0) / scList.length;
+    cumulativeByNim.set(nim, Number(avg.toFixed(2)));
   }
 
   let highestScoreName = "-";
@@ -97,21 +112,24 @@ export default async function TheMeridianPage() {
   const indicatorAccumulator = new Map<string, { sum: number; count: number }>();
 
   for (const nim of internNims) {
+    const cumulativeScore = cumulativeByNim.get(nim) ?? latestByNim.get(nim);
     const current = latestByNim.get(nim);
     const name = internByNim.get(nim) ?? nim;
 
-    if (typeof current === "number") {
-      performanceList.push({ name, score: current });
+    if (typeof cumulativeScore === "number") {
+      performanceList.push({ name, score: cumulativeScore });
 
-      if (current > highestScoreValue) {
-        highestScoreValue = current;
+      if (cumulativeScore > highestScoreValue) {
+        highestScoreValue = cumulativeScore;
         highestScoreName = name;
       }
-      if (current < lowestScoreValue) {
-        lowestScoreValue = current;
+      if (cumulativeScore < lowestScoreValue) {
+        lowestScoreValue = cumulativeScore;
         lowestScoreName = name;
       }
+    }
 
+    if (typeof current === "number") {
       const prev = previousByNim.get(nim) ?? current;
       const growth = Number((current - prev).toFixed(2));
       if (growth > highestGrowthValue) {
@@ -122,18 +140,18 @@ export default async function TheMeridianPage() {
         lowestGrowthValue = growth;
         lowestGrowthName = name;
       }
+    }
 
-      const scoreId = latestScoreIdByNim.get(nim);
-      if (scoreId) {
-        const detailItems = detailsByRaporId.get(scoreId) ?? [];
-        for (const det of detailItems) {
-          if (!indicatorAccumulator.has(det.main_indicator_name)) {
-            indicatorAccumulator.set(det.main_indicator_name, { sum: 0, count: 0 });
-          }
-          const acc = indicatorAccumulator.get(det.main_indicator_name)!;
-          acc.sum += Number(det.score);
-          acc.count += 1;
+    const scoreId = latestScoreIdByNim.get(nim);
+    if (scoreId) {
+      const detailItems = detailsByRaporId.get(scoreId) ?? [];
+      for (const det of detailItems) {
+        if (!indicatorAccumulator.has(det.main_indicator_name)) {
+          indicatorAccumulator.set(det.main_indicator_name, { sum: 0, count: 0 });
         }
+        const acc = indicatorAccumulator.get(det.main_indicator_name)!;
+        acc.sum += Number(det.score);
+        acc.count += 1;
       }
     }
   }
@@ -231,8 +249,8 @@ export default async function TheMeridianPage() {
         <StaffPerformanceBarChart
           data={performanceList}
           title="Ranking Performa Staf Magang"
-          subtitle={`Unit ${ownedUnit?.nama_unit ?? "-"} · ${latestPublished ? `Periode ${latestPublished.bulan}/${latestPublished.tahun}` : "Periode Terbaru"}`}
-          emptyText="Belum ada data nilai staf magang untuk periode ini."
+          subtitle={`Unit ${ownedUnit?.nama_unit ?? "-"} · Skor rata-rata kumulatif (seluruh bulan)`}
+          emptyText="Belum ada data nilai staf magang."
         />
 
         <IndicatorBreakdownChart
@@ -245,23 +263,25 @@ export default async function TheMeridianPage() {
       {/* Summary Cards */}
       <Card className="border-indigo-100 bg-indigo-50/20">
         <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Recap 1 Bulan Terbaru</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Recap Performa Kumulatif Staf Magang</CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            {latestPublished
-              ? `Periode ${latestPublished.bulan}/${latestPublished.tahun} (Published)`
-              : "Belum ada periode published"}
+            Rata-rata kumulatif seluruh bulan · Unit {ownedUnit?.nama_unit ?? "-"}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 grid-cols-2 sm:grid-cols-4">
           <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-2xs">
-            <p className="text-[11px] text-slate-500">Nilai Tertinggi</p>
+            <p className="text-[11px] text-slate-500">Nilai Tertinggi Kumulatif</p>
             <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{highestScoreName}</p>
-            <p className="text-xs font-semibold text-emerald-600">{highestScoreLabel}</p>
+            <p className="text-xs font-semibold text-emerald-600">
+              {Number.isFinite(highestScoreValue) ? highestScoreValue.toFixed(2) : "0.00"}
+            </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-2xs">
-            <p className="text-[11px] text-slate-500">Nilai Terendah</p>
+            <p className="text-[11px] text-slate-500">Nilai Terendah Kumulatif</p>
             <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{lowestScoreName}</p>
-            <p className="text-xs font-semibold text-slate-600">{lowestScoreLabel}</p>
+            <p className="text-xs font-semibold text-slate-600">
+              {Number.isFinite(lowestScoreValue) ? lowestScoreValue.toFixed(2) : "0.00"}
+            </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-2xs">
             <p className="text-[11px] text-slate-500">Growth Tertinggi</p>

@@ -146,7 +146,7 @@ export function MenteriStaffTabs({
         <StaffPerformanceBarChart
           data={currentAnalytics.performanceList}
           title={`Ranking Performa ${activeTab === "staff" ? "Staf" : "Cakrawala"}`}
-          subtitle={`Unit ${unitName} · ${latestPeriodLabel}`}
+          subtitle={`Unit ${unitName} · Skor rata-rata kumulatif (seluruh bulan)`}
           emptyText={`Belum ada data nilai ${activeTab === "staff" ? "staf" : "staf magang"} untuk periode ini.`}
         />
 
@@ -161,20 +161,20 @@ export function MenteriStaffTabs({
       <Card className={activeTab === "internship" ? "border-indigo-100 bg-indigo-50/20" : ""}>
         <CardHeader>
           <CardTitle className="text-base sm:text-lg">
-            Recap 1 Bulan Terbaru ({activeTab === "staff" ? "Staf" : "Cakrawala"})
+            Recap Performa Kumulatif ({activeTab === "staff" ? "Staf" : "Cakrawala"})
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            {latestPeriodLabel} · Unit {unitName}
+            Rata-rata kumulatif seluruh bulan · Unit {unitName}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 grid-cols-2 sm:grid-cols-4">
           <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-2xs">
-            <p className="text-[11px] text-slate-500">Nilai Tertinggi</p>
+            <p className="text-[11px] text-slate-500">Nilai Tertinggi Kumulatif</p>
             <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{currentStats.highestScoreName}</p>
             <p className="text-xs font-semibold text-emerald-600">{currentStats.highestScoreLabel}</p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-2xs">
-            <p className="text-[11px] text-slate-500">Nilai Terendah</p>
+            <p className="text-[11px] text-slate-500">Nilai Terendah Kumulatif</p>
             <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{currentStats.lowestScoreName}</p>
             <p className="text-xs font-semibold text-slate-600">{currentStats.lowestScoreLabel}</p>
           </div>

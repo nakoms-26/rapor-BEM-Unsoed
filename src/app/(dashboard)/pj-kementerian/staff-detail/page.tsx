@@ -96,28 +96,34 @@ export default async function PjKementerianStaffDetailPage() {
     scoresByStaff.get(score.user_nim)!.push(score);
   }
 
-  // Calculate analytics for latest scores
-  const latestPeriod = (periods ?? [])[0];
+  // Calculate analytics for cumulative scores
   const performanceList: { name: string; score: number }[] = [];
   const indicatorAccumulator = new Map<string, { sum: number; count: number }>();
 
   for (const staff of staffProfiles ?? []) {
     const staffScores = scoresByStaff.get(staff.nim) ?? [];
-    const latestScore = staffScores[0];
-    if (latestScore) {
+    if (staffScores.length > 0) {
+      const avgScore = Number(
+        (
+          staffScores.reduce((acc, curr) => acc + Number(curr.total_avg), 0) /
+          staffScores.length
+        ).toFixed(2),
+      );
       performanceList.push({
         name: staff.nama_lengkap,
-        score: Number(latestScore.total_avg),
+        score: avgScore,
       });
 
-      const details = detailsByRapor.get(latestScore.id) ?? [];
-      for (const det of details) {
-        if (!indicatorAccumulator.has(det.main_indicator_name)) {
-          indicatorAccumulator.set(det.main_indicator_name, { sum: 0, count: 0 });
+      for (const score of staffScores) {
+        const details = detailsByRapor.get(score.id) ?? [];
+        for (const det of details) {
+          if (!indicatorAccumulator.has(det.main_indicator_name)) {
+            indicatorAccumulator.set(det.main_indicator_name, { sum: 0, count: 0 });
+          }
+          const acc = indicatorAccumulator.get(det.main_indicator_name)!;
+          acc.sum += Number(det.score);
+          acc.count += 1;
         }
-        const acc = indicatorAccumulator.get(det.main_indicator_name)!;
-        acc.sum += Number(det.score);
-        acc.count += 1;
       }
     }
   }
@@ -171,8 +177,8 @@ export default async function PjKementerianStaffDetailPage() {
         <StaffPerformanceBarChart
           data={performanceList}
           title="Ranking Skor Staf Unit"
-          subtitle={`Unit ${ownedUnit?.nama_unit ?? "-"} · ${latestPeriod ? formatPeriode(latestPeriod.bulan, latestPeriod.tahun) : "Periode Terbaru"}`}
-          emptyText="Belum ada data nilai staf unit untuk periode ini."
+          subtitle={`Unit ${ownedUnit?.nama_unit ?? "-"} · Skor rata-rata kumulatif (seluruh bulan)`}
+          emptyText="Belum ada data nilai staf unit."
         />
 
         <IndicatorBreakdownChart
@@ -186,17 +192,31 @@ export default async function PjKementerianStaffDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base sm:text-lg">Daftar Staff dan Rapor</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Versi print-friendly untuk melihat detail isi rapor staff.</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">Versi print-friendly untuk melihat detail isi rapor staff beserta riwayat seluruh bulan.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {staffProfiles && staffProfiles.length > 0 ? (
             staffProfiles.map((staff) => {
               const staffScores = scoresByStaff.get(staff.nim) ?? [];
+              const staffAvg = staffScores.length
+                ? (staffScores.reduce((acc, c) => acc + Number(c.total_avg), 0) / staffScores.length).toFixed(2)
+                : null;
+
               return (
                 <Card key={staff.nim} className="border-slate-200/80 shadow-2xs">
                   <CardHeader className="p-4 pb-3">
-                    <CardTitle className="text-base text-slate-900">{staff.nama_lengkap}</CardTitle>
-                    <CardDescription className="text-xs">NIM: {staff.nim}</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base text-slate-900">{staff.nama_lengkap}</CardTitle>
+                        <CardDescription className="text-xs">NIM: {staff.nim}</CardDescription>
+                      </div>
+                      {staffAvg ? (
+                        <div className="text-right">
+                          <span className="text-[11px] text-slate-500 block">Rata-rata Kumulatif</span>
+                          <span className="text-sm font-bold text-indigo-600">{staffAvg}</span>
+                        </div>
+                      ) : null}
+                    </div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 space-y-3">
                     {staffScores.length ? (

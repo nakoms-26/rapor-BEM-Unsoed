@@ -23,6 +23,9 @@ function isUnitEligibleForRole(
   role: string,
   unit: { nama_unit: string; kategori: "kemenko" | "kementerian" | "biro" },
 ) {
+  if (unit.nama_unit.toLowerCase() === "admin") {
+    return false;
+  }
   if (role === "internship" || role === "the_meridian" || role === "pj_ppm_intern") {
     return unit.kategori === "kementerian" || unit.kategori === "biro";
   }

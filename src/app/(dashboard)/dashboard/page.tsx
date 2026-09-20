@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireSessionProfile } from "@/lib/auth/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { formatRoleName } from "@/lib/constants";
+import { getDashboardBannerData } from "@/lib/dashboard-summary";
+import { DashboardCumulativeBanner, type DashboardBannerProps } from "@/components/dashboard/dashboard-cumulative-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -205,6 +207,8 @@ export default async function DashboardLandingPage() {
     });
   }
 
+  const bannerData = await getDashboardBannerData(supabase, profile);
+
   if (profile.role === "staff") {
     const { data: assignment } = await supabase
       .from("evaluator_unit_assignments")
@@ -215,20 +219,27 @@ export default async function DashboardLandingPage() {
 
     if (!assignment) {
       const withoutEvaluator = cards.filter((card) => card.href !== "/penilai");
-      return renderCards(withoutEvaluator, profile.role, isPjKemenkoan);
+      return renderCards(withoutEvaluator, profile.role, isPjKemenkoan, bannerData);
     }
   }
 
-  return renderCards(cards, profile.role, isPjKemenkoan);
+  return renderCards(cards, profile.role, isPjKemenkoan, bannerData);
 }
 
-function renderCards(cards: FeatureCard[], role: string, isPjKemenkoan?: boolean) {
+function renderCards(
+  cards: FeatureCard[],
+  role: string,
+  isPjKemenkoan?: boolean,
+  bannerData?: DashboardBannerProps | null,
+) {
   if (!cards.length) {
     redirect("/login");
   }
 
   return (
     <section className="space-y-5">
+      {bannerData ? <DashboardCumulativeBanner {...bannerData} /> : null}
+
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Pilih Fitur Dashboard</h2>
         <p className="text-xs sm:text-sm text-slate-600 mt-0.5">Akses fitur berdasarkan role Kamu: <span className="font-semibold text-slate-800">{formatRoleName(role, isPjKemenkoan)}</span>.</p>

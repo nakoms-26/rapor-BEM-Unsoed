@@ -40,7 +40,14 @@ export default async function AdminStaffRecapPage() {
 
   const periodById = new Map((periods ?? []).map((period) => [period.id, period]));
   const scoreByNim = new Map<string, { total_avg: number; periode: string; catatan: string | null }>();
+  const scoresListByNim = new Map<string, number[]>();
+
   for (const score of scores ?? []) {
+    if (!scoresListByNim.has(score.user_nim)) {
+      scoresListByNim.set(score.user_nim, []);
+    }
+    scoresListByNim.get(score.user_nim)!.push(Number(score.total_avg));
+
     const period = periodById.get(score.periode_id);
     const current = scoreByNim.get(score.user_nim);
     const scorePeriodKey = `${period?.tahun ?? 0}-${period?.bulan ?? 0}`;
@@ -54,19 +61,28 @@ export default async function AdminStaffRecapPage() {
     }
   }
 
+  const cumulativeByNim = new Map<string, { avg: number; count: number }>();
+  for (const [nim, sList] of scoresListByNim.entries()) {
+    const avg = sList.reduce((sum, v) => sum + v, 0) / sList.length;
+    cumulativeByNim.set(nim, {
+      avg: Number(avg.toFixed(2)),
+      count: sList.length,
+    });
+  }
+
   const groupedUnits = (units ?? []).filter((unit) => unit.kategori === "kementerian" || unit.kategori === "biro");
 
   return (
     <section className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Recap Seluruh Staff Kabinet</h2>
-        <p className="text-sm text-slate-600">Dikelompokkan berdasarkan kementerian/biro.</p>
+        <p className="text-sm text-slate-600">Dikelompokkan berdasarkan kementerian/biro dengan rata-rata kumulatif semua bulan.</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Staff per Kementerian/Biro</CardTitle>
-          <CardDescription>Ringkasan seluruh staff dalam kabinet.</CardDescription>
+          <CardDescription>Ringkasan seluruh staff dalam kabinet dan nilai kumulatifnya.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {groupedUnits.map((unit) => {
@@ -80,6 +96,8 @@ export default async function AdminStaffRecapPage() {
                   {unitStaffs.length ? (
                     unitStaffs.map((staff) => {
                       const latestScore = scoreByNim.get(staff.nim);
+                      const cum = cumulativeByNim.get(staff.nim);
+
                       return (
                         <div key={staff.nim} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
                           <div className="flex items-center justify-between gap-3">
@@ -94,9 +112,16 @@ export default async function AdminStaffRecapPage() {
                               </div>
                               <p className="text-xs text-slate-500">NIM: {staff.nim}</p>
                             </div>
-                            <div className="text-right">
-                              <p className="text-xs text-slate-500">Rapor Terbaru</p>
-                              <p className="font-semibold text-slate-900">{latestScore ? latestScore.total_avg.toFixed(2) : "0.00"}</p>
+                            <div className="text-right flex items-center gap-5">
+                              <div>
+                                <p className="text-[11px] text-slate-500">Nilai Kumulatif</p>
+                                <p className="font-bold text-indigo-600">{cum ? cum.avg.toFixed(2) : "0.00"}</p>
+                                <p className="text-[10px] text-slate-400">{cum ? `${cum.count} bulan` : "-"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[11px] text-slate-500">Rapor Terbaru</p>
+                                <p className="font-semibold text-slate-900">{latestScore ? latestScore.total_avg.toFixed(2) : "0.00"}</p>
+                              </div>
                             </div>
                           </div>
                           {latestScore?.catatan ? <p className="mt-1 text-xs text-slate-600">Catatan: {latestScore.catatan}</p> : null}

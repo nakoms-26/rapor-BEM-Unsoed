@@ -85,3 +85,113 @@ export function resolveDisplayTotalScore(
 
   return normalizeToHundredScale(storedTotalScore);
 }
+
+export type StaffPeriodScoreInput = {
+  scoreId: string;
+  userNim: string;
+  totalAvg: number;
+  bulan: number;
+  tahun: number;
+  details?: ScoreDetail[];
+};
+
+export type StaffCumulativeResult = {
+  userNim: string;
+  cumulativeAvg: number;
+  periodCount: number;
+  latestScore: number;
+  latestBulan: number;
+  latestTahun: number;
+  periodScores: Array<{
+    scoreId: string;
+    bulan: number;
+    tahun: number;
+    score: number;
+  }>;
+};
+
+export function calculateSingleStaffCumulative(
+  scores: Array<{
+    scoreId?: string;
+    totalAvg: number;
+    bulan: number;
+    tahun: number;
+    details?: ScoreDetail[];
+  }>,
+  reportVariant: ReportVariant = "staff",
+) {
+  if (!scores.length) {
+    return {
+      cumulativeAvg: 0,
+      periodCount: 0,
+      latestScore: 0,
+      latestBulan: 0,
+      latestTahun: 0,
+      periodScores: [],
+    };
+  }
+
+  const sorted = [...scores].sort((a, b) => {
+    if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+    return b.bulan - a.bulan;
+  });
+
+  const periodScores = sorted.map((s) => ({
+    scoreId: s.scoreId ?? "",
+    bulan: s.bulan,
+    tahun: s.tahun,
+    score: resolveDisplayTotalScore(s.totalAvg, s.details, reportVariant),
+  }));
+
+  const totalSum = periodScores.reduce((acc, curr) => acc + curr.score, 0);
+  const cumulativeAvg = Number((totalSum / periodScores.length).toFixed(2));
+  const latest = periodScores[0];
+
+  return {
+    cumulativeAvg,
+    periodCount: periodScores.length,
+    latestScore: latest?.score ?? 0,
+    latestBulan: latest?.bulan ?? 0,
+    latestTahun: latest?.tahun ?? 0,
+    periodScores,
+  };
+}
+
+export function calculateStaffCumulativeScores(
+  inputs: StaffPeriodScoreInput[],
+  reportVariant: ReportVariant = "staff",
+): Map<string, StaffCumulativeResult> {
+  const byNim = new Map<string, StaffPeriodScoreInput[]>();
+  for (const item of inputs) {
+    if (!byNim.has(item.userNim)) {
+      byNim.set(item.userNim, []);
+    }
+    byNim.get(item.userNim)!.push(item);
+  }
+
+  const resultMap = new Map<string, StaffCumulativeResult>();
+  for (const [userNim, staffScores] of byNim.entries()) {
+    const single = calculateSingleStaffCumulative(
+      staffScores.map((s) => ({
+        scoreId: s.scoreId,
+        totalAvg: s.totalAvg,
+        bulan: s.bulan,
+        tahun: s.tahun,
+        details: s.details,
+      })),
+      reportVariant,
+    );
+
+    resultMap.set(userNim, {
+      userNim,
+      cumulativeAvg: single.cumulativeAvg,
+      periodCount: single.periodCount,
+      latestScore: single.latestScore,
+      latestBulan: single.latestBulan,
+      latestTahun: single.latestTahun,
+      periodScores: single.periodScores,
+    });
+  }
+
+  return resultMap;
+}

@@ -84,7 +84,16 @@ export default async function MenteriStaffPage() {
     const previousByNim = new Map<string, number>();
     const latestScoreIdByNim = new Map<string, string>();
 
+    const publishedPeriodIds = new Set(publishedPeriods.map((p) => p.id));
+    const publishedScoresByNim = new Map<string, number[]>();
+
     for (const item of subsetScores) {
+      if (publishedPeriodIds.has(item.periode_id)) {
+        if (!publishedScoresByNim.has(item.user_nim)) {
+          publishedScoresByNim.set(item.user_nim, []);
+        }
+        publishedScoresByNim.get(item.user_nim)!.push(Number(item.total_avg));
+      }
       if (latestPublished && item.periode_id === latestPublished.id) {
         latestByNim.set(item.user_nim, Number(item.total_avg));
         latestScoreIdByNim.set(item.user_nim, item.id);
@@ -92,6 +101,12 @@ export default async function MenteriStaffPage() {
       if (previousPublished && item.periode_id === previousPublished.id) {
         previousByNim.set(item.user_nim, Number(item.total_avg));
       }
+    }
+
+    const cumulativeByNim = new Map<string, number>();
+    for (const [nim, scList] of publishedScoresByNim.entries()) {
+      const avg = scList.reduce((sum, v) => sum + v, 0) / scList.length;
+      cumulativeByNim.set(nim, Number(avg.toFixed(2)));
     }
 
     let highestScoreName = "-";
@@ -107,21 +122,24 @@ export default async function MenteriStaffPage() {
     const indicatorAccumulator = new Map<string, { sum: number; count: number }>();
 
     for (const nim of nims) {
+      const cumulativeScore = cumulativeByNim.get(nim) ?? latestByNim.get(nim);
       const current = latestByNim.get(nim);
       const name = memberNameByNim.get(nim) ?? nim;
 
-      if (typeof current === "number") {
-        performanceList.push({ name, score: current });
+      if (typeof cumulativeScore === "number") {
+        performanceList.push({ name, score: cumulativeScore });
 
-        if (current > highestScoreValue) {
-          highestScoreValue = current;
+        if (cumulativeScore > highestScoreValue) {
+          highestScoreValue = cumulativeScore;
           highestScoreName = name;
         }
-        if (current < lowestScoreValue) {
-          lowestScoreValue = current;
+        if (cumulativeScore < lowestScoreValue) {
+          lowestScoreValue = cumulativeScore;
           lowestScoreName = name;
         }
+      }
 
+      if (typeof current === "number") {
         const prev = previousByNim.get(nim) ?? current;
         const growth = Number((current - prev).toFixed(2));
         if (growth > highestGrowthValue) {
@@ -132,19 +150,18 @@ export default async function MenteriStaffPage() {
           lowestGrowthValue = growth;
           lowestGrowthName = name;
         }
+      }
 
-        // Accumulate indicator details
-        const scoreId = latestScoreIdByNim.get(nim);
-        if (scoreId) {
-          const detailItems = detailsByRaporId.get(scoreId) ?? [];
-          for (const det of detailItems) {
-            if (!indicatorAccumulator.has(det.main_indicator_name)) {
-              indicatorAccumulator.set(det.main_indicator_name, { sum: 0, count: 0 });
-            }
-            const acc = indicatorAccumulator.get(det.main_indicator_name)!;
-            acc.sum += Number(det.score);
-            acc.count += 1;
+      const scoreId = latestScoreIdByNim.get(nim);
+      if (scoreId) {
+        const detailItems = detailsByRaporId.get(scoreId) ?? [];
+        for (const det of detailItems) {
+          if (!indicatorAccumulator.has(det.main_indicator_name)) {
+            indicatorAccumulator.set(det.main_indicator_name, { sum: 0, count: 0 });
           }
+          const acc = indicatorAccumulator.get(det.main_indicator_name)!;
+          acc.sum += Number(det.score);
+          acc.count += 1;
         }
       }
     }

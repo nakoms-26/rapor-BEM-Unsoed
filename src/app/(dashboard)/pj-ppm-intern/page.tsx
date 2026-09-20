@@ -162,7 +162,16 @@ export default async function PjPpmInternPage() {
   const previousByNim = new Map<string, number>();
   const latestScoreIdByNim = new Map<string, string>();
 
+  const publishedPeriodIds = new Set(publishedPeriods.map((p) => p.id));
+  const publishedScoresByNim = new Map<string, number[]>();
+
   for (const item of scores ?? []) {
+    if (publishedPeriodIds.has(item.periode_id)) {
+      if (!publishedScoresByNim.has(item.user_nim)) {
+        publishedScoresByNim.set(item.user_nim, []);
+      }
+      publishedScoresByNim.get(item.user_nim)!.push(Number(item.total_avg));
+    }
     if (latestPublished && item.periode_id === latestPublished.id) {
       latestByNim.set(item.user_nim, Number(item.total_avg));
       latestScoreIdByNim.set(item.user_nim, item.id);
@@ -172,17 +181,23 @@ export default async function PjPpmInternPage() {
     }
   }
 
+  const cumulativeByNim = new Map<string, number>();
+  for (const [nim, scList] of publishedScoresByNim.entries()) {
+    const avg = scList.reduce((sum, v) => sum + v, 0) / scList.length;
+    cumulativeByNim.set(nim, Number(avg.toFixed(2)));
+  }
+
   const performanceList: { name: string; score: number; unitName: string }[] = [];
   const indicatorAccumulator = new Map<string, { sum: number; count: number }>();
 
   for (const intern of interns ?? []) {
-    const current = latestByNim.get(intern.nim);
+    const cumulativeScore = cumulativeByNim.get(intern.nim) ?? latestByNim.get(intern.nim);
     const unit = unitById.get(intern.unit_id);
 
-    if (typeof current === "number") {
+    if (typeof cumulativeScore === "number") {
       performanceList.push({
         name: intern.nama_lengkap,
-        score: current,
+        score: cumulativeScore,
         unitName: unit?.nama_unit ?? "-",
       });
 
@@ -336,7 +351,7 @@ export default async function PjPpmInternPage() {
       <StaffPerformanceBarChart
         data={performanceList}
         title="Ranking Skor Seluruh Staf Magang"
-        subtitle="Daftar peringkat performa seluruh anak magang di unit-unit yang Kamu ampu"
+        subtitle="Daftar peringkat performa rata-rata kumulatif (seluruh bulan) untuk anak magang di unit-unit yang Kamu ampu"
         emptyText="Belum ada data nilai individu anak magang."
       />
 

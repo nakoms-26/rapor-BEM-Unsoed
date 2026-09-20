@@ -4,7 +4,7 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporListWithMonthFilter } from "@/components/dashboard/rapor-list-with-month-filter";
-import { resolveDisplayTotalScore } from "@/lib/rapor-score";
+import { resolveDisplayTotalScore, calculateSingleStaffCumulative } from "@/lib/rapor-score";
 import { isPublishedStatus, periodMonthYearKey, resolvePublishedPeriodByScorePeriodId } from "@/lib/period-status";
 
 export const dynamic = "force-dynamic";
@@ -188,6 +188,17 @@ export default async function StaffPage() {
     ? resolveDisplayTotalScore(latestScore.total_avg, detailsByRapor.get(latestScore.id) ?? [], "staff")
     : null;
 
+  const staffCumulative = calculateSingleStaffCumulative(
+    displayRaporRows.map((r) => ({
+      scoreId: r.id,
+      totalAvg: r.total_avg,
+      bulan: r.bulan,
+      tahun: r.tahun,
+      details: detailsByRapor.get(r.id),
+    })),
+    "staff",
+  );
+
   const latestUnit = await supabase
     .from("ref_units")
     .select("nama_unit")
@@ -205,13 +216,21 @@ export default async function StaffPage() {
 
       <Card className="border-slate-200/80 bg-white shadow-xs">
         <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
-          <CardTitle className="text-base sm:text-lg text-slate-900">Nilai Kumulatif</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Skala 0 - 100 (tanpa nilai prestasi)</CardDescription>
+          <CardTitle className="text-base sm:text-lg text-slate-900">Nilai Kumulatif (Rata-rata Semua Bulan)</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            {staffCumulative.periodCount > 0
+              ? `Skala 0 - 100 (tanpa nilai prestasi) · Rata-rata dari ${staffCumulative.periodCount} periode rapor`
+              : "Skala 0 - 100 (tanpa nilai prestasi)"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0">
-          <p className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">{latestDisplayScore?.toFixed(2) ?? "0.00"}</p>
+          <p className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+            {staffCumulative.periodCount > 0 ? staffCumulative.cumulativeAvg.toFixed(2) : "0.00"}
+          </p>
           <p className="mt-1 text-xs text-slate-500">
-            {latestScore ? `${formatPeriode(latestScore.bulan, latestScore.tahun)} (${latestScore.status})` : "Belum ada data"}
+            {latestScore
+              ? `Periode terbaru: ${formatPeriode(latestScore.bulan, latestScore.tahun)} (${latestDisplayScore !== null ? latestDisplayScore.toFixed(2) : "-"})`
+              : "Belum ada data"}
           </p>
         </CardContent>
       </Card>
