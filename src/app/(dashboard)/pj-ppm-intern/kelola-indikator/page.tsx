@@ -13,7 +13,7 @@ export default async function PjPpmInternKelolaIndikatorPage() {
   const profile = await requireSessionProfile();
   const supabase = createAdminSupabaseClient();
 
-  if (profile.role !== "pj_ppm_intern" && profile.role !== "admin" && !profile.is_pj_kemenkoan) {
+  if (profile.role !== "pj_ppm_intern" && profile.role !== "admin") {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 

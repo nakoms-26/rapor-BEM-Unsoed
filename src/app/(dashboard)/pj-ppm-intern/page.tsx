@@ -19,7 +19,6 @@ export default async function PjPpmInternPage() {
   if (
     profile.role !== "pj_ppm_intern" &&
     profile.role !== "admin" &&
-    profile.role !== "pj_kementerian" &&
     profile.role !== "the_meridian"
   ) {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");

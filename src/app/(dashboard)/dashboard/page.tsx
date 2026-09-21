@@ -57,18 +57,6 @@ export default async function DashboardLandingPage() {
         description: "Lihat seluruh periode rapor pribadi Kamu.",
         icon: UserRoundCheck,
       },
-      {
-        href: "/pj-ppm-intern/input",
-        title: "Input Rapor Internship",
-        description: "Input rapor anak magang (Cakrawala) kementerian/biro yang Kamu ampu.",
-        icon: ClipboardList,
-      },
-      {
-        href: "/pj-ppm-intern",
-        title: "Monitoring Internship",
-        description: "Lihat dan pantau rekap performa rapor anak intern kementerian/biro Kamu.",
-        icon: BarChart3,
-      },
     ],
     pres_wapres: [
       {
@@ -218,18 +206,12 @@ export default async function DashboardLandingPage() {
     }
   }
 
-  if (isPjKemenkoan) {
+  if (isPjKemenkoan && profile.role !== "pj_ppm_intern") {
     const kemenkoCards: FeatureCard[] = [
       {
         href: "/pj-kemenkoan",
         title: "Kelola Sub-Indikator Kemenko",
         description: "Atur sub-indikator untuk kemenko yang Kamu pegang.",
-        icon: ClipboardList,
-      },
-      {
-        href: "/pj-ppm-intern/kelola-indikator",
-        title: "Kelola Sub-Indikator Intern",
-        description: "Atur sub-indikator internship untuk kemenko yang Kamu pegang.",
         icon: ClipboardList,
       },
       {
@@ -252,9 +234,15 @@ export default async function DashboardLandingPage() {
       },
     ];
 
+    for (let i = cards.length - 1; i >= 0; i--) {
+      if (cards[i].href === "/pj-kementerian" || cards[i].href === "/admin") {
+        cards.splice(i, 1);
+      }
+    }
+
     for (const card of kemenkoCards) {
       if (!cards.some((c) => c.href === card.href)) {
-        cards.unshift(card);
+        cards.push(card);
       }
     }
   }

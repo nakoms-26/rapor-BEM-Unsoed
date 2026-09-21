@@ -31,10 +31,9 @@ export default async function DashboardLayout({
 
   navItems.push({ href: "/dashboard", label: "Dashboard", icon: Home });
 
-  // PJ Kemenkoan (termasuk PJ Kemenkoan Intern)
-  if (profile.is_pj_kemenkoan) {
+  // PJ Kemenkoan (Staf)
+  if (profile.is_pj_kemenkoan && profile.role !== "pj_ppm_intern") {
     pushNav({ href: "/pj-kemenkoan", label: "Kelola Sub-Indikator", icon: ClipboardList });
-    pushNav({ href: "/pj-ppm-intern/kelola-indikator", label: "Kelola Indikator Intern", icon: ClipboardList });
     pushNav({ href: "/admin", label: "Input Kementerian", icon: ClipboardList });
     pushNav({ href: "/menko", label: "Recap Kementerian", icon: BarChart3 });
   }
@@ -47,9 +46,11 @@ export default async function DashboardLayout({
 
   if (profile.role === "pj_kementerian") {
     pushNav({ href: "/admin", label: "Input Kementerian", icon: ClipboardList });
-    pushNav({ href: "/pj-ppm-intern/input", label: "Input Internship", icon: ClipboardList });
-    pushNav({ href: "/pj-ppm-intern", label: "Monitoring Internship", icon: BarChart3 });
-    pushNav({ href: "/pj-kementerian", label: "Rapor Diri", icon: UserRoundCheck });
+    pushNav({
+      href: profile.is_pj_kemenkoan ? "/pj-kemenkoan/rapor-diri" : "/pj-kementerian",
+      label: "Rapor Diri",
+      icon: UserRoundCheck,
+    });
   }
 
   // PJ PPM Intern (termasuk PJ Kemenkoan Intern seperti Fairuz & Panji)
