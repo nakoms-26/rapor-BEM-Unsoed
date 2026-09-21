@@ -21,8 +21,7 @@ export default async function DashboardLandingPage() {
   const profile = await requireSessionProfile();
   const supabase = createAdminSupabaseClient();
   const isPjKemenkoan =
-    profile.is_pj_kemenkoan === true &&
-    (profile.role === "pj_kementerian" || profile.role === "admin");
+    profile.is_pj_kemenkoan === true || profile.role === "admin";
 
   const featuresByRole: Record<string, FeatureCard[]> = {
     admin: [
@@ -35,34 +34,40 @@ export default async function DashboardLandingPage() {
       {
         href: "/admin/staff-recap",
         title: "Recap Staff Kabinet",
-        description: "Lihat recap seluruh staff kabinet yang dikelompokkan berdasar kementerian.",
+        description: "Lihat rekapitulasi penilaian seluruh staf kabinet.",
         icon: BarChart3,
       },
       {
         href: "/admin/menteri-detail",
-        title: "Rapor Menteri",
-        description: "Lihat detail rapor menteri/kepala biro se-kabinet.",
+        title: "Rapor Para Menteri",
+        description: "Lihat performa menteri/kepala biro se-kabinet.",
         icon: UserRoundCheck,
       },
     ],
     pj_kementerian: [
       {
-        href: "/pj-kementerian",
-        title: "Rapor Diri",
-        description: "Lihat seluruh periode rapor pribadi PJ Kementerian.",
-        icon: UserRoundCheck,
+        href: "/admin",
+        title: "Input Rapor Kementerian",
+        description: "Input penilaian bulanan staf pada kementerian/biro yang Kamu ampu.",
+        icon: ClipboardList,
       },
       {
-        href: "/admin",
-        title: "Input Staf Kementerian",
-        description: "Input rapor untuk staf kementerian/biro yang diampu.",
-        icon: ClipboardList,
+        href: "/pj-kementerian",
+        title: "Rapor Diri",
+        description: "Lihat seluruh periode rapor pribadi Kamu.",
+        icon: UserRoundCheck,
       },
       {
         href: "/pj-ppm-intern/input",
         title: "Input Rapor Internship",
         description: "Input rapor anak magang (Cakrawala) kementerian/biro yang Kamu ampu.",
         icon: ClipboardList,
+      },
+      {
+        href: "/pj-ppm-intern",
+        title: "Monitoring Internship",
+        description: "Lihat dan pantau rekap performa rapor anak intern kementerian/biro Kamu.",
+        icon: BarChart3,
       },
     ],
     pres_wapres: [
@@ -117,15 +122,21 @@ export default async function DashboardLandingPage() {
         icon: ClipboardList,
       },
       {
+        href: "/pj-ppm-intern/input",
+        title: "Input Rapor Internship",
+        description: "Input rapor anak magang (Cakrawala) kementerian/biro yang Kamu ampu.",
+        icon: ClipboardList,
+      },
+      {
         href: "/pj-ppm-intern",
         title: "Monitoring Internship",
-        description: "Lihat dan pantau rekap performa rapor anak intern kementerian/biro di bawah kemenko Kamu.",
+        description: "Lihat dan pantau rekap performa rapor anak intern kementerian/biro yang Kamu ampu.",
         icon: BarChart3,
       },
       {
-        href: "/staff",
+        href: "/pj-kemenkoan/rapor-diri",
         title: "Rapor Diri",
-        description: "Lihat seluruh periode rapor pribadi Kamu sebagai staf magang Biro PPM.",
+        description: "Lihat seluruh periode rapor pribadi Kamu.",
         icon: UserRoundCheck,
       },
     ],
@@ -179,32 +190,73 @@ export default async function DashboardLandingPage() {
     });
   }
 
+  if (profile.role === "the_meridian") {
+    const { data: pjAssignments } = await supabase
+      .from("pj_assignments")
+      .select("id")
+      .eq("nim", profile.nim)
+      .eq("is_active", true)
+      .limit(1);
+
+    if (pjAssignments && pjAssignments.length > 0) {
+      if (!cards.some((c) => c.href === "/pj-ppm-intern/input")) {
+        cards.push({
+          href: "/pj-ppm-intern/input",
+          title: "Input Rapor Internship",
+          description: "Input rapor anak magang (Cakrawala) kementerian/biro yang Kamu ampu.",
+          icon: ClipboardList,
+        });
+      }
+      if (!cards.some((c) => c.href === "/pj-ppm-intern")) {
+        cards.push({
+          href: "/pj-ppm-intern",
+          title: "Monitoring Internship",
+          description: "Lihat dan pantau rekap performa rapor anak intern kementerian/biro Kamu.",
+          icon: BarChart3,
+        });
+      }
+    }
+  }
+
   if (isPjKemenkoan) {
-    cards.length = 0;
-    cards.push({
-      href: "/pj-kemenkoan",
-      title: "Kelola Sub-Indikator",
-      description: "Atur sub-indikator untuk kemenko yang Kamu pegang.",
-      icon: ClipboardList,
-    });
-    cards.push({
-      href: "/pj-kemenkoan/rapor-diri",
-      title: "Rapor Diri",
-      description: "Lihat seluruh periode rapor pribadi PJ Kemenkoan.",
-      icon: UserRoundCheck,
-    });
-    cards.push({
-      href: "/admin",
-      title: "Input Kementerian Diampu",
-      description: "Input rapor kementerian/biro yang berada di bawah kemenko Kamu.",
-      icon: ClipboardList,
-    });
-    cards.push({
-      href: "/menko",
-      title: "Recap Kementerian",
-      description: "Lihat recap kementerian/biro yang berada di bawah kemenko Kamu.",
-      icon: BarChart3,
-    });
+    const kemenkoCards: FeatureCard[] = [
+      {
+        href: "/pj-kemenkoan",
+        title: "Kelola Sub-Indikator Kemenko",
+        description: "Atur sub-indikator untuk kemenko yang Kamu pegang.",
+        icon: ClipboardList,
+      },
+      {
+        href: "/pj-ppm-intern/kelola-indikator",
+        title: "Kelola Sub-Indikator Intern",
+        description: "Atur sub-indikator internship untuk kemenko yang Kamu pegang.",
+        icon: ClipboardList,
+      },
+      {
+        href: "/admin",
+        title: "Input Kementerian Diampu",
+        description: "Input rapor kementerian/biro yang berada di bawah kemenko Kamu.",
+        icon: ClipboardList,
+      },
+      {
+        href: "/menko",
+        title: "Recap Kementerian",
+        description: "Lihat recap kementerian/biro yang berada di bawah kemenko Kamu.",
+        icon: BarChart3,
+      },
+      {
+        href: "/pj-kemenkoan/rapor-diri",
+        title: "Rapor Diri",
+        description: "Lihat seluruh periode rapor pribadi PJ Kemenkoan.",
+        icon: UserRoundCheck,
+      },
+    ];
+
+    for (const card of kemenkoCards) {
+      if (!cards.some((c) => c.href === card.href)) {
+        cards.unshift(card);
+      }
+    }
   }
 
   const bannerData = await getDashboardBannerData(supabase, profile);

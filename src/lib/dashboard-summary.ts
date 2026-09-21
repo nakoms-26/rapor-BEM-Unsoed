@@ -50,8 +50,7 @@ export async function getDashboardBannerData(
   },
 ): Promise<DashboardBannerProps | null> {
   const isPjKemenkoan =
-    profile.is_pj_kemenkoan === true &&
-    (profile.role === "pj_kementerian" || profile.role === "admin");
+    profile.is_pj_kemenkoan === true || profile.role === "admin";
 
   // Fetch all published periods
   const { data: allPeriodsData } = await supabase

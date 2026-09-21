@@ -176,13 +176,15 @@ export async function submitMenkoMenteriRapor(payload: MenkoMenteriInputForm) {
         .select("id")
         .single();
 
-  if (raporError || !rapor) {
+  const effectiveRapor = existingRapor ? { id: existingRapor.id } : rapor;
+
+  if (raporError || !effectiveRapor) {
     return { ok: false, message: `Gagal menyimpan rapor utama: ${raporError?.message ?? "unknown error"}` };
   }
 
   const detailRows = [
     ...responsibilityEntries.map((entry) => ({
-      rapor_id: rapor.id,
+      rapor_id: effectiveRapor.id,
       main_indicator_name: "Tanggung Jawab",
       sub_indicator_name: entry.subIndicator,
       score: getResponsibilityScore(entry.value),
@@ -195,7 +197,7 @@ export async function submitMenkoMenteriRapor(payload: MenkoMenteriInputForm) {
       nilai_akhir: null,
     })),
     ...participationEntries.map((entry) => ({
-      rapor_id: rapor.id,
+      rapor_id: effectiveRapor.id,
       main_indicator_name: "Partisipasi Internal",
       sub_indicator_name: entry.subIndicator,
       score: getParticipationScore(entry.value),
@@ -210,7 +212,7 @@ export async function submitMenkoMenteriRapor(payload: MenkoMenteriInputForm) {
   ];
 
   if (existingRapor) {
-    const { error: deleteDetailError } = await supabase.from("rapor_details").delete().eq("rapor_id", rapor.id);
+    const { error: deleteDetailError } = await supabase.from("rapor_details").delete().eq("rapor_id", effectiveRapor.id);
     if (deleteDetailError) {
       return { ok: false, message: `Gagal memperbarui detail rapor: ${deleteDetailError.message}` };
     }

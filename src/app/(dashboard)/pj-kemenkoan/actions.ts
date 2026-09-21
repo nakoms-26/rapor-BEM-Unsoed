@@ -32,23 +32,25 @@ export async function saveKemenkoSubIndicators(payload: {
   }
 
   const profile = await requireSessionProfile();
-  if (profile.role !== "pj_kementerian" || !profile.is_pj_kemenkoan) {
+  if (!profile.is_pj_kemenkoan && profile.role !== "admin") {
     return { ok: false, message: "Hanya PJ Kemenkoan yang dapat mengelola sub-indikator." };
   }
 
   const supabase = createAdminSupabaseClient();
 
-  const { data: assignment } = await supabase
-    .from("pj_assignments")
-    .select("id")
-    .eq("nim", profile.nim)
-    .eq("scope", "kemenko")
-    .eq("target_unit_id", parsed.data.kemenkoUnitId)
-    .eq("is_active", true)
-    .maybeSingle();
+  if (profile.role !== "admin") {
+    const { data: assignment } = await supabase
+      .from("pj_assignments")
+      .select("id")
+      .eq("nim", profile.nim)
+      .eq("scope", "kemenko")
+      .eq("target_unit_id", parsed.data.kemenkoUnitId)
+      .eq("is_active", true)
+      .maybeSingle();
 
-  if (!assignment) {
-    return { ok: false, message: "Kamu tidak memiliki assignment aktif untuk kemenko tersebut." };
+    if (!assignment) {
+      return { ok: false, message: "Kamu tidak memiliki assignment aktif untuk kemenko tersebut." };
+    }
   }
 
   const normalizedRows = parsed.data.indicators

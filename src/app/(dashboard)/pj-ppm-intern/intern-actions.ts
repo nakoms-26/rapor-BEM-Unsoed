@@ -13,7 +13,7 @@ import { adminInputSchema, type AdminInputForm } from "@/types/app";
 
 // ─── Permission helpers ──────────────────────────────────────
 function canInputInternRapor(role: string) {
-  return role === "admin" || role === "pj_ppm_intern" || role === "pj_kementerian";
+  return role === "admin" || role === "pj_ppm_intern" || role === "pj_kementerian" || role === "the_meridian";
 }
 
 function getPrestasiResponsibilityScore(value?: string | null) {
@@ -71,8 +71,12 @@ export async function submitInternRapor(payload: AdminInputForm) {
     return { ok: false, message: "Rapor internship hanya untuk akun dengan role internship." };
   }
 
-  // Evaluator assignment check (PJ PPM Intern or PJ Kementerian)
-  if (evaluatorProfile.role === "pj_ppm_intern" || evaluatorProfile.role === "pj_kementerian") {
+  // Evaluator assignment check (PJ PPM Intern, PJ Kementerian, or The Meridian)
+  if (
+    evaluatorProfile.role === "pj_ppm_intern" ||
+    evaluatorProfile.role === "pj_kementerian" ||
+    evaluatorProfile.role === "the_meridian"
+  ) {
     const { data: pjAssignments } = await supabase
       .from("pj_assignments")
       .select("target_unit_id")
@@ -80,6 +84,11 @@ export async function submitInternRapor(payload: AdminInputForm) {
       .eq("is_active", true);
 
     const assignedUnitIds = new Set((pjAssignments ?? []).map((a) => a.target_unit_id));
+
+    // Fallback to evaluator's own unit if the_meridian has no pj_assignments
+    if (assignedUnitIds.size === 0 && evaluatorProfile.role === "the_meridian" && evaluatorProfile.unit_id) {
+      assignedUnitIds.add(evaluatorProfile.unit_id);
+    }
 
     if (assignedUnitIds.size === 0) {
       return { ok: false, message: "Assignment penilai belum ditetapkan. Hubungi admin." };
@@ -274,7 +283,9 @@ export async function submitInternRapor(payload: AdminInputForm) {
         .select("id")
         .single();
 
-  if (raporError || !rapor) {
+  const effectiveRapor = existingRapor ? { id: existingRapor.id } : rapor;
+
+  if (raporError || !effectiveRapor) {
     return {
       ok: false,
       message: `Gagal menyimpan rapor internship: ${raporError?.message ?? "unknown error"}`,
@@ -282,12 +293,12 @@ export async function submitInternRapor(payload: AdminInputForm) {
   }
 
   const detailRows = preparedDetailRows.map((detail) => ({
-    rapor_id: rapor.id,
+    rapor_id: effectiveRapor.id,
     ...detail.row,
   }));
 
   if (existingRapor) {
-    const { error: deleteDetailError } = await supabase.from("intern_rapor_details").delete().eq("rapor_id", rapor.id);
+    const { error: deleteDetailError } = await supabase.from("intern_rapor_details").delete().eq("rapor_id", effectiveRapor.id);
     if (deleteDetailError) {
       return { ok: false, message: deleteDetailError.message };
     }
@@ -318,7 +329,12 @@ export async function deleteInternRapor(raporId: string) {
     return { ok: false, message: "Kamu tidak memiliki akses untuk menghapus rapor internship." };
   }
 
-  if (profile.role === "pj_ppm_intern" || profile.role === "pj_kementerian") {
+  if (
+    profile.role === "pj_ppm_intern" ||
+    profile.role === "pj_kementerian" ||
+    profile.role === "the_meridian" ||
+    profile.is_pj_kemenkoan
+  ) {
     const { data: rapor } = await supabase
       .from("intern_rapor_scores")
       .select("id, user_nim")
@@ -347,6 +363,9 @@ export async function deleteInternRapor(raporId: string) {
       .eq("is_active", true);
 
     const assignedIds = new Set((pjAssignments ?? []).map((a) => a.target_unit_id));
+    if (assignedIds.size === 0 && profile.role === "the_meridian" && profile.unit_id) {
+      assignedIds.add(profile.unit_id);
+    }
     const { data: allUnits } = await supabase.from("ref_units").select("id, parent_id");
     const unitMap = new Map((allUnits ?? []).map((u) => [u.id, u]));
 
@@ -403,23 +422,34 @@ export async function saveInternSubIndicators(payload: {
   }
 
   const profile = await requireSessionProfile();
-  if (profile.role !== "pj_ppm_intern" && profile.role !== "admin") {
-    return { ok: false, message: "Hanya PJ PPM Intern atau Admin yang dapat mengelola sub-indikator internship." };
+  if (profile.role !== "pj_ppm_intern" && profile.role !== "admin" && !profile.is_pj_kemenkoan) {
+    return { ok: false, message: "Hanya PJ PPM Intern, PJ Kemenkoan, atau Admin yang dapat mengelola sub-indikator internship." };
   }
 
   const supabase = createAdminSupabaseClient();
 
-  // PJ PPM Intern: verify assignment
-  if (profile.role === "pj_ppm_intern") {
-    const { data: assignment } = await supabase
+  // Verify assignment if not admin
+  if (profile.role !== "admin") {
+    const { data: assignments } = await supabase
       .from("pj_assignments")
-      .select("id")
+      .select("id, target_unit_id")
       .eq("nim", profile.nim)
-      .eq("target_unit_id", parsed.data.kemenkoUnitId)
-      .eq("is_active", true)
-      .maybeSingle();
+      .eq("is_active", true);
 
-    if (!assignment) {
+    const assignedIds = new Set((assignments ?? []).map((a) => a.target_unit_id));
+    let hasAccess = assignedIds.has(parsed.data.kemenkoUnitId);
+
+    if (!hasAccess) {
+      // Check if any assigned unit belongs to this kemenko
+      const { data: kemenkoChildren } = await supabase
+        .from("ref_units")
+        .select("id")
+        .eq("parent_id", parsed.data.kemenkoUnitId);
+      const childIds = new Set((kemenkoChildren ?? []).map((c) => c.id));
+      hasAccess = (assignments ?? []).some((a) => childIds.has(a.target_unit_id));
+    }
+
+    if (!hasAccess) {
       return { ok: false, message: "Kamu tidak memiliki assignment aktif untuk kemenko tersebut." };
     }
   }

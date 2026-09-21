@@ -19,8 +19,8 @@ export default async function PjKemenkoPage() {
     await updatePeriodStatusByPjKemenkoan(formData);
   }
 
-  // Only PJ Kemenkoan can access this page
-  if (profile.role !== "pj_kementerian" || !profile.is_pj_kemenkoan) {
+  // Only PJ Kemenkoan (or Admin) can access this page
+  if (!profile.is_pj_kemenkoan && profile.role !== "admin") {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
@@ -33,7 +33,15 @@ export default async function PjKemenkoPage() {
     .eq("is_active", true)
     .order("created_at");
 
-  const kemenkoIds = assignments?.map((a) => a.target_unit_id) ?? [];
+  let kemenkoIds = assignments?.map((a) => a.target_unit_id) ?? [];
+
+  if (!kemenkoIds.length && profile.role === "admin") {
+    const { data: allKemenko } = await supabase
+      .from("ref_units")
+      .select("id")
+      .eq("kategori", "kemenko");
+    kemenkoIds = (allKemenko ?? []).map((k) => k.id);
+  }
 
   if (!kemenkoIds.length) {
     return (

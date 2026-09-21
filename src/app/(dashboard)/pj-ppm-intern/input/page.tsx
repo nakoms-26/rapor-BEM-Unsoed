@@ -47,7 +47,12 @@ export default async function PjPpmInternInputPage({
   const profile = await requireSessionProfile();
   const supabase = createAdminSupabaseClient();
 
-  if (profile.role !== "pj_ppm_intern" && profile.role !== "admin" && profile.role !== "pj_kementerian") {
+  if (
+    profile.role !== "pj_ppm_intern" &&
+    profile.role !== "admin" &&
+    profile.role !== "pj_kementerian" &&
+    profile.role !== "the_meridian"
+  ) {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
@@ -59,6 +64,9 @@ export default async function PjPpmInternInputPage({
     .eq("is_active", true);
 
   const assignedUnitIds = (assignments ?? []).map((a) => a.target_unit_id);
+  if (assignedUnitIds.length === 0 && profile.role === "the_meridian" && profile.unit_id) {
+    assignedUnitIds.push(profile.unit_id);
+  }
 
   // Fetch units (kementerian/biro under assigned kemenko, or direct unit assignments)
   const { data: allUnits } = await supabase

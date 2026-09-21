@@ -23,42 +23,61 @@ export default async function DashboardLayout({
   const supabase = createAdminSupabaseClient();
   const navItems: Array<{ href: string; label: string; icon: typeof ClipboardList }> = [];
 
+  const pushNav = (item: { href: string; label: string; icon: typeof ClipboardList }) => {
+    if (!navItems.some((n) => n.href === item.href)) {
+      navItems.push(item);
+    }
+  };
+
   navItems.push({ href: "/dashboard", label: "Dashboard", icon: Home });
 
-  if (profile.role === "admin" || profile.role === "pj_kementerian") {
-    // PJ Kemenkoan can manage sub-indicators and still access input/recap pages.
-    if (profile.is_pj_kemenkoan) {
-      navItems.push({ href: "/pj-kemenkoan", label: "Kelola Sub-Indikator", icon: ClipboardList });
-      navItems.push({ href: "/admin", label: "Input Kementerian", icon: ClipboardList });
-      navItems.push({ href: "/menko", label: "Recap Kementerian", icon: BarChart3 });
-    } else {
-      navItems.push({ href: "/admin", label: profile.role === "pj_kementerian" ? "Input Kementerian" : "Admin", icon: ClipboardList });
-    }
+  // PJ Kemenkoan (termasuk PJ Kemenkoan Intern)
+  if (profile.is_pj_kemenkoan) {
+    pushNav({ href: "/pj-kemenkoan", label: "Kelola Sub-Indikator", icon: ClipboardList });
+    pushNav({ href: "/pj-ppm-intern/kelola-indikator", label: "Kelola Indikator Intern", icon: ClipboardList });
+    pushNav({ href: "/admin", label: "Input Kementerian", icon: ClipboardList });
+    pushNav({ href: "/menko", label: "Recap Kementerian", icon: BarChart3 });
   }
 
-  if (profile.role === "pj_kementerian" && !profile.is_pj_kemenkoan) {
-    navItems.push({ href: "/pj-ppm-intern/input", label: "Input Internship", icon: ClipboardList });
-    navItems.push({ href: "/pj-kementerian", label: "Rapor Diri", icon: UserRoundCheck });
+  if (profile.role === "admin") {
+    pushNav({ href: "/admin", label: "Admin", icon: ClipboardList });
+    pushNav({ href: "/admin/staff-recap", label: "Recap Staff Kabinet", icon: BarChart3 });
+    pushNav({ href: "/admin/menteri-detail", label: "Rapor Menteri", icon: UserRoundCheck });
+  }
+
+  if (profile.role === "pj_kementerian") {
+    pushNav({ href: "/admin", label: "Input Kementerian", icon: ClipboardList });
+    pushNav({ href: "/pj-ppm-intern/input", label: "Input Internship", icon: ClipboardList });
+    pushNav({ href: "/pj-ppm-intern", label: "Monitoring Internship", icon: BarChart3 });
+    pushNav({ href: "/pj-kementerian", label: "Rapor Diri", icon: UserRoundCheck });
+  }
+
+  // PJ PPM Intern (termasuk PJ Kemenkoan Intern seperti Fairuz & Panji)
+  if (profile.role === "pj_ppm_intern") {
+    pushNav({ href: "/pj-ppm-intern/kelola-indikator", label: "Kelola Indikator Intern", icon: ClipboardList });
+    pushNav({ href: "/pj-ppm-intern/input", label: "Input Internship", icon: ClipboardList });
+    pushNav({ href: "/pj-ppm-intern", label: "Monitoring Internship", icon: BarChart3 });
+    pushNav({ href: "/pj-kemenkoan/rapor-diri", label: "Rapor Diri", icon: UserRoundCheck });
   }
 
   if (profile.role === "pres_wapres") {
-    navItems.push({ href: "/pres_wapres", label: "Presiden & Wakil Presiden", icon: ClipboardList });
+    pushNav({ href: "/pres_wapres", label: "Presiden & Wakil Presiden", icon: ClipboardList });
   }
 
   // Keep "Rapor Menteri" navigation for role menko only.
   if (profile.role === "menko" && canAccessKemenkoReports(profile)) {
     const kemenkoLabel = profile.role === "menko" ? "Menko" : "PJ Kemenkoan";
-    navItems.push({ href: "/menko", label: kemenkoLabel, icon: BarChart3 });
-    navItems.push({ href: "/menko/menteri", label: `${kemenkoLabel} - Rapor Menteri`, icon: BarChart3 });
+    pushNav({ href: "/menko", label: kemenkoLabel, icon: BarChart3 });
+    pushNav({ href: "/menko/menteri", label: `${kemenkoLabel} - Rapor Menteri`, icon: BarChart3 });
   }
 
   if (profile.role === "menteri") {
-    navItems.push({ href: "/menteri", label: "Rapor Diri", icon: UserRoundCheck });
-    navItems.push({ href: "/menteri/staff", label: "Rapor Staff & Intern", icon: BarChart3 });
+    pushNav({ href: "/menteri", label: "Rapor Diri", icon: UserRoundCheck });
+    pushNav({ href: "/menteri/staff", label: "Rapor Staff & Intern", icon: BarChart3 });
   }
 
   if (profile.role === "staff") {
-    navItems.push({ href: "/staff", label: "Staff", icon: UserRoundCheck });
+    pushNav({ href: "/staff", label: "Staff", icon: UserRoundCheck });
     const { data: assignment } = await supabase
       .from("evaluator_unit_assignments")
       .select("id")
@@ -67,28 +86,29 @@ export default async function DashboardLayout({
       .maybeSingle();
 
     if (assignment) {
-      navItems.push({ href: "/penilai", label: "Input Unit Pegangan", icon: ClipboardList });
+      pushNav({ href: "/penilai", label: "Input Unit Pegangan", icon: ClipboardList });
     }
   }
 
   if (profile.role === "internship") {
-    navItems.push({ href: "/staff", label: "Rapor Cakrawala", icon: UserRoundCheck });
+    pushNav({ href: "/staff", label: "Rapor Cakrawala", icon: UserRoundCheck });
   }
 
   if (profile.role === "the_meridian") {
-    navItems.push({ href: "/staff", label: "Rapor Diri", icon: UserRoundCheck });
-    navItems.push({ href: "/the-meridian", label: "Rapor Internship Unit", icon: BarChart3 });
-  }
+    const { data: pjAssignments } = await supabase
+      .from("pj_assignments")
+      .select("id")
+      .eq("nim", profile.nim)
+      .eq("is_active", true)
+      .limit(1);
 
-  if (profile.role === "pj_ppm_intern") {
-    navItems.push({ href: "/pj-ppm-intern/kelola-indikator", label: "Kelola Indikator Intern", icon: ClipboardList });
-    navItems.push({ href: "/pj-ppm-intern", label: "Monitoring Internship", icon: BarChart3 });
-    navItems.push({ href: "/staff", label: "Rapor Diri", icon: UserRoundCheck });
-  }
+    if (pjAssignments && pjAssignments.length > 0) {
+      pushNav({ href: "/pj-ppm-intern/input", label: "Input Internship", icon: ClipboardList });
+      pushNav({ href: "/pj-ppm-intern", label: "Monitoring Internship", icon: BarChart3 });
+    }
 
-  if (profile.role === "admin") {
-    navItems.push({ href: "/admin/staff-recap", label: "Recap Staff Kabinet", icon: BarChart3 });
-    navItems.push({ href: "/admin/menteri-detail", label: "Rapor Menteri", icon: UserRoundCheck });
+    pushNav({ href: "/staff", label: "Rapor Diri", icon: UserRoundCheck });
+    pushNav({ href: "/the-meridian", label: "Rapor Internship Unit", icon: BarChart3 });
   }
 
   // Profil item for all logged-in users

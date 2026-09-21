@@ -12,7 +12,7 @@ export default async function PjKemenkoanRaporDiriPage() {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (profile.role !== "pj_kementerian" || !profile.is_pj_kemenkoan) {
+  if (!profile.is_pj_kemenkoan && profile.role !== "admin") {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 

@@ -72,6 +72,7 @@ export class MySQLQueryBuilder<TRow = any, TResult = TRow[]>
   private table: string;
   private action: "select" | "insert" | "update" | "delete" | "upsert" = "select";
   private selectedColumns: string = "*";
+  private hasSelect: boolean = false;
   private headOnly: boolean = false;
   private countExact: boolean = false;
   private conditions: string[] = [];
@@ -91,6 +92,7 @@ export class MySQLQueryBuilder<TRow = any, TResult = TRow[]>
     columns: string = "*",
     options?: { count?: "exact" | "planned" | "estimated"; head?: boolean }
   ): this {
+    this.hasSelect = true;
     this.selectedColumns = columns;
     if (options?.head) {
       this.headOnly = true;
@@ -374,10 +376,22 @@ export class MySQLQueryBuilder<TRow = any, TResult = TRow[]>
           return val === undefined ? null : val;
         });
 
-        const sql = `UPDATE \`${this.table}\` SET ${setSql}${this.buildWhereClause()}`;
+        const whereClause = this.buildWhereClause();
+        const sql = `UPDATE \`${this.table}\` SET ${setSql}${whereClause}`;
         const finalParams = [...updateParams, ...this.params];
 
         await pool.query<ResultSetHeader>(sql, finalParams);
+
+        if (this.hasSelect) {
+          const colsSql = this.formatSelectColumns(this.selectedColumns);
+          const selectSql = `SELECT ${colsSql} FROM \`${this.table}\`${whereClause} LIMIT 1`;
+          const [updatedRows] = await pool.query<RowDataPacket[]>(selectSql, this.params);
+          if (this.singleMode === "single" || this.singleMode === "maybeSingle") {
+            return { data: (updatedRows[0] ?? null) as unknown as TResult, error: null };
+          }
+          return { data: updatedRows as unknown as TResult, error: null };
+        }
+
         return { data: null, error: null };
       }
 

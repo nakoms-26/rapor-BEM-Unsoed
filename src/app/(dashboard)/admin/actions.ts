@@ -369,7 +369,9 @@ export async function submitAdminRapor(payload: AdminInputForm) {
         .select("id")
         .single();
 
-  if (raporError || !rapor) {
+  const effectiveRapor = existingRapor ? { id: existingRapor.id } : rapor;
+
+  if (raporError || !effectiveRapor) {
     return {
       ok: false,
       message: `Gagal menyimpan rapor utama: ${raporError?.message ?? "unknown error"}`,
@@ -377,12 +379,12 @@ export async function submitAdminRapor(payload: AdminInputForm) {
   }
 
   const detailRows = preparedDetailRows.map((detail) => ({
-    rapor_id: rapor.id,
+    rapor_id: effectiveRapor.id,
     ...detail.row,
   }));
 
   if (existingRapor) {
-    const { error: deleteDetailError } = await supabase.from("rapor_details").delete().eq("rapor_id", rapor.id);
+    const { error: deleteDetailError } = await supabase.from("rapor_details").delete().eq("rapor_id", effectiveRapor.id);
     if (deleteDetailError) {
       return { ok: false, message: deleteDetailError.message };
     }
@@ -622,8 +624,8 @@ export async function updatePeriodStatusByPjKemenkoan(formData: FormData) {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  // Only PJ Kemenkoan (pj_kementerian with is_pj_kemenkoan = true) can use this
-  if (profile.role !== "pj_kementerian" || profile.is_pj_kemenkoan !== true) {
+  // Only PJ Kemenkoan or Admin can use this
+  if (!profile.is_pj_kemenkoan && profile.role !== "admin") {
     return { ok: false, message: "Hanya PJ Kemenkoan yang dapat mengubah status periode." };
   }
 

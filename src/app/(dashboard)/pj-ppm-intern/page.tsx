@@ -16,7 +16,12 @@ export default async function PjPpmInternPage() {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (profile.role !== "pj_ppm_intern" && profile.role !== "admin") {
+  if (
+    profile.role !== "pj_ppm_intern" &&
+    profile.role !== "admin" &&
+    profile.role !== "pj_kementerian" &&
+    profile.role !== "the_meridian"
+  ) {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
@@ -28,6 +33,9 @@ export default async function PjPpmInternPage() {
     .eq("is_active", true);
 
   const assignedUnitIds = (assignments ?? []).map((a) => a.target_unit_id);
+  if (assignedUnitIds.length === 0 && profile.role === "the_meridian" && profile.unit_id) {
+    assignedUnitIds.push(profile.unit_id);
+  }
 
   // If no assignments exist and not admin, do not show any units
   if (assignedUnitIds.length === 0 && profile.role !== "admin") {
