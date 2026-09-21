@@ -8,7 +8,6 @@ import {
 import {
   type DashboardBannerProps,
   type StaffItemCumulative,
-  type MinistryItemCumulative,
 } from "@/components/dashboard/dashboard-cumulative-banner";
 import { formatRoleName } from "@/lib/constants";
 
@@ -157,12 +156,8 @@ export async function getDashboardBannerData(
     };
   }
 
-  // 2. Unit Leaders (Menteri & PJ Kementerian)
-  if (
-    (profile.role === "menteri" || profile.role === "pj_kementerian") &&
-    !isPjKemenkoan &&
-    profile.unit_id
-  ) {
+  // 2. Unit Leader (Menteri only - nilai kumulatif semua staf hanya untuk akun menteri)
+  if (profile.role === "menteri" && profile.unit_id) {
     type UnitRow = { id: string; nama_unit: string };
     type ProfileRow = { nim: string; nama_lengkap: string; role: string; unit_id?: string | null };
 
@@ -285,162 +280,8 @@ export async function getDashboardBannerData(
       unitCumulativeAvg,
       totalEvaluatedStaff: evaluatedStaff.length,
       staffList,
-      detailHref: profile.role === "menteri" ? "/menteri/staff" : "/pj-kementerian/staff-detail",
-      isMenteri: profile.role === "menteri",
-    };
-  }
-
-  // 3. Menko & PJ Kemenkoan
-  if (profile.role === "menko" || isPjKemenkoan) {
-    let coordinatedUnitIds: string[] = [];
-
-    if (isPjKemenkoan) {
-      type PjAssignRow = { target_unit_id: string };
-      const { data: assignmentsData } = await supabase
-        .from("pj_assignments")
-        .select("target_unit_id")
-        .eq("nim", profile.nim)
-        .eq("scope", "kemenko")
-        .eq("is_active", true);
-
-      const assignments = (assignmentsData as PjAssignRow[] | null) ?? [];
-      const targetKemenkoIds = assignments.map((a) => a.target_unit_id);
-      if (targetKemenkoIds.length) {
-        type ChildUnitRow = { id: string; nama_unit: string };
-        const { data: childUnitsData } = await supabase
-          .from("ref_units")
-          .select("id, nama_unit")
-          .in("parent_id", targetKemenkoIds);
-
-        const childUnits = (childUnitsData as ChildUnitRow[] | null) ?? [];
-        coordinatedUnitIds = childUnits.map((u) => u.id);
-      }
-    } else if (profile.unit_id) {
-      type ChildUnitRow = { id: string; nama_unit: string };
-      const { data: childUnitsData } = await supabase
-        .from("ref_units")
-        .select("id, nama_unit")
-        .eq("parent_id", profile.unit_id);
-
-      const childUnits = (childUnitsData as ChildUnitRow[] | null) ?? [];
-      coordinatedUnitIds = childUnits.map((u) => u.id);
-    }
-
-    if (coordinatedUnitIds.length === 0) {
-      return null;
-    }
-
-    type UnitRow = { id: string; nama_unit: string };
-    type StaffProfileRow = { nim: string; nama_lengkap: string; unit_id: string | null; role: string };
-
-    const [{ data: unitsData }, { data: staffProfilesData }] = await Promise.all([
-      supabase
-        .from("ref_units")
-        .select("id, nama_unit")
-        .in("id", coordinatedUnitIds)
-        .order("nama_unit"),
-      supabase
-        .from("profiles")
-        .select("nim, nama_lengkap, unit_id, role")
-        .in("unit_id", coordinatedUnitIds)
-        .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern", "the_meridian"]),
-    ]);
-
-    const units: UnitRow[] = (unitsData as UnitRow[] | null) ?? [];
-    const staffProfiles: StaffProfileRow[] = (staffProfilesData as StaffProfileRow[] | null) ?? [];
-
-    const staffNims = staffProfiles.map((s) => s.nim);
-    type RawScoreRow = { id: string; user_nim: string; periode_id: string; total_avg: number };
-
-    const [regScoresRes, internScoresRes] = await Promise.all([
-      staffNims.length
-        ? supabase
-            .from("rapor_scores")
-            .select("id, user_nim, periode_id, total_avg")
-            .in("user_nim", staffNims)
-            .in("report_type", ["staf_unit", "internship"])
-        : { data: [] as RawScoreRow[] },
-      staffNims.length
-        ? supabase
-            .from("intern_rapor_scores")
-            .select("id, user_nim, periode_id, total_avg")
-            .in("user_nim", staffNims)
-        : { data: [] as RawScoreRow[] },
-    ]);
-
-    const regScores = (regScoresRes.data as RawScoreRow[] | null) ?? [];
-    const internScores = (internScoresRes.data as RawScoreRow[] | null) ?? [];
-
-    const allScores: RawScoreRow[] = [
-      ...regScores.map((s) => ({ ...s, isIntern: false })),
-      ...internScores.map((s) => ({ ...s, isIntern: true })),
-    ].filter((s) => publishedPeriodIds.has(s.periode_id));
-
-    const inputs: StaffPeriodScoreInput[] = allScores.map((s) => {
-      const period = periodById.get(s.periode_id);
-      return {
-        scoreId: s.id,
-        userNim: s.user_nim,
-        totalAvg: Number(s.total_avg),
-        bulan: period?.bulan ?? 0,
-        tahun: period?.tahun ?? 0,
-      };
-    });
-
-    const cumulativeMap = calculateStaffCumulativeScores(inputs, "staff");
-
-    // Group staff by unit
-    const staffByUnit = new Map<string, StaffItemCumulative[]>();
-    for (const staf of staffProfiles) {
-      const unitId = staf.unit_id;
-      if (!unitId) continue;
-      if (!staffByUnit.has(unitId)) {
-        staffByUnit.set(unitId, []);
-      }
-      const cum = cumulativeMap.get(staf.nim);
-      staffByUnit.get(unitId)!.push({
-        nim: staf.nim,
-        nama_lengkap: staf.nama_lengkap,
-        cumulativeAvg: cum?.cumulativeAvg ?? 0,
-        periodCount: cum?.periodCount ?? 0,
-        role: staf.role,
-      });
-    }
-
-    const ministryList: MinistryItemCumulative[] = units.map((u) => {
-      const uStaffs = staffByUnit.get(u.id) ?? [];
-      const evaluated = uStaffs.filter((s) => s.periodCount > 0);
-      const cumulativeAvg = evaluated.length
-        ? Number(
-            (
-              evaluated.reduce((sum, s) => sum + s.cumulativeAvg, 0) / evaluated.length
-            ).toFixed(2),
-          )
-        : 0;
-
-      return {
-        id: u.id,
-        nama_unit: u.nama_unit,
-        cumulativeAvg,
-        staffCount: uStaffs.length,
-      };
-    });
-
-    const allEvaluatedStaff = Array.from(cumulativeMap.values()).filter((c) => c.periodCount > 0);
-    const kemenkoCumulativeAvg = allEvaluatedStaff.length
-      ? Number(
-          (
-            allEvaluatedStaff.reduce((sum, s) => sum + s.cumulativeAvg, 0) /
-            allEvaluatedStaff.length
-          ).toFixed(2),
-        )
-      : 0;
-
-    return {
-      variant: "menko",
-      kemenkoCumulativeAvg,
-      totalStaff: allEvaluatedStaff.length,
-      ministries: ministryList,
+      detailHref: "/menteri/staff",
+      isMenteri: true,
     };
   }
 
