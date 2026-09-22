@@ -185,12 +185,14 @@ export default async function DashboardLandingPage() {
   if (profile.role === "the_meridian") {
     const { data: pjAssignments } = await supabase
       .from("pj_assignments")
-      .select("id")
+      .select("id, scope")
       .eq("nim", profile.nim)
-      .eq("is_active", true)
-      .limit(1);
+      .eq("is_active", true);
 
-    if (pjAssignments && pjAssignments.length > 0) {
+    const hasInternAssignment = (pjAssignments ?? []).length > 0;
+    const hasUnitAssignment = (pjAssignments ?? []).some((a) => a.scope === "unit");
+
+    if (hasInternAssignment) {
       if (!cards.some((c) => c.href === "/pj-ppm-intern/input")) {
         cards.push({
           href: "/pj-ppm-intern/input",
@@ -205,6 +207,17 @@ export default async function DashboardLandingPage() {
           title: "Monitoring Internship",
           description: "Lihat dan pantau rekap performa rapor anak intern kementerian/biro Kamu.",
           icon: BarChart3,
+        });
+      }
+    }
+
+    if (hasUnitAssignment) {
+      if (!cards.some((c) => c.href === "/admin")) {
+        cards.push({
+          href: "/admin",
+          title: "Input Rapor Staf",
+          description: "Input penilaian bulanan staf pada kementerian/biro yang Kamu ampu.",
+          icon: ClipboardList,
         });
       }
     }

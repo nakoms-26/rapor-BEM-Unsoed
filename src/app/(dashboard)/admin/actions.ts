@@ -10,7 +10,7 @@ import {
 import { adminInputSchema, type AdminInputForm } from "@/types/app";
 
 function canInputAsAdmin(role: string) {
-  return role === "admin" || role === "pj_kementerian";
+  return role === "admin" || role === "pj_kementerian" || role === "the_meridian";
 }
 
 async function canInputAsEvaluator(
@@ -58,6 +58,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
 
   const isAdmin = canInputAsAdmin(evaluatorProfile.role);
   const isPjKementerian = evaluatorProfile.role === "pj_kementerian";
+  const isMeridianWithPjUnit = evaluatorProfile.role === "the_meridian";
   const isEvaluatorStaff = evaluatorProfile.role === "staff";
   const allowedEvaluatorTarget =
     targetProfile.role === "staff" ||
@@ -65,17 +66,19 @@ export async function submitAdminRapor(payload: AdminInputForm) {
     targetProfile.role === "pj_kementerian";
 
   if (!isAdmin) {
-    if (!isEvaluatorStaff) {
+    if (!isEvaluatorStaff && !isMeridianWithPjUnit) {
       return { ok: false, message: "Kamu tidak memiliki akses untuk input rapor." };
     }
 
-    if (!allowedEvaluatorTarget) {
+    if (isEvaluatorStaff && !allowedEvaluatorTarget) {
       return { ok: false, message: "Staf penilai hanya boleh input rapor staf kementerian/biro." };
     }
 
-    const allowedByAssignment = await canInputAsEvaluator(evaluatorProfile.nim, targetProfile.unit_id);
-    if (!allowedByAssignment) {
-      return { ok: false, message: "Kamu hanya boleh input rapor untuk 1 unit pegangan yang ditetapkan admin." };
+    if (isEvaluatorStaff) {
+      const allowedByAssignment = await canInputAsEvaluator(evaluatorProfile.nim, targetProfile.unit_id);
+      if (!allowedByAssignment) {
+        return { ok: false, message: "Kamu hanya boleh input rapor untuk 1 unit pegangan yang ditetapkan admin." };
+      }
     }
   }
 
@@ -146,6 +149,30 @@ export async function submitAdminRapor(payload: AdminInputForm) {
 
     if (!pjUnitIds.has(targetProfile.unit_id) || !pjUnitIds.has(parsed.data.unit_id)) {
       return { ok: false, message: "PJ Kemenkoan hanya dapat input rapor pada unit yang ditetapkan assignment." };
+    }
+  }
+
+  // the_meridian with pj_assignments scope='unit' — validate against assigned units
+  if (isMeridianWithPjUnit) {
+    if (!allowedEvaluatorTarget) {
+      return { ok: false, message: "Meridian PJ Staf hanya boleh menilai staf/PJ Kementerian pada unit pegangan." };
+    }
+
+    const { data: pjUnitAssignments } = await supabase
+      .from("pj_assignments")
+      .select("target_unit_id")
+      .eq("nim", evaluatorProfile.nim)
+      .eq("scope", "unit")
+      .eq("is_active", true);
+
+    const meridianUnitIds = new Set((pjUnitAssignments ?? []).map((a) => a.target_unit_id));
+
+    if (meridianUnitIds.size === 0) {
+      return { ok: false, message: "Assignment unit PJ Staf belum ditetapkan. Hubungi admin." };
+    }
+
+    if (!meridianUnitIds.has(targetProfile.unit_id) || !meridianUnitIds.has(parsed.data.unit_id)) {
+      return { ok: false, message: "Kamu hanya dapat input rapor pada unit yang ditetapkan assignment." };
     }
   }
 

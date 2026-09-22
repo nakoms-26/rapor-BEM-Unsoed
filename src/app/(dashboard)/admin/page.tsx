@@ -123,7 +123,19 @@ export default async function AdminPage({
     revalidatePath("/admin");
   }
 
-  if (profile?.role !== "admin" && profile?.role !== "pj_kementerian") {
+  // the_meridian with pj_assignments scope='unit' can also input staf rapor
+  const isMeridianWithPjUnit = profile?.role === "the_meridian" && await (async () => {
+    const { data: pjCheck } = await supabase
+      .from("pj_assignments")
+      .select("id")
+      .eq("nim", profile.nim)
+      .eq("scope", "unit")
+      .eq("is_active", true)
+      .limit(1);
+    return (pjCheck ?? []).length > 0;
+  })();
+
+  if (profile?.role !== "admin" && profile?.role !== "pj_kementerian" && !isMeridianWithPjUnit) {
     redirect(ROLE_HOME[profile.role] ?? "/login");
   }
 
@@ -146,7 +158,7 @@ export default async function AdminPage({
       .order("created_at", { ascending: false }),
     supabase.from("profiles").select("nim, nama_lengkap, role, unit_id"),
     supabase.from("evaluator_unit_assignments").select("evaluator_nim, target_unit_id, is_active"),
-    profile.role === "pj_kementerian"
+    profile.role === "pj_kementerian" || isMeridianWithPjUnit
       ? supabase
           .from("evaluator_unit_assignments")
           .select("target_unit_id, is_active")
@@ -163,7 +175,7 @@ export default async function AdminPage({
           .eq("scope", "kemenko")
           .eq("is_active", true)
       : Promise.resolve({ data: [] as { target_unit_id: string }[] }),
-    profile.role === "pj_kementerian" || isPjKemenkoan
+    profile.role === "pj_kementerian" || isPjKemenkoan || isMeridianWithPjUnit
       ? supabase
           .from("pj_assignments")
           .select("target_unit_id")
@@ -276,18 +288,18 @@ export default async function AdminPage({
   };
   
   // Scoped units: PJ Kemenkoan and PJ Kementerian both use direct unit assignments (scope='unit')
-  const scopedUnits = profile.role === "pj_kementerian"
+  const scopedUnits = profile.role === "pj_kementerian" || isMeridianWithPjUnit
     ? (units ?? []).filter((unit) => isWithinPjScope(unit.id))
     : (units ?? []);
 
   const scopedUnitIds = new Set(scopedUnits.map((unit) => unit.id));
 
-  const scopedStaffs = profile.role === "pj_kementerian"
+  const scopedStaffs = profile.role === "pj_kementerian" || isMeridianWithPjUnit
     ? (staffs ?? []).filter((staff) => scopedUnitIds.has(staff.unit_id))
     : (staffs ?? []);
 
   const noReferenceData = !scopedUnits.length || !(periods ?? []).length;
-  const missingPjAssignment = profile.role === "pj_kementerian" && pjScopeRootUnitIds.size === 0;
+  const missingPjAssignment = (profile.role === "pj_kementerian" || isMeridianWithPjUnit) && pjScopeRootUnitIds.size === 0;
 
   const raporIds = (reportRows ?? []).map((row) => row.id);
 
