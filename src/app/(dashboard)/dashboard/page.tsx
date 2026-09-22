@@ -103,12 +103,16 @@ export default async function DashboardLandingPage() {
       },
     ],
     pj_ppm_intern: [
-      {
-        href: "/pj-ppm-intern/kelola-indikator",
-        title: "Kelola Sub-Indikator Intern",
-        description: "Atur rincian kegiatan (sub-indikator) internship untuk kemenko yang diampu.",
-        icon: ClipboardList,
-      },
+      ...(isPjKemenkoan
+        ? [
+            {
+              href: "/pj-ppm-intern/kelola-indikator",
+              title: "Kelola Sub-Indikator Intern",
+              description: "Atur rincian kegiatan (sub-indikator) internship untuk kemenko yang diampu.",
+              icon: ClipboardList,
+            },
+          ]
+        : []),
       {
         href: "/pj-ppm-intern/input",
         title: "Input Rapor Internship",
@@ -122,7 +126,7 @@ export default async function DashboardLandingPage() {
         icon: BarChart3,
       },
       {
-        href: "/pj-kemenkoan/rapor-diri",
+        href: isPjKemenkoan ? "/pj-kemenkoan/rapor-diri" : "/staff",
         title: "Rapor Diri",
         description: "Lihat seluruh periode rapor pribadi Kamu.",
         icon: UserRoundCheck,

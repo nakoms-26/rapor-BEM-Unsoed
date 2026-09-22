@@ -53,7 +53,7 @@ export const ROLE_HOME: Record<string, string> = {
 export function formatRoleName(role?: string | null, isPjKemenkoan?: boolean): string {
   if (!role) return "-";
   if (role === "pj_ppm_intern") {
-    return isPjKemenkoan ? "PJ Kemenkoan Intern" : "PJ PPM Intern";
+    return isPjKemenkoan ? "PJ Kemenkoan & Kementerian Intern" : "PJ Kementerian Intern";
   }
   if (isPjKemenkoan) return "PJ Kemenkoan";
   switch (role) {

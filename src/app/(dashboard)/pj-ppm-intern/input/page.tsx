@@ -187,7 +187,7 @@ export default async function PjPpmInternInputPage({
         </Link>
         <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
           <ShieldCheck className="h-3.5 w-3.5" />
-          <span>PJ PPM Intern — Input Rapor</span>
+          <span>{profile.is_pj_kemenkoan ? "PJ Kemenkoan & Kementerian Intern" : "PJ Kementerian Intern"} — Input Rapor</span>
         </div>
         <h2 className="mt-1 text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           {editRaporId ? "Edit Rapor Internship" : "Input Rapor Internship"}

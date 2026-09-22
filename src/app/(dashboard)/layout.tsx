@@ -53,12 +53,18 @@ export default async function DashboardLayout({
     });
   }
 
-  // PJ PPM Intern (termasuk PJ Kemenkoan Intern seperti Fairuz & Panji)
+  // PJ PPM Intern (PJ Kementerian Intern & PJ Kemenkoan Intern)
   if (profile.role === "pj_ppm_intern") {
-    pushNav({ href: "/pj-ppm-intern/kelola-indikator", label: "Kelola Indikator Intern", icon: ClipboardList });
+    if (profile.is_pj_kemenkoan) {
+      pushNav({ href: "/pj-ppm-intern/kelola-indikator", label: "Kelola Indikator Intern", icon: ClipboardList });
+    }
     pushNav({ href: "/pj-ppm-intern/input", label: "Input Internship", icon: ClipboardList });
     pushNav({ href: "/pj-ppm-intern", label: "Monitoring Internship", icon: BarChart3 });
-    pushNav({ href: "/pj-kemenkoan/rapor-diri", label: "Rapor Diri", icon: UserRoundCheck });
+    pushNav({
+      href: profile.is_pj_kemenkoan ? "/pj-kemenkoan/rapor-diri" : "/staff",
+      label: "Rapor Diri",
+      icon: UserRoundCheck,
+    });
   }
 
   if (profile.role === "pres_wapres") {

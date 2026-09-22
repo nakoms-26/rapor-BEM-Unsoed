@@ -295,7 +295,7 @@ export default async function PjPpmInternPage() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>PJ PPM Internship Dashboard</span>
+            <span>{profile.is_pj_kemenkoan ? "PJ Kemenkoan & Kementerian Intern" : "PJ Kementerian Intern"} — Monitoring</span>
           </div>
           <h2 className="mt-1 text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Rapor Internship Unit Diampu</h2>
           <p className="text-xs sm:text-sm text-slate-600">

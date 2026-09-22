@@ -12,10 +12,10 @@
 
 BEGIN;
 
--- 1. Update role profiles PJ ke 'pj_kementerian' (jika belum admin/pj_ppm_intern)
+-- 1. Update role profiles PJ ke 'pj_ppm_intern' (jika belum admin)
 UPDATE public.profiles
 SET
-  role = 'pj_kementerian',
+  role = 'pj_ppm_intern',
   updated_at = now()
 WHERE nim IN (
   'F1F026056',
