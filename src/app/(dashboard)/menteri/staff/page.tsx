@@ -26,11 +26,11 @@ export default async function MenteriStaffPage() {
       .from("profiles")
       .select("nim, nama_lengkap, role")
       .eq("unit_id", profile.unit_id)
-      .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern"])
+      .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern", "the_meridian"])
       .order("nama_lengkap"),
   ]);
 
-  const regularStaffs = (allMembers ?? []).filter((m) => m.role === "staff" || m.role === "pj_kementerian");
+  const regularStaffs = (allMembers ?? []).filter((m) => m.role === "staff" || m.role === "pj_kementerian" || m.role === "the_meridian");
   const internStaffs = (allMembers ?? []).filter((m) => m.role === "internship" || m.role === "pj_ppm_intern");
 
   const regularNims = regularStaffs.map((s) => s.nim);

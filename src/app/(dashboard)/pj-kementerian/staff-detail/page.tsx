@@ -45,7 +45,7 @@ export default async function PjKementerianStaffDetailPage() {
       .from("profiles")
       .select("nim, nama_lengkap")
       .eq("unit_id", profile.unit_id)
-      .in("role", ["staff", "pj_kementerian"])
+      .in("role", ["staff", "pj_kementerian", "the_meridian"])
       .order("nama_lengkap"),
     supabase.from("rapor_periods").select("id, bulan, tahun, status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
   ]);

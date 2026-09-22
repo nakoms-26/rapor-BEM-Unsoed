@@ -141,8 +141,8 @@ export default async function AdminPage({
 
   const isPjKemenkoan = profile.is_pj_kemenkoan === true;
   const selectableRoles = profile.role === "admin"
-    ? ["staff", "pj_kementerian", "user", "menteri"]
-    : ["staff", "pj_kementerian", "user"];
+    ? ["staff", "pj_kementerian", "user", "menteri", "the_meridian"]
+    : ["staff", "pj_kementerian", "user", "the_meridian"];
 
   const [{ data: units }, { data: periods }, { data: staffs }, { data: reportRows }, { data: allProfiles }, { data: assignments }, { data: pjAssignment }, { data: pjKemenkoAssignments }, { data: pjUnitAssignments }, { data: kemenkoTemplates }] = await Promise.all([
     supabase.from("ref_units").select("id, nama_unit, kategori, parent_id").order("nama_unit"),

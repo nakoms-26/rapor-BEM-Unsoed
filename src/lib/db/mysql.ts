@@ -387,7 +387,8 @@ export class MySQLQueryBuilder<TRow = any, TResult = TRow[]>
           const selectSql = `SELECT ${colsSql} FROM \`${this.table}\`${whereClause} LIMIT 1`;
           const [updatedRows] = await pool.query<RowDataPacket[]>(selectSql, this.params);
           if (this.singleMode === "single" || this.singleMode === "maybeSingle") {
-            return { data: (updatedRows[0] ?? null) as unknown as TResult, error: null };
+            const fallbackRow = this.updateData ? { ...this.updateData } : null;
+            return { data: (updatedRows[0] ?? fallbackRow) as unknown as TResult, error: null };
           }
           return { data: updatedRows as unknown as TResult, error: null };
         }

@@ -63,7 +63,8 @@ export async function submitAdminRapor(payload: AdminInputForm) {
   const allowedEvaluatorTarget =
     targetProfile.role === "staff" ||
     targetProfile.role === "user" ||
-    targetProfile.role === "pj_kementerian";
+    targetProfile.role === "pj_kementerian" ||
+    targetProfile.role === "the_meridian";
 
   if (!isAdmin) {
     if (!isEvaluatorStaff && !isMeridianWithPjUnit) {
@@ -84,12 +85,14 @@ export async function submitAdminRapor(payload: AdminInputForm) {
 
   if (
     isAdmin &&
+    evaluatorProfile.role === "admin" &&
     targetProfile.role !== "staff" &&
     targetProfile.role !== "user" &&
     targetProfile.role !== "menteri" &&
-    targetProfile.role !== "pj_kementerian"
+    targetProfile.role !== "pj_kementerian" &&
+    targetProfile.role !== "the_meridian"
   ) {
-    return { ok: false, message: "Admin hanya dapat menilai akun staff, PJ Kementerian, atau menteri/kepala biro." };
+    return { ok: false, message: "Admin hanya dapat menilai akun staff, PJ Kementerian, menteri/kepala biro, atau The Meridian." };
   }
 
   if (isPjKementerian && evaluatorProfile.is_pj_kemenkoan !== true) {

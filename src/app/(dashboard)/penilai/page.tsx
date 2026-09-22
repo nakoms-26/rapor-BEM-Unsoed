@@ -81,7 +81,7 @@ export default async function PenilaiPage() {
       .from("profiles")
       .select("nim, nama_lengkap, unit_id")
       .eq("unit_id", assignment.target_unit_id)
-      .eq("role", "staff")
+      .in("role", ["staff", "pj_kementerian", "the_meridian", "user"])
       .order("nama_lengkap"),
   ]);
 

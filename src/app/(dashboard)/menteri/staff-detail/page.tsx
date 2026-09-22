@@ -38,7 +38,7 @@ export default async function MenteriStaffDetailPage() {
     .from("profiles")
     .select("nim, nama_lengkap, role")
     .eq("unit_id", profile.unit_id)
-    .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern"])
+    .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern", "the_meridian"])
     .order("nama_lengkap");
 
   const staffNims = (staffProfiles ?? []).map((s) => s.nim);
