@@ -13,6 +13,7 @@ import {
 import { AdminDynamicForm } from "@/components/dashboard/admin-dynamic-form";
 import { DeleteRaporForm } from "@/components/dashboard/delete-rapor-form";
 import { AdminBackupCard } from "@/components/dashboard/admin-backup-card";
+import { RaporFolderTree } from "@/components/dashboard/rapor-folder-tree";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -193,7 +194,15 @@ export default async function AdminPage({
   const profileByNim = new Map((allProfiles ?? []).map((item) => [item.nim, item.nama_lengkap]));
   const profileRecordByNim = new Map((allProfiles ?? []).map((item) => [item.nim, item]));
 
-  const formattedRows = (reportRows ?? []).map((row) => {
+  const sortedReportRows = [...(reportRows ?? [])];
+  sortedReportRows.sort((a, b) => {
+    const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    if (timeA !== timeB) return timeB - timeA;
+    return String(b.id).localeCompare(String(a.id));
+  });
+
+  const formattedRows = sortedReportRows.map((row) => {
     const period = periodById.get(row.periode_id);
     const targetProfile = profileRecordByNim.get(row.user_nim);
     const targetUnit = unitById.get(targetProfile?.unit_id ?? "");
@@ -207,6 +216,7 @@ export default async function AdminPage({
     return {
       id: row.id,
       user_nim: row.user_nim,
+      penilai_nim: row.penilai_nim,
       periode_id: row.periode_id,
       targetName,
       evaluatorName,
@@ -215,26 +225,12 @@ export default async function AdminPage({
       kemenkoName: parentKemenko?.nama_unit ?? "Tanpa Kemenko",
       totalAvg: Number(row.total_avg),
       reportType: row.report_type,
+      isIntern: false,
       catatan: row.catatan,
       periodeLabel: period ? `${period.bulan}/${period.tahun} (${period.status})` : "Periode tidak ditemukan",
+      created_at: row.created_at,
     };
   });
-
-  const groupedReports = new Map<string, Map<string, typeof formattedRows>>();
-  for (const row of formattedRows) {
-    if (!groupedReports.has(row.kemenkoName)) {
-      groupedReports.set(row.kemenkoName, new Map());
-    }
-    const unitGroup = groupedReports.get(row.kemenkoName)!;
-    if (!unitGroup.has(row.unitName)) {
-      unitGroup.set(row.unitName, []);
-    }
-    unitGroup.get(row.unitName)!.push(row);
-  }
-
-  const totalReports = formattedRows.length;
-  const totalUnitsWithReports = new Set(formattedRows.map((row) => row.unitName)).size;
-  const totalEvaluators = new Set(formattedRows.map((row) => row.evaluatorName)).size;
 
   const evaluatorUnitIds = new Set(
     (units ?? [])
@@ -243,7 +239,9 @@ export default async function AdminPage({
   );
 
   const evaluatorCandidates = (allProfiles ?? []).filter(
-    (staff) => staff.role === "staff" && evaluatorUnitIds.has(staff.unit_id),
+    (staff) =>
+      ["staff", "the_meridian", "pj_kementerian", "pj_ppm_intern"].includes(staff.role) &&
+      evaluatorUnitIds.has(staff.unit_id),
   );
   const targetUnits = (units ?? []).filter((unit) => unit.kategori === "kementerian" || unit.kategori === "biro");
 
@@ -481,27 +479,16 @@ export default async function AdminPage({
     }
   }
 
-  const visibleRows = profile.role === "pj_kementerian"
+  const isPjRole = profile.role === "pj_kementerian" || isMeridianWithPjUnit;
+  const visibleRows = profile.role === "admin"
+    ? formattedRows
+    : isPjRole
     ? formattedRows.filter((row) =>
-        row.reportType === "staf_unit" && isWithinPjScope(row.unitId) && row.user_nim !== profile.nim,
+        (isWithinPjScope(row.unitId) || row.penilai_nim === profile.nim) && row.user_nim !== profile.nim,
       )
     : formattedRows;
 
-  const visibleGroupedReports = new Map<string, Map<string, typeof visibleRows>>();
-  for (const row of visibleRows) {
-    if (!visibleGroupedReports.has(row.kemenkoName)) {
-      visibleGroupedReports.set(row.kemenkoName, new Map());
-    }
-    const unitGroup = visibleGroupedReports.get(row.kemenkoName)!;
-    if (!unitGroup.has(row.unitName)) {
-      unitGroup.set(row.unitName, []);
-    }
-    unitGroup.get(row.unitName)!.push(row);
-  }
 
-  const visibleTotalReports = visibleRows.length;
-  const visibleTotalUnitsWithReports = new Set(visibleRows.map((row) => row.unitName)).size;
-  const visibleTotalEvaluators = new Set(visibleRows.map((row) => row.evaluatorName)).size;
 
   return (
     <section className="space-y-4">
@@ -667,92 +654,19 @@ export default async function AdminPage({
         </Card>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Semua Rapor (Struktur Folder)</CardTitle>
-          <CardDescription>Pengelompokan: Kemenko &gt; Kementerian/Biro &gt; daftar rapor.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid gap-2 md:grid-cols-3">
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-xs text-slate-500">Total Rapor</p>
-              <p className="text-sm font-semibold text-slate-800">{visibleTotalReports}</p>
-            </div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-xs text-slate-500">Unit Dengan Rapor</p>
-              <p className="text-sm font-semibold text-slate-800">{visibleTotalUnitsWithReports}</p>
-            </div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="text-xs text-slate-500">Penilai Aktif</p>
-              <p className="text-sm font-semibold text-slate-800">{visibleTotalEvaluators}</p>
-            </div>
-          </div>
-
-          {visibleRows.length ? (
-            [...visibleGroupedReports.entries()].map(([kemenkoName, unitGroup]) => {
-              const kemenkoCount = [...unitGroup.values()].reduce((sum, rows) => sum + rows.length, 0);
-              return (
-              <details key={kemenkoName} open className="rounded-lg border border-slate-200 bg-slate-50/50">
-                <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm font-semibold text-slate-800">
-                  <span>{kemenkoName}</span>
-                  <span className="rounded-full border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-600">
-                    {kemenkoCount} rapor
-                  </span>
-                </summary>
-                <div className="space-y-2 px-3 pb-3">
-                  {[...unitGroup.entries()].map(([unitName, rows]) => (
-                    <details key={`${kemenkoName}-${unitName}`} open className="rounded-md border border-slate-200 bg-white">
-                      <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-xs font-semibold text-slate-700">
-                        <span>{kemenkoName} &gt; {unitName}</span>
-                        <span className="rounded-full border border-slate-300 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-600">
-                          {rows.length} rapor
-                        </span>
-                      </summary>
-                      <div className="space-y-2 px-3 pb-3">
-                        {rows.map((row) => (
-                          <div key={row.id} className="rounded-md border border-slate-200 px-3 py-2 text-sm">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="space-y-1">
-                                <p className="font-medium text-slate-800">{row.targetName}</p>
-                                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5">
-                                    {reportTypeLabel(row.reportType)}
-                                  </span>
-                                  <span>{row.periodeLabel}</span>
-                                </div>
-                                <p className="text-xs text-slate-500">Penilai: {row.evaluatorName}</p>
-                                {row.catatan ? <p className="text-xs text-slate-500">Catatan: {row.catatan}</p> : null}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${scoreTone(row.totalAvg)}`}>
-                                  {row.totalAvg.toFixed(2)}
-                                </span>
-                                <Link
-                                  href={`/admin?edit_rapor_id=${row.id}#input-rapor-form`}
-                                  className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100"
-                                >
-                                  Detail/Edit
-                                </Link>
-                                <DeleteRaporForm
-                                  action={deleteRaporAction}
-                                  raporId={row.id}
-                                  raporName={`${row.targetName} - ${row.periodeLabel}`}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              </details>
-            );})
-          ) : (
-            <p className="text-sm text-slate-600">Belum ada data rapor.</p>
-          )}
-        </CardContent>
-      </Card>
+      <RaporFolderTree
+        items={visibleRows}
+        periods={(periods ?? []).map((p) => ({
+          id: p.id,
+          bulan: p.bulan,
+          tahun: p.tahun,
+          status: p.status,
+        }))}
+        deleteAction={deleteRaporAction}
+        title="Semua Rapor Staf (Struktur Folder)"
+        description="Pengelompokan: Periode (Bulan) > Kemenko > Kementerian/Biro > daftar rapor staf."
+        defaultFilterType="staff"
+      />
     </section>
   );
 }

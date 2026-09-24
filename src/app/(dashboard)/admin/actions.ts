@@ -394,6 +394,7 @@ export async function submitAdminRapor(payload: AdminInputForm) {
           penilai_nim: evaluatorProfile.nim,
           report_type: reportType,
           total_avg: totalAverage,
+          created_at: new Date().toISOString(),
           ...payloadWithMaybeCatatan,
         })
         .select("id")
@@ -464,25 +465,29 @@ export async function deleteRaporByAdmin(raporId: string) {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (profile.role !== "admin" && profile.role !== "pj_kementerian") {
+  const isMeridianWithPjUnit = profile.role === "the_meridian";
+  if (profile.role !== "admin" && profile.role !== "pj_kementerian" && !isMeridianWithPjUnit) {
     return { ok: false, message: "Kamu tidak memiliki akses untuk menghapus rapor." };
   }
 
-  if (profile.role === "pj_kementerian") {
-    const { data: rapor } = await supabase
-      .from("rapor_scores")
-      .select("id, user_nim")
-      .eq("id", raporId)
-      .maybeSingle();
+  // Check both rapor_scores and intern_rapor_scores
+  const [{ data: staffRapor }, { data: internRapor }] = await Promise.all([
+    supabase.from("rapor_scores").select("id, user_nim").eq("id", raporId).maybeSingle(),
+    supabase.from("intern_rapor_scores").select("id, user_nim").eq("id", raporId).maybeSingle(),
+  ]);
 
-    if (!rapor) {
-      return { ok: false, message: "Rapor tidak ditemukan." };
-    }
+  const rapor = staffRapor || internRapor;
+  const isIntern = Boolean(internRapor && !staffRapor);
 
-    if (rapor.user_nim === profile.nim) {
-      return { ok: false, message: "PJ Kementerian tidak dapat menghapus rapor diri sendiri." };
-    }
+  if (!rapor) {
+    return { ok: false, message: "Rapor tidak ditemukan." };
+  }
 
+  if (rapor.user_nim === profile.nim) {
+    return { ok: false, message: "Tidak dapat menghapus rapor diri sendiri." };
+  }
+
+  if (profile.role === "pj_kementerian" || isMeridianWithPjUnit) {
     const [{ data: targetProfile }, { data: legacyAssignments }, { data: pjUnitAssignments }, { data: pjKemenkoAssignments }, { data: units }] = await Promise.all([
       supabase
         .from("profiles")
@@ -520,7 +525,7 @@ export async function deleteRaporByAdmin(raporId: string) {
     ]);
 
     if (scopeRootUnitIds.size === 0) {
-      return { ok: false, message: "Assignment PJ Kementerian belum ditetapkan." };
+      return { ok: false, message: "Assignment penilai belum ditetapkan." };
     }
 
     const unitById = new Map((units ?? []).map((unit) => [unit.id, unit]));
@@ -536,17 +541,21 @@ export async function deleteRaporByAdmin(raporId: string) {
     }
 
     if (!isWithinScope) {
-      return { ok: false, message: "PJ Kementerian hanya dapat menghapus rapor dalam unit ampuan." };
+      return { ok: false, message: "Kamu hanya dapat menghapus rapor dalam unit ampuan." };
     }
   }
 
-  const { error } = await supabase.from("rapor_scores").delete().eq("id", raporId);
+  const { error } = isIntern
+    ? await supabase.from("intern_rapor_scores").delete().eq("id", raporId)
+    : await supabase.from("rapor_scores").delete().eq("id", raporId);
 
   if (error) {
     return { ok: false, message: error.message };
   }
 
   revalidatePath("/admin");
+  revalidatePath("/pj-ppm-intern");
+  revalidatePath("/the-meridian");
   revalidatePath("/staff");
   revalidatePath("/menteri");
   revalidatePath("/menteri/staff");

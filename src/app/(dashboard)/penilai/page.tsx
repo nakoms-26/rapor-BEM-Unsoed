@@ -13,7 +13,12 @@ export default async function PenilaiPage() {
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (profile.role !== "staff") {
+  if (
+    profile.role !== "staff" &&
+    profile.role !== "the_meridian" &&
+    profile.role !== "pj_kementerian" &&
+    profile.role !== "admin"
+  ) {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
@@ -42,19 +47,26 @@ export default async function PenilaiPage() {
     );
   }
 
-  const [{ data: assignments }, { data: periods }] = await Promise.all([
+  const [{ data: assignments }, { data: pjAssignments }, { data: periods }] = await Promise.all([
     supabase
       .from("evaluator_unit_assignments")
       .select("target_unit_id, is_active")
       .eq("evaluator_nim", profile.nim)
       .eq("is_active", true)
       .limit(1),
+    supabase
+      .from("pj_assignments")
+      .select("target_unit_id")
+      .eq("nim", profile.nim)
+      .eq("scope", "unit")
+      .eq("is_active", true)
+      .limit(1),
     supabase.from("rapor_periods").select("id, bulan, tahun, status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
   ]);
 
-  const assignment = assignments?.[0];
+  const targetUnitId = assignments?.[0]?.target_unit_id || pjAssignments?.[0]?.target_unit_id;
 
-  if (!assignment) {
+  if (!targetUnitId) {
     return (
       <section className="space-y-4">
         <div>
@@ -75,12 +87,12 @@ export default async function PenilaiPage() {
     supabase
       .from("ref_units")
       .select("id, nama_unit, kategori, parent_id")
-      .eq("id", assignment.target_unit_id)
+      .eq("id", targetUnitId)
       .single(),
     supabase
       .from("profiles")
       .select("nim, nama_lengkap, unit_id")
-      .eq("unit_id", assignment.target_unit_id)
+      .eq("unit_id", targetUnitId)
       .in("role", ["staff", "pj_kementerian", "the_meridian", "user"])
       .order("nama_lengkap"),
   ]);

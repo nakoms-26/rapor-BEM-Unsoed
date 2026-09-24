@@ -330,6 +330,9 @@ export class MySQLQueryBuilder<TRow = any, TResult = TRow[]>
           if (UUID_ID_TABLES.has(this.table) && !copy.id) {
             copy.id = crypto.randomUUID();
           }
+          if (UUID_ID_TABLES.has(this.table) && (!copy.created_at || copy.created_at === "")) {
+            copy.created_at = new Date().toISOString();
+          }
           return copy;
         });
 

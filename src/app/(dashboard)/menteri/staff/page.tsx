@@ -40,23 +40,49 @@ export default async function MenteriStaffPage() {
   const memberNameByNim = new Map((allMembers ?? []).map((m) => [m.nim, m.nama_lengkap]));
   const periodById = new Map((periods ?? []).map((period) => [period.id, period]));
 
-  const { data: scores } = allNims.length
-    ? await supabase
-        .from("rapor_scores")
-        .select("id, user_nim, periode_id, total_avg, catatan, report_type, created_at")
-        .in("user_nim", allNims)
-        .in("report_type", ["staf_unit", "internship"])
-        .order("created_at", { ascending: false })
-    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; catatan: string | null; report_type: string; created_at: string }[] };
+  const [{ data: staffScores }, { data: internScores }] = await Promise.all([
+    regularNims.length
+      ? supabase
+          .from("rapor_scores")
+          .select("id, user_nim, periode_id, total_avg, catatan, report_type, created_at")
+          .in("user_nim", regularNims)
+          .in("report_type", ["staf_unit", "internship"])
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    internNims.length
+      ? supabase
+          .from("intern_rapor_scores")
+          .select("id, user_nim, periode_id, total_avg, catatan, created_at")
+          .in("user_nim", internNims)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const scores = [
+    ...(staffScores ?? []),
+    ...(internScores ?? []).map((s) => ({ ...s, report_type: "internship" })),
+  ];
 
   // Fetch indicator details for deep analysis
-  const scoreIds = (scores ?? []).map((s) => s.id);
-  const { data: details } = scoreIds.length
-    ? await supabase
-        .from("rapor_details")
-        .select("rapor_id, main_indicator_name, score")
-        .in("rapor_id", scoreIds)
-    : { data: [] as { rapor_id: string; main_indicator_name: string; score: number }[] };
+  const staffScoreIds = (staffScores ?? []).map((s) => s.id);
+  const internScoreIds = (internScores ?? []).map((s) => s.id);
+
+  const [{ data: staffDetails }, { data: internDetails }] = await Promise.all([
+    staffScoreIds.length
+      ? supabase
+          .from("rapor_details")
+          .select("rapor_id, main_indicator_name, score")
+          .in("rapor_id", staffScoreIds)
+      : Promise.resolve({ data: [] }),
+    internScoreIds.length
+      ? supabase
+          .from("intern_rapor_details")
+          .select("rapor_id, main_indicator_name, score")
+          .in("rapor_id", internScoreIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const details = [...(staffDetails ?? []), ...(internDetails ?? [])];
 
   const detailsByRaporId = new Map<string, { main_indicator_name: string; score: number }[]>();
   for (const item of details ?? []) {

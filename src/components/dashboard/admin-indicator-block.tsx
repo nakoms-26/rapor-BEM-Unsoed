@@ -279,39 +279,47 @@ export function AdminIndicatorBlock({ indicatorName, index, control, register, s
               </div>
             </div>
           ) : (
-            <div key={field.id} className={isParticipationIndicator ? "grid gap-3 sm:grid-cols-[1fr_1fr] md:grid-cols-[1fr_1fr_130px_56px]" : "grid gap-3 sm:grid-cols-[1fr_130px_56px]"}>
-              <Input
-                placeholder={readOnlyNames ? "Sub-indikator (tetap)" : "Nama sub-indikator"}
-                disabled={readOnlyNames}
-                {...register(`indicators.${index}.items.${itemIndex}.sub_indicator_name`)}
-              />
-              {isParticipationIndicator ? (
+            <div key={field.id} className="rounded-lg border border-slate-200/80 bg-slate-50/50 p-2.5 sm:border-0 sm:bg-transparent sm:p-0">
+              <div className={isParticipationIndicator ? "grid gap-2 sm:gap-3 sm:grid-cols-[1fr_1fr] md:grid-cols-[1fr_1fr_130px_44px]" : "grid gap-2 sm:gap-3 sm:grid-cols-[1fr_130px_44px]"}>
                 <Input
-                  placeholder="Catatan"
-                  {...register(`indicators.${index}.items.${itemIndex}.catatan`)}
+                  placeholder={readOnlyNames ? "Sub-indikator (tetap)" : "Nama sub-indikator"}
+                  disabled={readOnlyNames}
+                  {...register(`indicators.${index}.items.${itemIndex}.sub_indicator_name`)}
+                  className="bg-white"
                 />
-              ) : null}
-              <select
-                className="h-10 w-full appearance-auto rounded-md border border-slate-300 bg-white px-3 text-sm"
-                {...register(`indicators.${index}.items.${itemIndex}.score`, {
-                  setValueAs: (value) => Number(value),
-                })}
-              >
-                {Array.from({ length: maxScore }, (_, idx) => idx + 1).map((value) => (
-                  <option key={value} value={value}>
-                    {isParticipationIndicator ? `${value} - ${attendanceLabelByScore[value]}` : value}
-                  </option>
-                ))}
-              </select>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={readOnlyNames}
-                onClick={() => fieldArray.remove(itemIndex)}
-                aria-label="Hapus sub-indikator"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                {isParticipationIndicator ? (
+                  <Input
+                    placeholder="Catatan"
+                    {...register(`indicators.${index}.items.${itemIndex}.catatan`)}
+                    className="bg-white"
+                  />
+                ) : null}
+                <div className="flex items-center gap-2 sm:contents">
+                  <select
+                    className="h-10 flex-1 sm:w-full appearance-auto rounded-md border border-slate-300 bg-white px-3 text-sm"
+                    {...register(`indicators.${index}.items.${itemIndex}.score`, {
+                      setValueAs: (value) => Number(value),
+                    })}
+                  >
+                    {Array.from({ length: maxScore }, (_, idx) => idx + 1).map((value) => (
+                      <option key={value} value={value}>
+                        {isParticipationIndicator ? `${value} - ${attendanceLabelByScore[value]}` : value}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={readOnlyNames}
+                    onClick={() => fieldArray.remove(itemIndex)}
+                    aria-label="Hapus sub-indikator"
+                    className="h-10 w-10 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           ),
         )}

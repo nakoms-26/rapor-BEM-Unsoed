@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -72,6 +73,7 @@ export function InternInputForm({
   internTemplates = [],
   initialEditRapor,
 }: Props) {
+  const router = useRouter();
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -177,6 +179,9 @@ export function InternInputForm({
       const result = await submitInternRapor(data);
       setSubmitMessage(result.message);
       setIsSubmitSuccess(result.ok);
+      if (result.ok) {
+        router.refresh();
+      }
     });
   };
 
@@ -298,7 +303,7 @@ export function InternInputForm({
               </div>
             ) : null}
 
-            <Button type="submit" disabled={isPending} className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Button type="submit" disabled={isPending} className="bg-teal-600 hover:bg-teal-700 text-white w-full sm:w-auto">
               {isPending ? "Menyimpan…" : isEditMode ? "Perbarui Rapor" : "Simpan Rapor Internship"}
             </Button>
           </div>

@@ -50,23 +50,52 @@ export default async function MenteriStaffDetailPage() {
     .order("tahun", { ascending: false })
     .order("bulan", { ascending: false });
 
+  const regularNims = (staffProfiles ?? [])
+    .filter((s) => s.role !== "internship" && s.role !== "pj_ppm_intern")
+    .map((s) => s.nim);
+  const internNims = (staffProfiles ?? [])
+    .filter((s) => s.role === "internship" || s.role === "pj_ppm_intern")
+    .map((s) => s.nim);
+
   // Get all rapor scores for staff and internship
-  const { data: scores } = staffNims.length
-    ? await supabase
-        .from("rapor_scores")
-        .select("id, user_nim, periode_id, total_avg, catatan")
-        .in("user_nim", staffNims)
-        .in("report_type", ["staf_unit", "internship"])
-    : { data: [] };
+  const [{ data: staffScores }, { data: internScores }] = await Promise.all([
+    regularNims.length
+      ? supabase
+          .from("rapor_scores")
+          .select("id, user_nim, periode_id, total_avg, catatan")
+          .in("user_nim", regularNims)
+          .in("report_type", ["staf_unit", "internship"])
+      : Promise.resolve({ data: [] }),
+    internNims.length
+      ? supabase
+          .from("intern_rapor_scores")
+          .select("id, user_nim, periode_id, total_avg, catatan")
+          .in("user_nim", internNims)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const scores = [...(staffScores ?? []), ...(internScores ?? [])];
 
   // Get all rapor details
-  const scoreIds = (scores ?? []).map((s) => s.id);
-  const { data: details } = scoreIds.length
-    ? await supabase
-        .from("rapor_details")
-        .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
-        .in("rapor_id", scoreIds)
-    : { data: [] };
+  const staffScoreIds = (staffScores ?? []).map((s) => s.id);
+  const internScoreIds = (internScores ?? []).map((s) => s.id);
+
+  const [{ data: staffDetails }, { data: internDetails }] = await Promise.all([
+    staffScoreIds.length
+      ? supabase
+          .from("rapor_details")
+          .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
+          .in("rapor_id", staffScoreIds)
+      : Promise.resolve({ data: [] }),
+    internScoreIds.length
+      ? supabase
+          .from("intern_rapor_details")
+          .select("rapor_id, main_indicator_name, sub_indicator_name, score, bentuk_tanggung_jawab, nilai_kuantitatif_tanggung_jawab, skala, nilai_kuantitatif_skala, nilai_kualitatif, nilai_akhir")
+          .in("rapor_id", internScoreIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const details = [...(staffDetails ?? []), ...(internDetails ?? [])];
 
   // Build maps
   const staffByNim = new Map((staffProfiles ?? []).map((s) => [s.nim, s]));

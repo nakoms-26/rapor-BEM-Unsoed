@@ -278,6 +278,7 @@ export async function submitInternRapor(payload: AdminInputForm) {
           penilai_nim: evaluatorProfile.nim,
           total_avg: totalAverage,
           catatan: normalizedCatatan,
+          created_at: new Date().toISOString(),
         })
         .select("id")
         .single();

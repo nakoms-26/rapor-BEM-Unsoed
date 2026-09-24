@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { requireSessionProfile } from "@/lib/auth/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { ROLE_HOME, MAIN_INDICATORS, PRESTASI_RESPONSIBILITY_OPTIONS, PRESTASI_SCALE_OPTIONS } from "@/lib/constants";
 import { InternInputForm } from "@/components/dashboard/intern-input-form";
+import { RaporFolderTree, type RaporFolderItem } from "@/components/dashboard/rapor-folder-tree";
+import { deleteInternRapor } from "@/app/(dashboard)/pj-ppm-intern/intern-actions";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -175,6 +178,74 @@ export default async function PjPpmInternInputPage({
     }
   }
 
+  // ── Fetch saved intern scores for folder tree view ──
+  const internNims = (internProfiles ?? []).map((i) => i.nim);
+  const [{ data: allProfiles }, { data: existingInternScores }, { data: myEvaluatedScores }] = await Promise.all([
+    supabase.from("profiles").select("nim, nama_lengkap, role, unit_id"),
+    internNims.length
+      ? supabase
+          .from("intern_rapor_scores")
+          .select("id, user_nim, penilai_nim, periode_id, total_avg, catatan, created_at")
+          .in("user_nim", internNims)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("intern_rapor_scores")
+      .select("id, user_nim, penilai_nim, periode_id, total_avg, catatan, created_at")
+      .eq("penilai_nim", profile.nim)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const scoreMap = new Map<string, any>();
+  for (const s of existingInternScores ?? []) scoreMap.set(s.id, s);
+  for (const s of myEvaluatedScores ?? []) scoreMap.set(s.id, s);
+  const internScores = Array.from(scoreMap.values());
+  internScores.sort((a, b) => {
+    const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    if (timeA !== timeB) return timeB - timeA;
+    return String(b.id).localeCompare(String(a.id));
+  });
+
+  const profileRecordByNim = new Map((allProfiles ?? []).map((p) => [p.nim, p]));
+  const unitById = new Map((allUnits ?? []).map((u) => [u.id, u]));
+  const periodById = new Map((periods ?? []).map((p) => [p.id, p]));
+
+  const internFolderItems: RaporFolderItem[] = internScores.map((score) => {
+    const internProf = profileRecordByNim.get(score.user_nim);
+    const unit = unitById.get(internProf?.unit_id ?? "");
+    const parentKemenko = unit?.kategori === "kemenko" ? unit : unitById.get(unit?.parent_id ?? "");
+    const period = periodById.get(score.periode_id);
+    const evaluator = profileRecordByNim.get(score.penilai_nim);
+
+    return {
+      id: score.id,
+      user_nim: score.user_nim,
+      penilai_nim: score.penilai_nim,
+      periode_id: score.periode_id,
+      targetName: internProf?.nama_lengkap ?? score.user_nim,
+      evaluatorName: evaluator?.nama_lengkap ?? score.penilai_nim,
+      unitId: internProf?.unit_id ?? "",
+      unitName: unit?.nama_unit ?? "-",
+      kemenkoName: parentKemenko?.nama_unit ?? "Tanpa Kemenko",
+      totalAvg: Number(score.total_avg),
+      reportType: "internship",
+      isIntern: true,
+      catatan: score.catatan,
+      periodeLabel: period ? `Bulan ${period.bulan}/${period.tahun} (${period.status})` : "-",
+      created_at: score.created_at,
+    };
+  });
+
+  async function deleteInternAction(formData: FormData) {
+    "use server";
+    const raporId = String(formData.get("rapor_id") ?? "").trim();
+    if (!raporId) return;
+    await deleteInternRapor(raporId);
+    revalidatePath("/pj-ppm-intern/input");
+    revalidatePath("/admin");
+  }
+
   return (
     <section className="space-y-6">
       <div>
@@ -203,6 +274,20 @@ export default async function PjPpmInternInputPage({
         interns={internProfiles ?? []}
         internTemplates={internTemplates ?? []}
         initialEditRapor={initialEditRapor}
+      />
+
+      <RaporFolderTree
+        items={internFolderItems}
+        periods={(periods ?? []).map((p) => ({
+          id: p.id,
+          bulan: p.bulan,
+          tahun: p.tahun,
+          status: p.status,
+        }))}
+        deleteAction={deleteInternAction}
+        title="Daftar Rapor Internship (Struktur Folder)"
+        description="Daftar seluruh rapor internship yang sudah diinput untuk unit diampu."
+        defaultFilterType="intern"
       />
     </section>
   );

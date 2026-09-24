@@ -284,9 +284,9 @@ export default async function PjPpmInternStaffDetailPage() {
                                         </p>
                                         <div className="space-y-1.5">
                                           {subIndicators.map((sub, idx) => (
-                                            <div key={idx} className="flex justify-between items-center text-xs py-0.5">
-                                              <span className="text-slate-600">{sub.sub_indicator_name}</span>
-                                              <span className="font-semibold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
+                                            <div key={idx} className="flex justify-between items-start gap-2 text-xs py-1 border-b border-slate-100/60 last:border-0">
+                                              <span className="text-slate-600 break-words leading-relaxed">{sub.sub_indicator_name}</span>
+                                              <span className="font-semibold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 flex-shrink-0">
                                                 {Number(sub.score).toFixed(2)}
                                               </span>
                                             </div>

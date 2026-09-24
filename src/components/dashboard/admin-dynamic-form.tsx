@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -97,6 +98,7 @@ export function AdminDynamicForm({
   kemenkoTemplates = [],
   initialEditRapor,
 }: Props) {
+  const router = useRouter();
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -235,6 +237,7 @@ export function AdminDynamicForm({
       setSubmitMessage(result.message);
       setIsSubmitSuccess(Boolean(result.ok));
       if (result.ok) {
+        router.refresh();
         form.reset({
           ...values,
           catatan: "",
@@ -394,7 +397,7 @@ export function AdminDynamicForm({
             <p className={`text-sm ${isSubmitSuccess ? "text-emerald-700" : "text-red-700"}`}>{submitMessage}</p>
           ) : null}
 
-          <Button type="submit" disabled={isPending || !canSubmit}>
+          <Button type="submit" disabled={isPending || !canSubmit} className="w-full sm:w-auto">
             {isPending ? "Menyimpan..." : "Simpan Rapor"}
           </Button>
         </form>

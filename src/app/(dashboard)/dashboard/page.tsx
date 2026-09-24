@@ -92,7 +92,7 @@ export default async function DashboardLandingPage() {
       {
         href: "/staff",
         title: "Rapor Diri",
-        description: "Lihat seluruh periode rapor pribadi Kamu sebagai staf magang.",
+        description: "Lihat seluruh periode rapor pribadi Kamu.",
         icon: UserRoundCheck,
       },
       {
@@ -278,6 +278,44 @@ export default async function DashboardLandingPage() {
       const withoutEvaluator = cards.filter((card) => card.href !== "/penilai");
       return renderCards(withoutEvaluator, profile.role, isPjKemenkoan, bannerData);
     }
+  }
+
+  if (profile.role === "the_meridian") {
+    const { data: pjAssignments } = await supabase
+      .from("pj_assignments")
+      .select("id, scope")
+      .eq("nim", profile.nim)
+      .eq("is_active", true);
+
+    const hasAnyAssignment = (pjAssignments ?? []).length > 0;
+    const hasUnitAssignment = (pjAssignments ?? []).some((a) => a.scope === "unit");
+
+    const meridianCards = [...cards];
+    if (hasAnyAssignment) {
+      meridianCards.push(
+        {
+          href: "/pj-ppm-intern/input",
+          title: "Input Rapor Internship",
+          description: "Input penilaian bulanan anak magang (Cakrawala) unit ampuan.",
+          icon: ClipboardList,
+        },
+        {
+          href: "/pj-ppm-intern",
+          title: "Monitoring Internship",
+          description: "Lihat dan pantau rekap performa anak intern unit ampuan.",
+          icon: BarChart3,
+        },
+      );
+    }
+    if (hasUnitAssignment) {
+      meridianCards.push({
+        href: "/admin",
+        title: "Input Rapor Staf",
+        description: "Input penilaian bulanan staf kementerian/biro yang Kamu ampu.",
+        icon: ClipboardList,
+      });
+    }
+    return renderCards(meridianCards, profile.role, isPjKemenkoan, bannerData);
   }
 
   return renderCards(cards, profile.role, isPjKemenkoan, bannerData);

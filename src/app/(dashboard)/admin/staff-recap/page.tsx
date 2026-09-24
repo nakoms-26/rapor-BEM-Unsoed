@@ -19,15 +19,17 @@ export default async function AdminStaffRecapPage() {
     supabase
       .from("profiles")
       .select("nim, nama_lengkap, unit_id, role")
-      .in("role", ["staff", "pj_kementerian", "internship", "pj_ppm_intern", "the_meridian"])
+      .in("role", ["staff", "pj_kementerian", "pj_ppm_intern", "the_meridian"])
       .order("nama_lengkap"),
     supabase.from("rapor_periods").select("id, bulan, tahun, status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
     supabase
       .from("rapor_scores")
       .select("id, user_nim, periode_id, total_avg, catatan, created_at")
-      .in("report_type", ["staf_unit", "internship"])
+      .eq("report_type", "staf_unit")
       .order("created_at", { ascending: false }),
   ]);
+
+  const allScores = scores ?? [];
 
   const unitById = new Map((units ?? []).map((unit) => [unit.id, unit]));
   const staffByUnit = new Map<string, { nim: string; nama_lengkap: string; unit_id: string; role: string }[]>();
@@ -42,7 +44,7 @@ export default async function AdminStaffRecapPage() {
   const scoreByNim = new Map<string, { total_avg: number; periode: string; catatan: string | null }>();
   const scoresListByNim = new Map<string, number[]>();
 
-  for (const score of scores ?? []) {
+  for (const score of allScores) {
     if (!scoresListByNim.has(score.user_nim)) {
       scoresListByNim.set(score.user_nim, []);
     }
