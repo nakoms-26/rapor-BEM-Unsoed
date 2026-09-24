@@ -24,11 +24,12 @@ export default async function PjPpmInternPage() {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
-  // 1. Get assigned units for this PJ PPM Intern from pj_assignments
+  // 1. Get assigned units for this PJ PPM Intern from pj_assignments (scope='unit')
   const { data: assignments } = await supabase
     .from("pj_assignments")
     .select("target_unit_id")
     .eq("nim", profile.nim)
+    .eq("scope", "unit")
     .eq("is_active", true);
 
   const assignedUnitIds = (assignments ?? []).map((a) => a.target_unit_id);
@@ -80,30 +81,13 @@ export default async function PjPpmInternPage() {
     );
   }
 
-  // Fetch units to resolve kementerian/biro under assigned kemenko, or direct unit assignments
+  // Fetch units
   const { data: allUnits } = await supabase
     .from("ref_units")
     .select("id, nama_unit, kategori, parent_id")
     .order("nama_unit");
 
-  const unitsByParent = new Map<string, typeof allUnits>();
-  for (const unit of allUnits ?? []) {
-    if (unit.parent_id) {
-      if (!unitsByParent.has(unit.parent_id)) {
-        unitsByParent.set(unit.parent_id, []);
-      }
-      unitsByParent.get(unit.parent_id)!.push(unit);
-    }
-  }
-
-  const scopeUnitIds = new Set<string>();
-  for (const assignedId of assignedUnitIds) {
-    scopeUnitIds.add(assignedId);
-    const children = unitsByParent.get(assignedId) ?? [];
-    for (const child of children) {
-      scopeUnitIds.add(child.id);
-    }
-  }
+  const scopeUnitIds = new Set<string>(assignedUnitIds);
 
   const managedUnits = (allUnits ?? [])
     .filter((u) => profile.role === "admin" || scopeUnitIds.has(u.id))
@@ -113,7 +97,11 @@ export default async function PjPpmInternPage() {
 
   // 2. Fetch periods and internship profiles in these units
   const [{ data: periods }, { data: interns }] = await Promise.all([
-    supabase.from("rapor_periods").select("id, bulan, tahun, status"),
+    supabase
+      .from("rapor_periods")
+      .select("id, bulan, tahun, status")
+      .order("tahun", { ascending: false })
+      .order("bulan", { ascending: false }),
     effectiveUnitIds.length
       ? supabase
           .from("profiles")

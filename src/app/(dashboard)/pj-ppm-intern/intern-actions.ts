@@ -80,6 +80,7 @@ export async function submitInternRapor(payload: AdminInputForm) {
       .from("pj_assignments")
       .select("target_unit_id")
       .eq("nim", evaluatorProfile.nim)
+      .eq("scope", "unit")
       .eq("is_active", true);
 
     const assignedUnitIds = new Set((pjAssignments ?? []).map((a) => a.target_unit_id));
@@ -93,21 +94,7 @@ export async function submitInternRapor(payload: AdminInputForm) {
       return { ok: false, message: "Assignment penilai belum ditetapkan. Hubungi admin." };
     }
 
-    // Check if the target unit (or its parent) is within assignments
-    const { data: allUnits } = await supabase.from("ref_units").select("id, parent_id");
-    const unitMap = new Map((allUnits ?? []).map((u) => [u.id, u]));
-
-    let currentId: string | null = targetProfile.unit_id;
-    let withinScope = false;
-    while (currentId) {
-      if (assignedUnitIds.has(currentId)) {
-        withinScope = true;
-        break;
-      }
-      currentId = unitMap.get(currentId)?.parent_id ?? null;
-    }
-
-    if (!withinScope) {
+    if (!targetProfile.unit_id || !assignedUnitIds.has(targetProfile.unit_id)) {
       return { ok: false, message: "Penilai hanya dapat menginput rapor untuk unit yang ditetapkan assignment." };
     }
   }
@@ -358,26 +345,15 @@ export async function deleteInternRapor(raporId: string) {
       .from("pj_assignments")
       .select("target_unit_id")
       .eq("nim", profile.nim)
+      .eq("scope", "unit")
       .eq("is_active", true);
 
     const assignedIds = new Set((pjAssignments ?? []).map((a) => a.target_unit_id));
     if (assignedIds.size === 0 && profile.role === "the_meridian" && profile.unit_id) {
       assignedIds.add(profile.unit_id);
     }
-    const { data: allUnits } = await supabase.from("ref_units").select("id, parent_id");
-    const unitMap = new Map((allUnits ?? []).map((u) => [u.id, u]));
 
-    let currentId: string | null = targetProfile.unit_id;
-    let withinScope = false;
-    while (currentId) {
-      if (assignedIds.has(currentId)) {
-        withinScope = true;
-        break;
-      }
-      currentId = unitMap.get(currentId)?.parent_id ?? null;
-    }
-
-    if (!withinScope) {
+    if (!targetProfile.unit_id || !assignedIds.has(targetProfile.unit_id)) {
       return { ok: false, message: "Penilai hanya dapat menghapus rapor dalam unit ampuan." };
     }
   }
