@@ -40,7 +40,7 @@ export default async function TheMeridianStaffDetailPage() {
     .from("profiles")
     .select("nim, nama_lengkap")
     .eq("unit_id", profile.unit_id)
-    .eq("role", "internship")
+    .in("role", ["internship", "pj_ppm_intern"])
     .order("nama_lengkap");
 
   const internNims = (internProfiles ?? []).map((s) => s.nim);

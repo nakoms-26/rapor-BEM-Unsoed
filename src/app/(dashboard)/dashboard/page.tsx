@@ -189,26 +189,23 @@ export default async function DashboardLandingPage() {
       .eq("nim", profile.nim)
       .eq("is_active", true);
 
-    const hasInternAssignment = (pjAssignments ?? []).length > 0;
     const hasUnitAssignment = (pjAssignments ?? []).some((a) => a.scope === "unit");
 
-    if (hasInternAssignment) {
-      if (!cards.some((c) => c.href === "/pj-ppm-intern/input")) {
-        cards.push({
-          href: "/pj-ppm-intern/input",
-          title: "Input Rapor Internship",
-          description: "Input rapor anak magang (Cakrawala) kementerian/biro yang Kamu ampu.",
-          icon: ClipboardList,
-        });
-      }
-      if (!cards.some((c) => c.href === "/pj-ppm-intern")) {
-        cards.push({
-          href: "/pj-ppm-intern",
-          title: "Monitoring Internship",
-          description: "Lihat dan pantau rekap performa rapor anak intern kementerian/biro Kamu.",
-          icon: BarChart3,
-        });
-      }
+    if (!cards.some((c) => c.href === "/pj-ppm-intern/input")) {
+      cards.push({
+        href: "/pj-ppm-intern/input",
+        title: "Input Rapor Internship",
+        description: "Input rapor anak magang (Cakrawala) kementerian/biro yang Kamu ampu.",
+        icon: ClipboardList,
+      });
+    }
+    if (!cards.some((c) => c.href === "/pj-ppm-intern")) {
+      cards.push({
+        href: "/pj-ppm-intern",
+        title: "Monitoring Internship",
+        description: "Lihat dan pantau rekap performa rapor anak intern kementerian/biro Kamu.",
+        icon: BarChart3,
+      });
     }
 
     if (hasUnitAssignment) {

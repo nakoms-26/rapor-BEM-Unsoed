@@ -67,8 +67,8 @@ export async function submitInternRapor(payload: AdminInputForm) {
     return { ok: false, message: "Pengguna yang dinilai tidak ditemukan." };
   }
 
-  if (targetProfile.role !== "internship") {
-    return { ok: false, message: "Rapor internship hanya untuk akun dengan role internship." };
+  if (targetProfile.role !== "internship" && targetProfile.role !== "pj_ppm_intern") {
+    return { ok: false, message: "Rapor internship hanya untuk akun dengan role internship atau intern PPM." };
   }
 
   // Evaluator assignment check (PJ PPM Intern or The Meridian)
@@ -85,8 +85,8 @@ export async function submitInternRapor(payload: AdminInputForm) {
 
     const assignedUnitIds = new Set((pjAssignments ?? []).map((a) => a.target_unit_id));
 
-    // Fallback to evaluator's own unit if the_meridian has no pj_assignments
-    if (assignedUnitIds.size === 0 && evaluatorProfile.role === "the_meridian" && evaluatorProfile.unit_id) {
+    // Include evaluator's own unit for the_meridian so they can evaluate their own unit's interns (e.g. Biro PPM)
+    if (evaluatorProfile.role === "the_meridian" && evaluatorProfile.unit_id) {
       assignedUnitIds.add(evaluatorProfile.unit_id);
     }
 
@@ -349,7 +349,7 @@ export async function deleteInternRapor(raporId: string) {
       .eq("is_active", true);
 
     const assignedIds = new Set((pjAssignments ?? []).map((a) => a.target_unit_id));
-    if (assignedIds.size === 0 && profile.role === "the_meridian" && profile.unit_id) {
+    if (profile.role === "the_meridian" && profile.unit_id) {
       assignedIds.add(profile.unit_id);
     }
 

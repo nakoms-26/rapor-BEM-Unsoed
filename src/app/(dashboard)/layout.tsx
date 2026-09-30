@@ -111,10 +111,8 @@ export default async function DashboardLayout({
     const hasAnyAssignment = (pjAssignments ?? []).length > 0;
     const hasUnitAssignment = (pjAssignments ?? []).some((a) => a.scope === "unit");
 
-    if (hasAnyAssignment) {
-      pushNav({ href: "/pj-ppm-intern/input", label: "Input Internship", iconKey: "clipboard", category: "internship" });
-      pushNav({ href: "/pj-ppm-intern", label: "Monitoring Internship", iconKey: "chart", category: "internship" });
-    }
+    pushNav({ href: "/pj-ppm-intern/input", label: "Input Internship", iconKey: "clipboard", category: "internship" });
+    pushNav({ href: "/pj-ppm-intern", label: "Monitoring Internship", iconKey: "chart", category: "internship" });
 
     if (hasUnitAssignment) {
       pushNav({ href: "/admin", label: "Input Rapor Staf", iconKey: "clipboard", category: "kementerian" });

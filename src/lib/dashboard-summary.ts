@@ -76,7 +76,7 @@ export async function getDashboardBannerData(
     profile.role === "the_meridian" ||
     profile.role === "pj_ppm_intern"
   ) {
-    const isInternRole = profile.role === "internship";
+    const isInternRole = profile.role === "internship" || profile.role === "pj_ppm_intern";
 
     const scoresRes = isInternRole
       ? await supabase

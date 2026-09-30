@@ -67,7 +67,8 @@ export default async function PjPpmInternInputPage({
     .eq("is_active", true);
 
   const assignedUnitIds = (assignments ?? []).map((a) => a.target_unit_id);
-  if (assignedUnitIds.length === 0 && profile.role === "the_meridian" && profile.unit_id) {
+  // For the_meridian, always include their home unit (e.g. Biro PPM) so they can grade PPM interns
+  if (profile.role === "the_meridian" && profile.unit_id && !assignedUnitIds.includes(profile.unit_id)) {
     assignedUnitIds.push(profile.unit_id);
   }
 
@@ -92,13 +93,13 @@ export default async function PjPpmInternInputPage({
     .order("tahun", { ascending: false })
     .order("bulan", { ascending: false });
 
-  // Fetch internship profiles in scope units
+  // Fetch internship profiles in scope units (including pj_ppm_intern who are the interns of PPM)
   const { data: internProfiles } = effectiveUnitIds.length
     ? await supabase
         .from("profiles")
         .select("nim, nama_lengkap, unit_id")
         .in("unit_id", effectiveUnitIds)
-        .eq("role", "internship")
+        .in("role", ["internship", "pj_ppm_intern"])
         .order("nama_lengkap")
     : { data: [] };
 

@@ -119,21 +119,43 @@ export async function signInWithTableAccount(payload: { nim: string; password: s
   }
 
   const supabase = createAdminSupabaseClient();
-  const { data: account } = await supabase
+  const { data: account, error: accountError } = await supabase
     .from("app_accounts")
     .select("nim, password_hash")
     .eq("nim", nim)
     .single();
 
+  if (accountError && accountError.code !== "PGRST116") {
+    console.error("[signInWithTableAccount] DB error fetching account:", accountError);
+    if (accountError.code === "ER_USER_LIMIT_REACHED" || accountError.message?.includes("max_connections_per_hour")) {
+      return {
+        ok: false,
+        message: "Server database sedang mencapai batas koneksi (rate limit hosting). Mohon tunggu beberapa saat dan coba lagi.",
+      };
+    }
+    return {
+      ok: false,
+      message: `Terjadi kendala koneksi database: ${accountError.message}`,
+    };
+  }
+
   if (!account || !verifyPassword(password, account.password_hash)) {
     return { ok: false, message: "NIM atau password salah." };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("nim", nim)
     .single();
+
+  if (profileError && profileError.code !== "PGRST116") {
+    console.error("[signInWithTableAccount] DB error fetching profile:", profileError);
+    return {
+      ok: false,
+      message: `Gagal membaca profil pengguna: ${profileError.message}`,
+    };
+  }
 
   if (!profile) {
     return { ok: false, message: "Profil pengguna tidak ditemukan." };

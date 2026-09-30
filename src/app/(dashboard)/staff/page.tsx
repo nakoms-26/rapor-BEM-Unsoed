@@ -40,7 +40,7 @@ export default async function StaffPage() {
     redirect(ROLE_HOME[profile.role] ?? "/login");
   }
 
-  const isInternRole = profile.role === "internship";
+  const isInternRole = profile.role === "internship" || profile.role === "pj_ppm_intern";
 
   // For internship role: read from intern tables
   // For staff/the_meridian/pj_ppm_intern: read from regular rapor_scores
@@ -209,7 +209,7 @@ export default async function StaffPage() {
     <section className="space-y-5">
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-          {profile.role === "internship" ? "Rapor Personal Cakrawala (Internship)" : "Rapor Personal"}
+          {isInternRole ? "Rapor Personal Cakrawala (Internship)" : "Rapor Personal"}
         </h2>
         <p className="text-xs sm:text-sm text-slate-600 mt-0.5">Semua periode rapor bulanan untuk {profile.nama_lengkap}.</p>
       </div>
