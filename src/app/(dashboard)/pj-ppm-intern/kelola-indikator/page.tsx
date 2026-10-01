@@ -88,7 +88,7 @@ export default async function PjPpmInternKelolaIndikatorPage() {
   const [{ data: periods }, { data: templateRows }] = await Promise.all([
     supabase
       .from("rapor_periods")
-      .select("id, bulan, tahun, status")
+      .select("id, bulan, tahun, status, intern_status")
       .order("tahun", { ascending: false })
       .order("bulan", { ascending: false }),
     kemenkoIds.length

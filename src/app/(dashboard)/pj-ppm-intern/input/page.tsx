@@ -89,7 +89,7 @@ export default async function PjPpmInternInputPage({
   // Fetch periods (ordered by tahun and bulan DESC, exactly like staf input)
   const { data: periods } = await supabase
     .from("rapor_periods")
-    .select("id, bulan, tahun, status")
+    .select("id, bulan, tahun, status, intern_status")
     .order("tahun", { ascending: false })
     .order("bulan", { ascending: false });
 

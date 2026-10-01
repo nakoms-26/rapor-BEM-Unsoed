@@ -48,7 +48,7 @@ export default async function TheMeridianStaffDetailPage() {
   // Get all rapor periods
   const { data: periods } = await supabase
     .from("rapor_periods")
-    .select("id, bulan, tahun, status")
+    .select("id, bulan, tahun, status, intern_status")
     .order("tahun", { ascending: false })
     .order("bulan", { ascending: false });
 
@@ -155,7 +155,7 @@ export default async function TheMeridianStaffDetailPage() {
                                 <p className="font-semibold text-slate-900">
                                   {formatPeriode(period?.bulan ?? 0, period?.tahun ?? 0)}
                                 </p>
-                                <p className="text-xs text-slate-500 capitalize">Status: {period?.status}</p>
+                                <p className="text-xs text-slate-500 capitalize">Status: {period?.intern_status ?? "draft"}</p>
                               </div>
                               {scoresInPeriod.length > 0 && (
                                 <div className="text-right">

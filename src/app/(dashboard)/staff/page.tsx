@@ -5,7 +5,7 @@ import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { RaporListWithMonthFilter } from "@/components/dashboard/rapor-list-with-month-filter";
 import { resolveDisplayTotalScore, calculateSingleStaffCumulative } from "@/lib/rapor-score";
-import { isPublishedStatus, periodMonthYearKey, resolvePublishedPeriodByScorePeriodId } from "@/lib/period-status";
+import { isPublishedStatus, isInternPublishedStatus, periodMonthYearKey, resolvePublishedPeriodByScorePeriodId } from "@/lib/period-status";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export default async function StaffPage() {
   const scoresTable = isInternRole ? "intern_rapor_scores" : "rapor_scores";
 
   const [{ data: periods }, { data: allScores }, { data: anyTypeScores }] = await Promise.all([
-    supabase.from("rapor_periods").select("id, bulan, tahun, status"),
+    supabase.from("rapor_periods").select("id, bulan, tahun, status, intern_status"),
     isInternRole
       ? supabase
           .from("intern_rapor_scores")
@@ -72,7 +72,11 @@ export default async function StaffPage() {
   ]);
 
   const publishedPeriods = (periods ?? [])
-    .filter((period) => isPublishedStatus(period.status))
+    .filter((period) =>
+      isInternRole
+        ? isInternPublishedStatus(period.intern_status)
+        : isPublishedStatus(period.status)
+    )
     .sort((a, b) => {
       if (a.tahun !== b.tahun) return b.tahun - a.tahun;
       return b.bulan - a.bulan;
@@ -122,7 +126,14 @@ export default async function StaffPage() {
   const hasPublishedRapor = raporByPeriod.length > 0;
   const hasAnyTypeScore = (anyTypeScores ?? []).length > 0;
   const hasOnlyDifferentReportType = !hasAnyScore && hasAnyTypeScore;
-  const displayRaporRows = hasPublishedRapor ? raporByPeriod : raporAnyPeriod;
+  // Internship roles must only see published rapor — no draft fallback.
+  // The raporAnyPeriod fallback (which may include drafts) is intentionally
+  // restricted to regular staff and the_meridian roles.
+  const displayRaporRows = hasPublishedRapor
+    ? raporByPeriod
+    : isInternRole
+      ? []
+      : raporAnyPeriod;
 
   const latestScore = displayRaporRows[0];
   const raporIds = displayRaporRows.map((row) => row.id);

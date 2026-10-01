@@ -10,6 +10,7 @@ import {
   updatePeriodStatusByAdmin,
   upsertEvaluatorAssignmentByAdmin,
 } from "@/app/(dashboard)/admin/actions";
+import { updateInternPeriodStatus } from "@/app/(dashboard)/pj-ppm-intern/intern-actions";
 import { AdminDynamicForm } from "@/components/dashboard/admin-dynamic-form";
 import { DeleteRaporForm } from "@/components/dashboard/delete-rapor-form";
 import { AdminBackupCard } from "@/components/dashboard/admin-backup-card";
@@ -147,7 +148,7 @@ export default async function AdminPage({
 
   const [{ data: units }, { data: periods }, { data: staffs }, { data: reportRows }, { data: allProfiles }, { data: assignments }, { data: pjAssignment }, { data: pjKemenkoAssignments }, { data: pjUnitAssignments }, { data: kemenkoTemplates }] = await Promise.all([
     supabase.from("ref_units").select("id, nama_unit, kategori, parent_id").order("nama_unit"),
-    supabase.from("rapor_periods").select("id, bulan, tahun, status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
+    supabase.from("rapor_periods").select("id, bulan, tahun, status, intern_status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
     supabase
       .from("profiles")
       .select("nim, nama_lengkap, unit_id")
@@ -600,7 +601,7 @@ export default async function AdminPage({
           <CardHeader>
             <CardTitle>Publish Periode Rapor</CardTitle>
             <CardDescription>
-              Rapor hanya terlihat oleh staf jika status periode sudah published.
+              Kontrol publikasi rapor staf dan rapor internship secara terpisah. Staf hanya dapat melihat rapor jika status periode terkait sudah published.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -613,37 +614,111 @@ export default async function AdminPage({
                 .map((period) => (
                   <div
                     key={period.id}
-                    className="flex flex-col gap-3 rounded-md border border-slate-200 px-3 py-3 md:flex-row md:items-center md:justify-between"
+                    className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs md:flex-row md:items-center md:justify-between"
                   >
                     <div>
-                      <p className="font-medium text-slate-800">
-                        {period.bulan}/{period.tahun}
+                      <p className="text-base font-bold text-slate-800">
+                        Periode {period.bulan}/{period.tahun}
                       </p>
-                      <p className="text-xs text-slate-500">Status saat ini: {period.status}</p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                        <span className="text-slate-500">
+                          Rapor Staf:
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-semibold capitalize border ${
+                            period.status === "published"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}
+                        >
+                          {period.status}
+                        </span>
+                        <span className="text-slate-300">|</span>
+                        <span className="text-slate-500">
+                          Rapor Intern:
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-semibold capitalize border ${
+                            period.intern_status === "published"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}
+                        >
+                          {period.intern_status ?? "draft"}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <form action={updatePeriodStatusByAdmin}>
-                        <input type="hidden" name="period_id" value={period.id} />
-                        <input type="hidden" name="status" value="draft" />
-                        <button
-                          type="submit"
-                          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-                        >
-                          Draft
-                        </button>
-                      </form>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Kontrol Rapor Staf */}
+                      <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-1.5">
+                        <span className="text-[11px] font-semibold text-slate-600 px-1">Staf:</span>
+                        <form action={updatePeriodStatusByAdmin}>
+                          <input type="hidden" name="period_id" value={period.id} />
+                          <input type="hidden" name="status" value="draft" />
+                          <button
+                            type="submit"
+                            disabled={period.status === "draft"}
+                            className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                              period.status === "draft"
+                                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                : "bg-white text-slate-700 hover:bg-slate-100 shadow-2xs"
+                            }`}
+                          >
+                            Draft
+                          </button>
+                        </form>
+                        <form action={updatePeriodStatusByAdmin}>
+                          <input type="hidden" name="period_id" value={period.id} />
+                          <input type="hidden" name="status" value="published" />
+                          <button
+                            type="submit"
+                            disabled={period.status === "published"}
+                            className={`rounded px-2.5 py-1 text-xs font-semibold transition-colors ${
+                              period.status === "published"
+                                ? "bg-emerald-200 text-emerald-800 cursor-not-allowed"
+                                : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-2xs"
+                            }`}
+                          >
+                            Publish
+                          </button>
+                        </form>
+                      </div>
 
-                      <form action={updatePeriodStatusByAdmin}>
-                        <input type="hidden" name="period_id" value={period.id} />
-                        <input type="hidden" name="status" value="published" />
-                        <button
-                          type="submit"
-                          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-100"
-                        >
-                          Publish
-                        </button>
-                      </form>
+                      {/* Kontrol Rapor Intern */}
+                      <div className="flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50/50 p-1.5">
+                        <span className="text-[11px] font-semibold text-teal-800 px-1">Intern:</span>
+                        <form action={updateInternPeriodStatus}>
+                          <input type="hidden" name="period_id" value={period.id} />
+                          <input type="hidden" name="intern_status" value="draft" />
+                          <button
+                            type="submit"
+                            disabled={period.intern_status === "draft" || !period.intern_status}
+                            className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                              period.intern_status === "draft" || !period.intern_status
+                                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                : "bg-white text-slate-700 hover:bg-slate-100 shadow-2xs"
+                            }`}
+                          >
+                            Draft
+                          </button>
+                        </form>
+                        <form action={updateInternPeriodStatus}>
+                          <input type="hidden" name="period_id" value={period.id} />
+                          <input type="hidden" name="intern_status" value="published" />
+                          <button
+                            type="submit"
+                            disabled={period.intern_status === "published"}
+                            className={`rounded px-2.5 py-1 text-xs font-semibold transition-colors ${
+                              period.intern_status === "published"
+                                ? "bg-teal-200 text-teal-900 cursor-not-allowed"
+                                : "bg-teal-600 text-white hover:bg-teal-700 shadow-2xs"
+                            }`}
+                          >
+                            Publish
+                          </button>
+                        </form>
+                      </div>
                     </div>
                   </div>
                 ))

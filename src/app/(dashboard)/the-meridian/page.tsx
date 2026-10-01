@@ -4,7 +4,7 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import Link from "next/link";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { isPublishedStatus } from "@/lib/period-status";
+import { isInternPublishedStatus } from "@/lib/period-status";
 import { Sparkles, BarChart3, FileText, User, ChevronDown, Calendar } from "lucide-react";
 import { StaffPerformanceBarChart } from "@/components/dashboard/staff-performance-bar-chart";
 import { IndicatorBreakdownChart } from "@/components/dashboard/indicator-breakdown-chart";
@@ -22,7 +22,7 @@ export default async function TheMeridianPage() {
 
   const [{ data: ownedUnit }, { data: periods }, { data: interns }] = await Promise.all([
     supabase.from("ref_units").select("id, nama_unit").eq("id", profile.unit_id).single(),
-    supabase.from("rapor_periods").select("id, bulan, tahun, status"),
+    supabase.from("rapor_periods").select("id, bulan, tahun, status, intern_status"),
     supabase
       .from("profiles")
       .select("nim, nama_lengkap")
@@ -61,7 +61,7 @@ export default async function TheMeridianPage() {
   }
 
   const publishedPeriods = (periods ?? [])
-    .filter((period) => isPublishedStatus(period.status))
+    .filter((period) => isInternPublishedStatus(period.intern_status))
     .sort((a, b) => {
       if (a.tahun !== b.tahun) return b.tahun - a.tahun;
       return b.bulan - a.bulan;
@@ -194,7 +194,8 @@ export default async function TheMeridianPage() {
       catatan: score.catatan,
       bulan: period?.bulan ?? 0,
       tahun: period?.tahun ?? 0,
-      status: period?.status ?? "draft",
+      // Use intern_status so the label reflects the intern publish state
+      status: period?.intern_status ?? "draft",
     };
   });
 

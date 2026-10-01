@@ -475,3 +475,43 @@ export async function saveInternSubIndicators(payload: {
 
   return { ok: true, message: "Sub-indikator internship berhasil disimpan." };
 }
+
+// ─── Update intern rapor period status ───────────────────────
+/**
+ * Update intern_status on a rapor_period row.
+ * - Admin can update any period.
+ * - PJ PPM Intern can update any period (they are responsible for their units,
+ *   but intern_status is a period-level flag, not unit-level, so we allow all
+ *   active PJ PPM Intern to toggle it — admin controls who has this role).
+ */
+export async function updateInternPeriodStatus(formData: FormData): Promise<void> {
+  const supabase = createAdminSupabaseClient();
+  const profile = await requireSessionProfile();
+
+  if (profile.role !== "admin" && profile.role !== "pj_ppm_intern") {
+    return;
+  }
+
+  const periodId = String(formData.get("period_id") ?? "").trim();
+  const status = String(formData.get("intern_status") ?? "").trim();
+
+  if (!periodId || (status !== "draft" && status !== "published")) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from("rapor_periods")
+    .update({ intern_status: status as "draft" | "published" })
+    .eq("id", periodId);
+
+  if (error) {
+    return;
+  }
+
+  revalidateInternPaths();
+  revalidatePath("/admin");
+  revalidatePath("/the-meridian");
+  revalidatePath("/the-meridian/staff-detail");
+  revalidatePath("/pj-ppm-intern/staff-detail");
+}
+

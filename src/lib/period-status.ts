@@ -3,6 +3,16 @@ export function isPublishedStatus(status: string | null | undefined) {
   return normalized === "published" || normalized === "publish";
 }
 
+/**
+ * Same logic as isPublishedStatus but semantically scoped to intern rapor.
+ * Uses the `intern_status` column from rapor_periods.
+ */
+export function isInternPublishedStatus(internStatus: string | null | undefined) {
+  const normalized = (internStatus ?? "").trim().toLowerCase();
+  return normalized === "published" || normalized === "publish";
+}
+
+
 type PeriodLike = {
   id: string;
   bulan: number;

@@ -101,7 +101,7 @@ export default async function PjPpmInternStaffDetailPage() {
 
   // 2. Fetch periods and internship profiles in these units
   const [{ data: periods }, { data: internProfiles }] = await Promise.all([
-    supabase.from("rapor_periods").select("id, bulan, tahun, status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
+    supabase.from("rapor_periods").select("id, bulan, tahun, status, intern_status").order("tahun", { ascending: false }).order("bulan", { ascending: false }),
     effectiveUnitIds.length
       ? supabase
           .from("profiles")
@@ -226,7 +226,7 @@ export default async function PjPpmInternStaffDetailPage() {
                                 Periode {period?.bulan}/{period?.tahun}
                               </span>
                               <span className="ml-2 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600 capitalize">
-                                {period?.status}
+                                {period?.intern_status ?? "draft"}
                               </span>
                             </div>
                             <div className="text-right">

@@ -85,6 +85,7 @@ export type Database = {
           bulan: number;
           tahun: number;
           status: "draft" | "published";
+          intern_status: "draft" | "published";
           created_at: string;
         };
         Insert: {
@@ -92,10 +93,12 @@ export type Database = {
           bulan: number;
           tahun: number;
           status?: "draft" | "published";
+          intern_status?: "draft" | "published";
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["rapor_periods"]["Insert"]>;
       };
+
       rapor_scores: {
         Row: {
           id: string;

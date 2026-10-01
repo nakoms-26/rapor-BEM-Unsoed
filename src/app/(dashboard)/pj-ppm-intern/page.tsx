@@ -4,7 +4,8 @@ import { requireSessionProfile } from "@/lib/auth/session";
 import Link from "next/link";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { isPublishedStatus } from "@/lib/period-status";
+import { isInternPublishedStatus } from "@/lib/period-status";
+import { updateInternPeriodStatus } from "@/app/(dashboard)/pj-ppm-intern/intern-actions";
 import { ShieldCheck, BarChart3, FileText, User, Building2, AlertCircle, ChevronDown, Calendar } from "lucide-react";
 import { StaffPerformanceBarChart } from "@/components/dashboard/staff-performance-bar-chart";
 import { IndicatorBreakdownChart } from "@/components/dashboard/indicator-breakdown-chart";
@@ -100,7 +101,7 @@ export default async function PjPpmInternPage() {
   const [{ data: periods }, { data: interns }] = await Promise.all([
     supabase
       .from("rapor_periods")
-      .select("id, bulan, tahun, status")
+      .select("id, bulan, tahun, status, intern_status")
       .order("tahun", { ascending: false })
       .order("bulan", { ascending: false }),
     effectiveUnitIds.length
@@ -145,7 +146,7 @@ export default async function PjPpmInternPage() {
   }
 
   const publishedPeriods = (periods ?? [])
-    .filter((period) => isPublishedStatus(period.status))
+    .filter((period) => isInternPublishedStatus(period.intern_status))
     .sort((a, b) => {
       if (a.tahun !== b.tahun) return b.tahun - a.tahun;
       return b.bulan - a.bulan;
@@ -268,13 +269,15 @@ export default async function PjPpmInternPage() {
     const unit = intern ? unitById.get(intern.unit_id) : undefined;
     return {
       id: score.id,
+      periode_id: score.periode_id,
       internName: intern?.nama_lengkap ?? score.user_nim,
       unitName: unit?.nama_unit ?? "-",
       total_avg: Number(score.total_avg),
       catatan: score.catatan,
       bulan: period?.bulan ?? 0,
       tahun: period?.tahun ?? 0,
-      status: period?.status ?? "draft",
+      // Use intern_status so the badge reflects the intern publish state
+      status: period?.intern_status ?? "draft",
     };
   });
 
@@ -394,11 +397,12 @@ export default async function PjPpmInternPage() {
               7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
             };
 
-            const periodGroups = new Map<string, { bulan: number; tahun: number; status: string; rows: typeof rows }>();
+            const periodGroups = new Map<string, { periodId: string; bulan: number; tahun: number; status: string; rows: typeof rows }>();
             for (const row of rows) {
               const key = `${row.tahun}-${String(row.bulan).padStart(2, "0")}`;
               if (!periodGroups.has(key)) {
                 periodGroups.set(key, {
+                  periodId: row.periode_id,
                   bulan: row.bulan,
                   tahun: row.tahun,
                   status: row.status,
@@ -437,11 +441,15 @@ export default async function PjPpmInternPage() {
                         <Calendar className="h-4 w-4" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-sm sm:text-base text-slate-900">
                             {periodName}
                           </span>
-                          <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10.5px] font-semibold text-slate-700 capitalize">
+                          <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold capitalize border ${
+                            group.status === "published"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}>
                             {group.status}
                           </span>
                         </div>
@@ -451,7 +459,31 @@ export default async function PjPpmInternPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      {(profile.role === "admin" || profile.role === "pj_ppm_intern") && group.periodId ? (
+                        <form
+                          action={updateInternPeriodStatus}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center"
+                        >
+                          <input type="hidden" name="period_id" value={group.periodId} />
+                          <input
+                            type="hidden"
+                            name="intern_status"
+                            value={group.status === "published" ? "draft" : "published"}
+                          />
+                          <button
+                            type="submit"
+                            className={`rounded-md border px-2.5 py-1 text-xs font-semibold shadow-2xs transition-colors ${
+                              group.status === "published"
+                                ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                                : "border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100"
+                            }`}
+                          >
+                            {group.status === "published" ? "Tarik ke Draft" : "Publish Rapor Intern"}
+                          </button>
+                        </form>
+                      ) : null}
                       <ChevronDown className="h-4 w-4 text-slate-500 transition-transform duration-200 group-open:rotate-180" />
                     </div>
                   </summary>
