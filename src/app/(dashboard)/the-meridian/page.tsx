@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ROLE_HOME } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { isInternPublishedStatus } from "@/lib/period-status";
+import { updateInternPeriodStatus } from "@/app/(dashboard)/pj-ppm-intern/intern-actions";
 import { Sparkles, BarChart3, FileText, User, ChevronDown, Calendar } from "lucide-react";
 import { StaffPerformanceBarChart } from "@/components/dashboard/staff-performance-bar-chart";
 import { IndicatorBreakdownChart } from "@/components/dashboard/indicator-breakdown-chart";
@@ -294,6 +295,95 @@ export default async function TheMeridianPage() {
             <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">{lowestGrowthName}</p>
             <p className="text-xs font-semibold text-slate-600">{lowestGrowthLabel}</p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Dedicated Card for Publishing Internship Periods */}
+      <Card className="border-indigo-100 shadow-2xs">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-slate-900">
+            <Calendar className="h-5 w-5 text-indigo-600" />
+            Publikasi Periode Rapor Internship
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm text-slate-600">
+            Atur status publikasi rapor internship (Cakrawala). Staf magang hanya dapat melihat rapor mereka jika status periode telah dipublish.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {periods?.length ? (
+            [...periods]
+              .sort((a, b) => {
+                if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+                return b.bulan - a.bulan;
+              })
+              .map((period) => {
+                const BULAN_NAMES: Record<number, string> = {
+                  1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+                  7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+                };
+                const isPublished = isInternPublishedStatus(period.intern_status);
+
+                return (
+                  <div
+                    key={period.id}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="text-sm sm:text-base font-bold text-slate-800">
+                        Periode {BULAN_NAMES[period.bulan] ?? `Bulan ${period.bulan}`} {period.tahun}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2 text-xs">
+                        <span className="text-slate-500">Status Rapor Intern:</span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-semibold capitalize border ${
+                            isPublished
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}
+                        >
+                          {period.intern_status ?? "draft"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-center">
+                      <form action={updateInternPeriodStatus}>
+                        <input type="hidden" name="period_id" value={period.id} />
+                        <input type="hidden" name="intern_status" value="draft" />
+                        <button
+                          type="submit"
+                          disabled={!isPublished}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                            !isPublished
+                              ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                              : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 shadow-2xs"
+                          }`}
+                        >
+                          Draft
+                        </button>
+                      </form>
+                      <form action={updateInternPeriodStatus}>
+                        <input type="hidden" name="period_id" value={period.id} />
+                        <input type="hidden" name="intern_status" value="published" />
+                        <button
+                          type="submit"
+                          disabled={isPublished}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            isPublished
+                              ? "bg-indigo-100 text-indigo-800 cursor-not-allowed border border-indigo-200"
+                              : "bg-indigo-600 text-white hover:bg-indigo-700 border border-indigo-700 shadow-2xs"
+                          }`}
+                        >
+                          Publish Rapor Intern
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })
+          ) : (
+            <p className="text-sm text-slate-500 text-center py-4">Belum ada periode yang terdaftar di database.</p>
+          )}
         </CardContent>
       </Card>
 

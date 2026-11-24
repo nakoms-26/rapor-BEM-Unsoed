@@ -295,7 +295,35 @@ export class MySQLQueryBuilder<TRow = any, TResult = TRow[]>
           }
         }
 
-        const [rows] = await pool.query<RowDataPacket[]>(sql, queryParams);
+        let rows: RowDataPacket[];
+        try {
+          const [resultRows] = await pool.query<RowDataPacket[]>(sql, queryParams);
+          rows = resultRows;
+        } catch (queryErr: any) {
+          if (
+            (queryErr?.code === "ER_BAD_FIELD_ERROR" || queryErr?.errno === 1054) &&
+            this.table === "rapor_periods" &&
+            this.selectedColumns.includes("intern_status")
+          ) {
+            const fallbackCols = this.selectedColumns
+              .split(",")
+              .map((c) => c.trim())
+              .filter((c) => c !== "intern_status")
+              .join(", ");
+            const fallbackColsSql = this.formatSelectColumns(fallbackCols);
+            let fallbackSql = `SELECT ${fallbackColsSql} FROM \`${this.table}\`${this.buildWhereClause()}`;
+            if (this.orders.length > 0) {
+              fallbackSql += ` ORDER BY ${this.orders.join(", ")}`;
+            }
+            const [fallbackRows] = await pool.query<RowDataPacket[]>(fallbackSql, queryParams);
+            rows = (fallbackRows as any[]).map((r) => ({
+              ...r,
+              intern_status: r.status ?? "draft",
+            }));
+          } else {
+            throw queryErr;
+          }
+        }
 
         if (this.singleMode === "single") {
           if (!rows || rows.length === 0) {
@@ -385,7 +413,27 @@ export class MySQLQueryBuilder<TRow = any, TResult = TRow[]>
         const sql = `UPDATE \`${this.table}\` SET ${setSql}${whereClause}`;
         const finalParams = [...updateParams, ...this.params];
 
-        await pool.query<ResultSetHeader>(sql, finalParams);
+        try {
+          await pool.query<ResultSetHeader>(sql, finalParams);
+        } catch (updateErr: any) {
+          if (
+            (updateErr?.code === "ER_BAD_FIELD_ERROR" || updateErr?.errno === 1054) &&
+            this.table === "rapor_periods" &&
+            "intern_status" in (this.updateData ?? {})
+          ) {
+            try {
+              await pool.query(
+                "ALTER TABLE `rapor_periods` ADD COLUMN `intern_status` ENUM('draft', 'published') NOT NULL DEFAULT 'draft'"
+              );
+              await pool.query<ResultSetHeader>(sql, finalParams);
+            } catch (migrationErr) {
+              console.error("[MySQLQueryBuilder] Auto-migration intern_status failed:", migrationErr);
+              throw updateErr;
+            }
+          } else {
+            throw updateErr;
+          }
+        }
 
         if (this.hasSelect) {
           const colsSql = this.formatSelectColumns(this.selectedColumns);

@@ -234,9 +234,9 @@ export default async function PjPpmInternPage() {
   });
 
   const unitComparisonData = unitSummaries.map((u) => ({
-    name: u.unitName.replace("Kementerian ", "").replace("Biro ", ""),
+    name: (u.unitName ?? "").replace("Kementerian ", "").replace("Biro ", ""),
     score: u.averageScore,
-    unitName: u.unitName,
+    unitName: u.unitName ?? "-",
   }));
 
   // Calculate indicator averages
@@ -379,6 +379,95 @@ export default async function PjPpmInternPage() {
         ))}
       </div>
 
+      {/* Dedicated Card for Publishing Internship Periods */}
+      <Card className="border-teal-100 shadow-2xs">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-slate-900">
+            <Calendar className="h-5 w-5 text-teal-600" />
+            Publikasi Periode Rapor Internship
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm text-slate-600">
+            Atur status publikasi rapor internship (Cakrawala). Staf magang hanya dapat melihat rapor mereka jika status periode telah dipublish.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {periods?.length ? (
+            [...periods]
+              .sort((a, b) => {
+                if (a.tahun !== b.tahun) return b.tahun - a.tahun;
+                return b.bulan - a.bulan;
+              })
+              .map((period) => {
+                const BULAN_NAMES: Record<number, string> = {
+                  1: "Januari", 2: "Februari", 3: "Maret", 4: "April", 5: "Mei", 6: "Juni",
+                  7: "Juli", 8: "Agustus", 9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+                };
+                const isPublished = isInternPublishedStatus(period.intern_status);
+
+                return (
+                  <div
+                    key={period.id}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="text-sm sm:text-base font-bold text-slate-800">
+                        Periode {BULAN_NAMES[period.bulan] ?? `Bulan ${period.bulan}`} {period.tahun}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2 text-xs">
+                        <span className="text-slate-500">Status Rapor Intern:</span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-semibold capitalize border ${
+                            isPublished
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}
+                        >
+                          {period.intern_status ?? "draft"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-center">
+                      <form action={updateInternPeriodStatus}>
+                        <input type="hidden" name="period_id" value={period.id} />
+                        <input type="hidden" name="intern_status" value="draft" />
+                        <button
+                          type="submit"
+                          disabled={!isPublished}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                            !isPublished
+                              ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                              : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 shadow-2xs"
+                          }`}
+                        >
+                          Draft
+                        </button>
+                      </form>
+                      <form action={updateInternPeriodStatus}>
+                        <input type="hidden" name="period_id" value={period.id} />
+                        <input type="hidden" name="intern_status" value="published" />
+                        <button
+                          type="submit"
+                          disabled={isPublished}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            isPublished
+                              ? "bg-teal-100 text-teal-800 cursor-not-allowed border border-teal-200"
+                              : "bg-teal-600 text-white hover:bg-teal-700 border border-teal-700 shadow-2xs"
+                          }`}
+                        >
+                          Publish Rapor Intern
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })
+          ) : (
+            <p className="text-sm text-slate-500 text-center py-4">Belum ada periode yang terdaftar di database.</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Historical Rapor List Grouped & Collapsible by Month */}
       <Card>
         <CardHeader>
@@ -460,30 +549,6 @@ export default async function PjPpmInternPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {(profile.role === "admin" || profile.role === "pj_ppm_intern") && group.periodId ? (
-                        <form
-                          action={updateInternPeriodStatus}
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center"
-                        >
-                          <input type="hidden" name="period_id" value={group.periodId} />
-                          <input
-                            type="hidden"
-                            name="intern_status"
-                            value={group.status === "published" ? "draft" : "published"}
-                          />
-                          <button
-                            type="submit"
-                            className={`rounded-md border px-2.5 py-1 text-xs font-semibold shadow-2xs transition-colors ${
-                              group.status === "published"
-                                ? "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                                : "border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100"
-                            }`}
-                          >
-                            {group.status === "published" ? "Tarik ke Draft" : "Publish Rapor Intern"}
-                          </button>
-                        </form>
-                      ) : null}
                       <ChevronDown className="h-4 w-4 text-slate-500 transition-transform duration-200 group-open:rotate-180" />
                     </div>
                   </summary>

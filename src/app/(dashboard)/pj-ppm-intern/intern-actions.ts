@@ -488,7 +488,11 @@ export async function updateInternPeriodStatus(formData: FormData): Promise<void
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (profile.role !== "admin" && profile.role !== "pj_ppm_intern") {
+  if (
+    profile.role !== "admin" &&
+    profile.role !== "pj_ppm_intern" &&
+    profile.role !== "the_meridian"
+  ) {
     return;
   }
 
@@ -512,6 +516,8 @@ export async function updateInternPeriodStatus(formData: FormData): Promise<void
   revalidatePath("/admin");
   revalidatePath("/the-meridian");
   revalidatePath("/the-meridian/staff-detail");
+  revalidatePath("/pj-ppm-intern");
   revalidatePath("/pj-ppm-intern/staff-detail");
+  revalidatePath("/staff");
 }
 
