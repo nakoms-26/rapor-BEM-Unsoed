@@ -117,30 +117,31 @@ export function DashboardHeader({ profile, navItems, signOutAction }: DashboardH
   const roleBadgeLabel = formatRoleName(profile.role, profile.is_pj_kemenkoan);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-xs">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3">
-        {/* Left: User Identity Branding (Guaranteed non-shrinking) */}
-        <Link
-          href="/profile"
-          className="group flex items-center gap-2.5 sm:gap-3 shrink-0 focus:outline-hidden"
-          title="Lihat profil"
-        >
-          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-bold text-sm shadow-xs ring-2 ring-blue-100 group-hover:ring-blue-300 transition-all shrink-0">
-            {initialLetter}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight truncate max-w-[130px] sm:max-w-[200px] md:max-w-[240px]">
-              {profile.nama_lengkap}
-            </span>
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
-              <span className="font-mono font-medium text-slate-600">{profile.nim}</span>
-              <span className="text-slate-300">•</span>
-              <span className="truncate max-w-[110px] sm:max-w-[150px] text-blue-700 font-semibold bg-blue-50 px-1.5 py-0.5 rounded text-[10px] border border-blue-100">
-                {roleBadgeLabel}
-              </span>
+    <>
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-xs">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 py-2.5 sm:py-3">
+          {/* Left: User Identity Branding */}
+          <Link
+            href="/profile"
+            className="group flex items-center gap-2.5 sm:gap-3 min-w-0 lg:shrink-0 focus:outline-hidden"
+            title="Lihat profil"
+          >
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-bold text-sm shadow-xs ring-2 ring-blue-100 group-hover:ring-blue-300 transition-all shrink-0">
+              {initialLetter}
             </div>
-          </div>
-        </Link>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight truncate max-w-[150px] sm:max-w-[200px] md:max-w-[240px]">
+                {profile.nama_lengkap}
+              </span>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 min-w-0">
+                <span className="font-mono font-medium text-slate-600 shrink-0">{profile.nim}</span>
+                <span className="text-slate-300 shrink-0">•</span>
+                <span className="truncate max-w-[110px] sm:max-w-[150px] text-blue-700 font-semibold bg-blue-50 px-1.5 py-0.5 rounded text-[10px] border border-blue-100">
+                  {roleBadgeLabel}
+                </span>
+              </div>
+            </div>
+          </Link>
 
         {/* Center/Right: Desktop Navigation (Hidden on screens < lg) */}
         <nav
@@ -381,15 +382,16 @@ export function DashboardHeader({ profile, navItems, signOutAction }: DashboardH
         <button
           type="button"
           onClick={() => setMobileOpen((prev) => !prev)}
-          className="lg:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors focus:outline-hidden"
+          className="lg:hidden shrink-0 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors focus:outline-hidden"
           aria-label={mobileOpen ? "Tutup navigasi" : "Buka navigasi"}
           aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
+    </header>
 
-      {/* Mobile Drawer Overlay Backdrop */}
+      {/* Mobile Drawer Overlay Backdrop (rendered outside <header> so backdrop-blur doesn't trap fixed positioning) */}
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 lg:hidden animate-in fade-in duration-200"
@@ -412,7 +414,7 @@ export function DashboardHeader({ profile, navItems, signOutAction }: DashboardH
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-900 truncate">{profile.nama_lengkap}</p>
                 <p className="text-xs text-slate-500 font-mono">{profile.nim}</p>
-                <span className="inline-block mt-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 px-1.5 py-0.2 rounded">
+                <span className="inline-block mt-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
                   {roleBadgeLabel}
                 </span>
               </div>
@@ -597,6 +599,6 @@ export function DashboardHeader({ profile, navItems, signOutAction }: DashboardH
           </div>
         </aside>
       )}
-    </header>
+    </>
   );
 }

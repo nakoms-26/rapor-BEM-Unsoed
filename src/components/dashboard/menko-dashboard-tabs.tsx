@@ -6,6 +6,7 @@ import { MenkoRecapChart } from "@/components/dashboard/menko-recap-chart";
 import { Users, Sparkles } from "lucide-react";
 import { IndicatorBreakdownChart, type IndicatorScoreItem } from "@/components/dashboard/indicator-breakdown-chart";
 import { PerformanceInsightsCard, type PerformanceInsights } from "@/components/dashboard/performance-insights-card";
+import { MemberCumulativeTable, type MemberCumulativeRow } from "@/components/dashboard/member-cumulative-table";
 
 export type UnitRecapRow = {
   unit_name: string;
@@ -25,9 +26,12 @@ type Props = {
   staffRows: UnitRecapRow[];
   staffIndicators?: IndicatorScoreItem[];
   staffInsights?: PerformanceInsights;
+  staffMembers?: MemberCumulativeRow[];
   internRows: UnitRecapRow[];
   internIndicators?: IndicatorScoreItem[];
   internInsights?: PerformanceInsights;
+  internMembers?: MemberCumulativeRow[];
+  showInternTab?: boolean;
   totalUnitsCount: number;
   activePeriodLabel: string;
 };
@@ -36,17 +40,22 @@ export function MenkoDashboardTabs({
   staffRows,
   staffIndicators = [],
   staffInsights,
+  staffMembers = [],
   internRows,
   internIndicators = [],
   internInsights,
+  internMembers = [],
+  showInternTab = true,
   totalUnitsCount,
   activePeriodLabel,
 }: Props) {
   const [activeTab, setActiveTab] = useState<"staff" | "internship">("staff");
+  const effectiveTab = showInternTab ? activeTab : "staff";
 
-  const currentRows = activeTab === "staff" ? staffRows : internRows;
-  const currentIndicators = activeTab === "staff" ? staffIndicators : internIndicators;
-  const currentInsights = activeTab === "staff" ? staffInsights : internInsights;
+  const currentRows = effectiveTab === "staff" ? staffRows : internRows;
+  const currentIndicators = effectiveTab === "staff" ? staffIndicators : internIndicators;
+  const currentInsights = effectiveTab === "staff" ? staffInsights : internInsights;
+  const currentMembers = effectiveTab === "staff" ? staffMembers : internMembers;
 
   const scoredRows = currentRows.filter((row) => row.staff_count > 0);
   const highestUnit = [...scoredRows].sort((a, b) => b.average_score - a.average_score)[0];
@@ -55,33 +64,35 @@ export function MenkoDashboardTabs({
   return (
     <div className="space-y-6">
       {/* Tab Switcher */}
-      <div className="flex rounded-xl bg-slate-200/80 p-1 max-w-md shadow-inner">
-        <button
-          type="button"
-          onClick={() => setActiveTab("staff")}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all ${
-            activeTab === "staff"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          <Users className="h-4 w-4 text-blue-600" />
-          <span>Staf</span>
-        </button>
+      {showInternTab && (
+        <div className="flex rounded-xl bg-slate-200/80 p-1 max-w-md shadow-inner">
+          <button
+            type="button"
+            onClick={() => setActiveTab("staff")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all ${
+              effectiveTab === "staff"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Users className="h-4 w-4 text-blue-600" />
+            <span>Staf</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("internship")}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all ${
-            activeTab === "internship"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          <Sparkles className="h-4 w-4 text-indigo-600" />
-          <span>Cakrawala (Internship)</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab("internship")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all ${
+              effectiveTab === "internship"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Sparkles className="h-4 w-4 text-indigo-600" />
+            <span>Cakrawala (Internship)</span>
+          </button>
+        </div>
+      )}
 
       {/* Performance Insights */}
       {currentInsights && (
@@ -189,6 +200,15 @@ export function MenkoDashboardTabs({
           </Card>
         ))}
       </div>
+      {/* Per-Person Cumulative Scores */}
+      <MemberCumulativeTable
+        title={`Nilai Kumulatif Per Orang (${effectiveTab === "staff" ? "Staf" : "Cakrawala / Internship"})`}
+        subtitle={`Rata-rata dihitung dari seluruh periode yang sudah dinilai (published & draft) dibagi ${effectiveTab === "staff" ? 8 : 3} (klik baris untuk rincian per bulan).`}
+        members={currentMembers}
+        accentColor={effectiveTab === "staff" ? "blue" : "indigo"}
+        divisor={effectiveTab === "staff" ? 8 : 3}
+        emptyText={`Belum ada data ${effectiveTab === "staff" ? "staf" : "intern"} di kemenko yang diampu.`}
+      />
     </div>
   );
 }

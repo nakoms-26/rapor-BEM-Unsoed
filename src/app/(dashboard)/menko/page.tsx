@@ -2,41 +2,45 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { MenkoDashboardTabs, type UnitRecapRow } from "@/components/dashboard/menko-dashboard-tabs";
 import { requireSessionProfile } from "@/lib/auth/session";
-import { ROLE_HOME } from "@/lib/constants";
+import { ROLE_HOME, formatRoleName } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { isInternPublishedStatus, isPublishedStatus } from "@/lib/period-status";
 import type { PerformanceInsights } from "@/components/dashboard/performance-insights-card";
 import type { IndicatorScoreItem } from "@/components/dashboard/indicator-breakdown-chart";
+import type { MemberCumulativeRow, MemberPeriodScore } from "@/components/dashboard/member-cumulative-table";
 
 export const dynamic = "force-dynamic";
+
+const STAFF_CUMULATIVE_DIVISOR = 8;
+const INTERN_CUMULATIVE_DIVISOR = 3;
+
+const BULAN_SHORT: Record<number, string> = {
+  1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
+  7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des",
+};
 
 export default async function MenkoPage() {
   const supabase = createAdminSupabaseClient();
   const menkoProfile = await requireSessionProfile();
   const isPjKemenkoan = menkoProfile.role === "pj_kementerian" && menkoProfile.is_pj_kemenkoan === true;
+  const canViewInternTab = menkoProfile.role === "menko" || menkoProfile.role === "admin";
 
   // Allow Menko, Admin, and PJ Kemenkoan to access recap page.
   if (!(menkoProfile.role === "menko" || menkoProfile.role === "admin" || isPjKemenkoan)) {
     redirect(ROLE_HOME[menkoProfile.role] ?? "/dashboard");
   }
 
-  const { data: activePeriod } = await supabase
+  const { data: allPeriods } = await supabase
     .from("rapor_periods")
-    .select("id, bulan, tahun")
-    .eq("status", "published")
-    .order("tahun", { ascending: false })
-    .order("bulan", { ascending: false })
-    .limit(1)
-    .single();
-
-  const { data: publishedPeriods } = await supabase
-    .from("rapor_periods")
-    .select("id, bulan, tahun, status")
-    .eq("status", "published")
+    .select("id, bulan, tahun, status, intern_status")
     .order("tahun", { ascending: false })
     .order("bulan", { ascending: false });
 
-  const latestPublished = (publishedPeriods ?? [])[0];
-  const previousPublished = (publishedPeriods ?? [])[1];
+  const periodById = new Map((allPeriods ?? []).map((p) => [p.id, p]));
+  const staffPublishedPeriods = (allPeriods ?? []).filter((p) => isPublishedStatus(p.status));
+  const internPublishedPeriods = (allPeriods ?? []).filter((p) => isInternPublishedStatus(p.intern_status));
+
+  const latestPublished = staffPublishedPeriods[0];
 
   const { data: coordinatedUnits } = isPjKemenkoan
     ? await supabase
@@ -53,101 +57,164 @@ export default async function MenkoPage() {
               .eq("is_active", true)
           ).data?.map((item) => item.target_unit_id) ?? ["00000000-0000-0000-0000-000000000000"],
         )
-    : await supabase
-        .from("ref_units")
-        .select("id, nama_unit")
-        .eq("parent_id", menkoProfile.unit_id);
+    : menkoProfile.role === "admin"
+      ? await supabase
+          .from("ref_units")
+          .select("id, nama_unit")
+          .in("kategori", ["kementerian", "biro"])
+      : await supabase
+          .from("ref_units")
+          .select("id, nama_unit")
+          .eq("parent_id", menkoProfile.unit_id);
 
   const unitIds = (coordinatedUnits ?? []).map((unit) => unit.id);
+  const unitNameById = new Map((coordinatedUnits ?? []).map((unit) => [unit.id, unit.nama_unit]));
 
   // Fetch both regular staff and internship profiles
   const [{ data: staffProfiles }, { data: internProfiles }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("nim, nama_lengkap, unit_id")
+      .select("nim, nama_lengkap, unit_id, role")
       .in("unit_id", unitIds.length ? unitIds : ["00000000-0000-0000-0000-000000000000"])
-      .in("role", ["staff", "user", "pj_kementerian", "the_meridian"]),
-    supabase
-      .from("profiles")
-      .select("nim, nama_lengkap, unit_id")
-      .in("unit_id", unitIds.length ? unitIds : ["00000000-0000-0000-0000-000000000000"])
-      .eq("role", "internship"),
+      .in("role", ["staff", "user", "pj_kementerian", "the_meridian"])
+      .order("nama_lengkap"),
+    canViewInternTab
+      ? supabase
+          .from("profiles")
+          .select("nim, nama_lengkap, unit_id, role")
+          .in("unit_id", unitIds.length ? unitIds : ["00000000-0000-0000-0000-000000000000"])
+          .in("role", ["internship", "pj_ppm_intern"])
+          .order("nama_lengkap")
+      : Promise.resolve({ data: [] as { nim: string; nama_lengkap: string; unit_id: string; role: string }[] }),
   ]);
 
   const staffNims = (staffProfiles ?? []).map((item) => item.nim);
   const internNims = (internProfiles ?? []).map((item) => item.nim);
+  const allPeriodIds = (allPeriods ?? []).map((p) => p.id);
 
-  const allRelevantNims = [...staffNims, ...internNims];
+  type ScoreRecord = { id: string; user_nim: string; periode_id: string; total_avg: number };
 
-  const { data: allScores } = (latestPublished || activePeriod) && allRelevantNims.length
-    ? await supabase
-        .from("rapor_scores")
-        .select("id, user_nim, periode_id, total_avg, report_type")
-        .in("periode_id", [latestPublished?.id ?? activePeriod?.id ?? "", previousPublished?.id ?? ""].filter(Boolean))
-        .in("user_nim", allRelevantNims)
-    : { data: [] as { id: string; user_nim: string; periode_id: string; total_avg: number; report_type: string }[] };
+  const [{ data: staffScores }, { data: internScores }] = await Promise.all([
+    allPeriodIds.length && staffNims.length
+      ? supabase
+          .from("rapor_scores")
+          .select("id, user_nim, periode_id, total_avg")
+          .eq("report_type", "staf_unit")
+          .in("periode_id", allPeriodIds)
+          .in("user_nim", staffNims)
+      : Promise.resolve({ data: [] as ScoreRecord[] }),
+    canViewInternTab && allPeriodIds.length && internNims.length
+      ? supabase
+          .from("intern_rapor_scores")
+          .select("id, user_nim, periode_id, total_avg")
+          .in("periode_id", allPeriodIds)
+          .in("user_nim", internNims)
+      : Promise.resolve({ data: [] as ScoreRecord[] }),
+  ]);
 
-  // Fetch indicator details for deep analysis
-  const scoreIds = (allScores ?? []).map((s) => s.id);
-  const { data: details } = scoreIds.length
-    ? await supabase
-        .from("rapor_details")
-        .select("rapor_id, main_indicator_name, score")
-        .in("rapor_id", scoreIds)
-    : { data: [] as { rapor_id: string; main_indicator_name: string; score: number }[] };
+  const staffScoreIds = (staffScores ?? []).map((s) => s.id);
+  const internScoreIds = (internScores ?? []).map((s) => s.id);
 
-  const detailsByRaporId = new Map<string, { main_indicator_name: string; score: number }[]>();
-  for (const item of details ?? []) {
-    if (!detailsByRaporId.has(item.rapor_id)) {
-      detailsByRaporId.set(item.rapor_id, []);
+  type DetailRecord = { rapor_id: string; main_indicator_name: string; score: number };
+
+  const [{ data: staffDetails }, { data: internDetails }] = await Promise.all([
+    staffScoreIds.length
+      ? supabase.from("rapor_details").select("rapor_id, main_indicator_name, score").in("rapor_id", staffScoreIds)
+      : Promise.resolve({ data: [] as DetailRecord[] }),
+    internScoreIds.length
+      ? supabase.from("intern_rapor_details").select("rapor_id, main_indicator_name, score").in("rapor_id", internScoreIds)
+      : Promise.resolve({ data: [] as DetailRecord[] }),
+  ]);
+
+  function groupDetailsByRaporId(items: DetailRecord[] | null | undefined) {
+    const map = new Map<string, { main_indicator_name: string; score: number }[]>();
+    for (const item of items ?? []) {
+      if (!map.has(item.rapor_id)) {
+        map.set(item.rapor_id, []);
+      }
+      map.get(item.rapor_id)!.push(item);
     }
-    detailsByRaporId.get(item.rapor_id)!.push(item);
+    return map;
   }
 
-  // Helper to build unit rows, indicators, and insights
+  const staffDetailsByRaporId = groupDetailsByRaporId(staffDetails);
+  const internDetailsByRaporId = groupDetailsByRaporId(internDetails);
+
+  // Helper to build unit rows, indicators, insights, and per-person cumulative rows
   function buildRecap(
-    profiles: { nim: string; nama_lengkap: string; unit_id: string }[],
-    reportTypeFilter?: string
+    profiles: { nim: string; nama_lengkap: string; unit_id: string; role: string }[],
+    scores: ScoreRecord[],
+    detailsMap: Map<string, { main_indicator_name: string; score: number }[]>,
+    periodList: NonNullable<typeof allPeriods>,
+    divisor: number,
+    isInternScheme = false,
   ): {
     rows: UnitRecapRow[];
     indicators: IndicatorScoreItem[];
     insights: PerformanceInsights;
+    members: MemberCumulativeRow[];
   } {
     const profileNims = new Set(profiles.map((p) => p.nim));
     const nameByNim = new Map(profiles.map((p) => [p.nim, p.nama_lengkap]));
+    const latestPeriod = periodList[0];
+    const previousPeriod = periodList[1];
 
-    const filteredScores = (allScores ?? []).filter(
-      (s) => profileNims.has(s.user_nim) && (!reportTypeFilter || s.report_type === reportTypeFilter || s.report_type === "staf_unit")
-    );
+    const filteredScores = scores.filter((s) => profileNims.has(s.user_nim));
 
     const latestByNim = new Map<string, number>();
     const previousByNim = new Map<string, number>();
     const latestScoreIdByNim = new Map<string, string>();
-    const publishedScoresByNim = new Map<string, number[]>();
-
-    const publishedPeriodIds = new Set((publishedPeriods ?? []).map((p) => p.id));
+    const scoredPeriodsByNim = new Map<string, MemberPeriodScore[]>();
 
     for (const score of filteredScores) {
-      if (publishedPeriodIds.has(score.periode_id)) {
-        if (!publishedScoresByNim.has(score.user_nim)) {
-          publishedScoresByNim.set(score.user_nim, []);
+      const period = periodById.get(score.periode_id);
+      if (period) {
+        if (!scoredPeriodsByNim.has(score.user_nim)) {
+          scoredPeriodsByNim.set(score.user_nim, []);
         }
-        publishedScoresByNim.get(score.user_nim)!.push(Number(score.total_avg));
+        const statusValue = isInternScheme
+          ? (isInternPublishedStatus(period.intern_status) ? "published" : (period.intern_status ?? "draft"))
+          : (isPublishedStatus(period.status) ? "published" : (period.status ?? "draft"));
+        scoredPeriodsByNim.get(score.user_nim)!.push({
+          periode_id: score.periode_id,
+          bulan: period.bulan,
+          tahun: period.tahun,
+          label: `${BULAN_SHORT[period.bulan] ?? `B${period.bulan}`} ${period.tahun}`,
+          score: Number(score.total_avg),
+          status: statusValue,
+        });
       }
-      if (latestPublished && score.periode_id === latestPublished.id) {
+      if (latestPeriod && score.periode_id === latestPeriod.id) {
         latestByNim.set(score.user_nim, Number(score.total_avg));
         latestScoreIdByNim.set(score.user_nim, score.id);
       }
-      if (previousPublished && score.periode_id === previousPublished.id) {
+      if (previousPeriod && score.periode_id === previousPeriod.id) {
         previousByNim.set(score.user_nim, Number(score.total_avg));
       }
     }
 
     const cumulativeByNim = new Map<string, number>();
-    for (const [nim, scList] of publishedScoresByNim.entries()) {
-      const avg = scList.reduce((sum, v) => sum + v, 0) / scList.length;
-      cumulativeByNim.set(nim, Number(avg.toFixed(2)));
+    for (const [nim, psList] of scoredPeriodsByNim.entries()) {
+      psList.sort((a, b) => (a.tahun !== b.tahun ? b.tahun - a.tahun : b.bulan - a.bulan));
+      const sum = psList.reduce((acc, item) => acc + item.score, 0);
+      cumulativeByNim.set(nim, Number((sum / divisor).toFixed(2)));
     }
+
+    const members: MemberCumulativeRow[] = profiles.map((p) => {
+      const psList = scoredPeriodsByNim.get(p.nim) ?? [];
+      const latestItem = psList[0] ?? null;
+      return {
+        nim: p.nim,
+        nama_lengkap: p.nama_lengkap,
+        unit_name: unitNameById.get(p.unit_id) ?? "-",
+        role_label: p.role !== "staff" && p.role !== "internship" ? formatRoleName(p.role) : undefined,
+        cumulative_avg: cumulativeByNim.get(p.nim) ?? 0,
+        published_count: psList.length,
+        latest_score: latestItem ? latestItem.score : null,
+        latest_period_label: latestItem ? latestItem.label : null,
+        period_scores: psList,
+      };
+    });
 
     const indicatorAccumulator = new Map<string, { sum: number; count: number }>();
     const allLatestScores: number[] = [];
@@ -206,7 +273,7 @@ export default async function MenkoPage() {
         // Accumulate indicator details
         const scoreId = latestScoreIdByNim.get(m.nim);
         if (scoreId) {
-          const detailItems = detailsByRaporId.get(scoreId) ?? [];
+          const detailItems = detailsMap.get(scoreId) ?? [];
           for (const det of detailItems) {
             if (!indicatorAccumulator.has(det.main_indicator_name)) {
               indicatorAccumulator.set(det.main_indicator_name, { sum: 0, count: 0 });
@@ -264,17 +331,29 @@ export default async function MenkoPage() {
       overallAverage,
     };
 
-    return { rows, indicators, insights };
+    return { rows, indicators, insights, members };
   }
 
-  const staffResult = buildRecap(staffProfiles ?? []);
-  const internResult = buildRecap(internProfiles ?? []);
+  const staffResult = buildRecap(
+    staffProfiles ?? [],
+    staffScores ?? [],
+    staffDetailsByRaporId,
+    allPeriods ?? [],
+    STAFF_CUMULATIVE_DIVISOR,
+    false,
+  );
+  const internResult = buildRecap(
+    internProfiles ?? [],
+    internScores ?? [],
+    internDetailsByRaporId,
+    allPeriods ?? [],
+    INTERN_CUMULATIVE_DIVISOR,
+    true,
+  );
 
   const activePeriodLabel = latestPublished
     ? `Periode ${latestPublished.bulan}/${latestPublished.tahun} (Published)`
-    : activePeriod
-      ? `Periode ${activePeriod.bulan}/${activePeriod.tahun}`
-      : "Belum ada periode published";
+    : "Belum ada periode published";
 
   return (
     <section className="space-y-6">
@@ -313,9 +392,12 @@ export default async function MenkoPage() {
         staffRows={staffResult.rows}
         staffIndicators={staffResult.indicators}
         staffInsights={staffResult.insights}
+        staffMembers={staffResult.members}
         internRows={internResult.rows}
         internIndicators={internResult.indicators}
         internInsights={internResult.insights}
+        internMembers={internResult.members}
+        showInternTab={canViewInternTab}
         totalUnitsCount={(coordinatedUnits ?? []).length}
         activePeriodLabel={activePeriodLabel}
       />

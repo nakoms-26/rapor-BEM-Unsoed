@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireSessionProfile } from "@/lib/auth/session";
 import Link from "next/link";
-import { ROLE_HOME } from "@/lib/constants";
+import { ROLE_HOME, formatRoleName } from "@/lib/constants";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { isInternPublishedStatus } from "@/lib/period-status";
 import { updateInternPeriodStatus } from "@/app/(dashboard)/pj-ppm-intern/intern-actions";
@@ -10,8 +10,16 @@ import { ShieldCheck, BarChart3, FileText, User, Building2, AlertCircle, Chevron
 import { StaffPerformanceBarChart } from "@/components/dashboard/staff-performance-bar-chart";
 import { IndicatorBreakdownChart } from "@/components/dashboard/indicator-breakdown-chart";
 import { PerformanceInsightsCard } from "@/components/dashboard/performance-insights-card";
+import { MemberCumulativeTable, type MemberCumulativeRow, type MemberPeriodScore } from "@/components/dashboard/member-cumulative-table";
 
 export const dynamic = "force-dynamic";
+
+const CUMULATIVE_DIVISOR = 3;
+
+const BULAN_SHORT: Record<number, string> = {
+  1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
+  7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des",
+};
 
 export default async function PjPpmInternPage() {
   const supabase = createAdminSupabaseClient();
@@ -25,22 +33,28 @@ export default async function PjPpmInternPage() {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
-  // 1. Get assigned units for this PJ PPM Intern from pj_assignments (scope='unit')
+  // 1. Get assigned units & kemenko for this PJ PPM Intern from pj_assignments
   const { data: assignments } = await supabase
     .from("pj_assignments")
-    .select("target_unit_id")
+    .select("target_unit_id, scope")
     .eq("nim", profile.nim)
-    .eq("scope", "unit")
+    .in("scope", ["unit", "kemenko"])
     .eq("is_active", true);
 
-  const assignedUnitIds = (assignments ?? []).map((a) => a.target_unit_id);
+  const assignedUnitIds = (assignments ?? [])
+    .filter((a) => a.scope === "unit")
+    .map((a) => a.target_unit_id);
+  const assignedKemenkoIds = (assignments ?? [])
+    .filter((a) => a.scope === "kemenko")
+    .map((a) => a.target_unit_id);
+
   // For the_meridian, always include their home unit (e.g. Biro PPM) so they can monitor PPM interns
   if (profile.role === "the_meridian" && profile.unit_id && !assignedUnitIds.includes(profile.unit_id)) {
     assignedUnitIds.push(profile.unit_id);
   }
 
   // If no assignments exist and not admin, do not show any units
-  if (assignedUnitIds.length === 0 && profile.role !== "admin") {
+  if (assignedUnitIds.length === 0 && assignedKemenkoIds.length === 0 && profile.role !== "admin") {
     return (
       <section className="space-y-6">
         <div>
@@ -90,9 +104,15 @@ export default async function PjPpmInternPage() {
     .order("nama_unit");
 
   const scopeUnitIds = new Set<string>(assignedUnitIds);
+  const scopeKemenkoIds = new Set<string>(assignedKemenkoIds);
 
   const managedUnits = (allUnits ?? [])
-    .filter((u) => profile.role === "admin" || scopeUnitIds.has(u.id))
+    .filter(
+      (u) =>
+        profile.role === "admin" ||
+        scopeUnitIds.has(u.id) ||
+        (u.parent_id !== null && scopeKemenkoIds.has(u.parent_id)),
+    )
     .filter((u) => u.kategori === "kementerian" || u.kategori === "biro");
 
   const effectiveUnitIds = managedUnits.map((u) => u.id);
@@ -107,11 +127,11 @@ export default async function PjPpmInternPage() {
     effectiveUnitIds.length
       ? supabase
           .from("profiles")
-          .select("nim, nama_lengkap, unit_id")
+          .select("nim, nama_lengkap, unit_id, role")
           .in("unit_id", effectiveUnitIds)
           .in("role", ["internship", "pj_ppm_intern"])
           .order("nama_lengkap")
-      : { data: [] },
+      : { data: [] as { nim: string; nama_lengkap: string; unit_id: string; role: string }[] },
   ]);
 
   const internByNim = new Map((interns ?? []).map((intern) => [intern.nim, intern]));
@@ -159,15 +179,22 @@ export default async function PjPpmInternPage() {
   const previousByNim = new Map<string, number>();
   const latestScoreIdByNim = new Map<string, string>();
 
-  const publishedPeriodIds = new Set(publishedPeriods.map((p) => p.id));
-  const publishedScoresByNim = new Map<string, number[]>();
+  const allScoredPeriodsByNim = new Map<string, MemberPeriodScore[]>();
 
   for (const item of scores ?? []) {
-    if (publishedPeriodIds.has(item.periode_id)) {
-      if (!publishedScoresByNim.has(item.user_nim)) {
-        publishedScoresByNim.set(item.user_nim, []);
+    const period = periodById.get(item.periode_id);
+    if (period) {
+      if (!allScoredPeriodsByNim.has(item.user_nim)) {
+        allScoredPeriodsByNim.set(item.user_nim, []);
       }
-      publishedScoresByNim.get(item.user_nim)!.push(Number(item.total_avg));
+      allScoredPeriodsByNim.get(item.user_nim)!.push({
+        periode_id: item.periode_id,
+        bulan: period.bulan,
+        tahun: period.tahun,
+        label: `${BULAN_SHORT[period.bulan] ?? `B${period.bulan}`} ${period.tahun}`,
+        score: Number(item.total_avg),
+        status: isInternPublishedStatus(period.intern_status) ? "published" : (period.intern_status ?? "draft"),
+      });
     }
     if (latestPublished && item.periode_id === latestPublished.id) {
       latestByNim.set(item.user_nim, Number(item.total_avg));
@@ -179,10 +206,28 @@ export default async function PjPpmInternPage() {
   }
 
   const cumulativeByNim = new Map<string, number>();
-  for (const [nim, scList] of publishedScoresByNim.entries()) {
-    const avg = scList.reduce((sum, v) => sum + v, 0) / scList.length;
-    cumulativeByNim.set(nim, Number(avg.toFixed(2)));
+  for (const [nim, psList] of allScoredPeriodsByNim.entries()) {
+    psList.sort((a, b) => (a.tahun !== b.tahun ? b.tahun - a.tahun : b.bulan - a.bulan));
+    const sum = psList.reduce((acc, v) => acc + v.score, 0);
+    cumulativeByNim.set(nim, Number((sum / CUMULATIVE_DIVISOR).toFixed(2)));
   }
+
+  const internMembers: MemberCumulativeRow[] = (interns ?? []).map((intern) => {
+    const psList = allScoredPeriodsByNim.get(intern.nim) ?? [];
+    const latestItem = psList[0] ?? null;
+    const unit = unitById.get(intern.unit_id);
+    return {
+      nim: intern.nim,
+      nama_lengkap: intern.nama_lengkap,
+      unit_name: unit?.nama_unit ?? "-",
+      role_label: intern.role !== "internship" ? formatRoleName(intern.role) : undefined,
+      cumulative_avg: cumulativeByNim.get(intern.nim) ?? 0,
+      published_count: psList.length,
+      latest_score: latestItem ? latestItem.score : null,
+      latest_period_label: latestItem ? latestItem.label : null,
+      period_scores: psList,
+    };
+  });
 
   const performanceList: { name: string; score: number; unitName: string }[] = [];
   const indicatorAccumulator = new Map<string, { sum: number; count: number }>();
@@ -378,6 +423,16 @@ export default async function PjPpmInternPage() {
           </Card>
         ))}
       </div>
+
+      {/* Per-Person Cumulative Scores */}
+      <MemberCumulativeTable
+        title="Nilai Kumulatif Per Orang (Internship / Cakrawala)"
+        subtitle="Rata-rata dihitung dari seluruh periode yang sudah dinilai (published & draft) dibagi 3 (klik baris untuk rincian per bulan)."
+        members={internMembers}
+        accentColor="teal"
+        divisor={CUMULATIVE_DIVISOR}
+        emptyText="Belum ada data anak magang di unit atau kemenko yang diampu."
+      />
 
       {/* Dedicated Card for Publishing Internship Periods */}
       <Card className="border-teal-100 shadow-2xs">
