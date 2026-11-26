@@ -50,11 +50,7 @@ export default async function PjPpmInternInputPage({
   const profile = await requireSessionProfile();
   const supabase = createAdminSupabaseClient();
 
-  if (
-    profile.role !== "pj_ppm_intern" &&
-    profile.role !== "admin" &&
-    profile.role !== "the_meridian"
-  ) {
+  if (profile.role !== "pj_ppm_intern" && profile.role !== "admin") {
     redirect(ROLE_HOME[profile.role] ?? "/dashboard");
   }
 
@@ -67,10 +63,6 @@ export default async function PjPpmInternInputPage({
     .eq("is_active", true);
 
   const assignedUnitIds = (assignments ?? []).map((a) => a.target_unit_id);
-  // For the_meridian, always include their home unit (e.g. Biro PPM) so they can grade PPM interns
-  if (profile.role === "the_meridian" && profile.unit_id && !assignedUnitIds.includes(profile.unit_id)) {
-    assignedUnitIds.push(profile.unit_id);
-  }
 
   // Fetch units
   const { data: allUnits } = await supabase

@@ -13,7 +13,7 @@ import { adminInputSchema, type AdminInputForm } from "@/types/app";
 
 // ─── Permission helpers ──────────────────────────────────────
 function canInputInternRapor(role: string) {
-  return role === "admin" || role === "pj_ppm_intern" || role === "the_meridian";
+  return role === "admin" || role === "pj_ppm_intern";
 }
 
 function getPrestasiResponsibilityScore(value?: string | null) {
@@ -71,11 +71,8 @@ export async function submitInternRapor(payload: AdminInputForm) {
     return { ok: false, message: "Rapor internship hanya untuk akun dengan role internship atau intern PPM." };
   }
 
-  // Evaluator assignment check (PJ PPM Intern or The Meridian)
-  if (
-    evaluatorProfile.role === "pj_ppm_intern" ||
-    evaluatorProfile.role === "the_meridian"
-  ) {
+  // Evaluator assignment check (PJ PPM Intern only)
+  if (evaluatorProfile.role === "pj_ppm_intern") {
     const { data: pjAssignments } = await supabase
       .from("pj_assignments")
       .select("target_unit_id")
@@ -84,11 +81,6 @@ export async function submitInternRapor(payload: AdminInputForm) {
       .eq("is_active", true);
 
     const assignedUnitIds = new Set((pjAssignments ?? []).map((a) => a.target_unit_id));
-
-    // Include evaluator's own unit for the_meridian so they can evaluate their own unit's interns (e.g. Biro PPM)
-    if (evaluatorProfile.role === "the_meridian" && evaluatorProfile.unit_id) {
-      assignedUnitIds.add(evaluatorProfile.unit_id);
-    }
 
     if (assignedUnitIds.size === 0) {
       return { ok: false, message: "Assignment penilai belum ditetapkan. Hubungi admin." };
@@ -316,10 +308,7 @@ export async function deleteInternRapor(raporId: string) {
     return { ok: false, message: "Kamu tidak memiliki akses untuk menghapus rapor internship." };
   }
 
-  if (
-    profile.role === "pj_ppm_intern" ||
-    profile.role === "the_meridian"
-  ) {
+  if (profile.role === "pj_ppm_intern") {
     const { data: rapor } = await supabase
       .from("intern_rapor_scores")
       .select("id, user_nim")
@@ -349,9 +338,6 @@ export async function deleteInternRapor(raporId: string) {
       .eq("is_active", true);
 
     const assignedIds = new Set((pjAssignments ?? []).map((a) => a.target_unit_id));
-    if (profile.role === "the_meridian" && profile.unit_id) {
-      assignedIds.add(profile.unit_id);
-    }
 
     if (!targetProfile.unit_id || !assignedIds.has(targetProfile.unit_id)) {
       return { ok: false, message: "Penilai hanya dapat menghapus rapor dalam unit ampuan." };
@@ -488,11 +474,7 @@ export async function updateInternPeriodStatus(formData: FormData): Promise<void
   const supabase = createAdminSupabaseClient();
   const profile = await requireSessionProfile();
 
-  if (
-    profile.role !== "admin" &&
-    profile.role !== "pj_ppm_intern" &&
-    profile.role !== "the_meridian"
-  ) {
+  if (profile.role !== "admin" && profile.role !== "pj_ppm_intern") {
     return;
   }
 

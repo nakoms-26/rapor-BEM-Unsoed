@@ -341,19 +341,23 @@ export default async function PjPpmInternPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 self-start sm:self-auto">
-          <Link
-            href="/pj-ppm-intern/input"
-            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-xs sm:text-sm font-medium text-white shadow-sm hover:bg-teal-700 transition-colors"
-          >
-            <FileText className="h-4 w-4" />
-            <span>Input Rapor Intern</span>
-          </Link>
-          <Link
-            href="/pj-ppm-intern/kelola-indikator"
-            className="inline-flex items-center gap-2 rounded-lg border border-teal-300 bg-white px-4 py-2 text-xs sm:text-sm font-medium text-teal-700 shadow-sm hover:bg-teal-50 transition-colors"
-          >
-            <span>Kelola Indikator</span>
-          </Link>
+          {profile.role !== "the_meridian" && (
+            <>
+              <Link
+                href="/pj-ppm-intern/input"
+                className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-xs sm:text-sm font-medium text-white shadow-sm hover:bg-teal-700 transition-colors"
+              >
+                <FileText className="h-4 w-4" />
+                <span>Input Rapor Intern</span>
+              </Link>
+              <Link
+                href="/pj-ppm-intern/kelola-indikator"
+                className="inline-flex items-center gap-2 rounded-lg border border-teal-300 bg-white px-4 py-2 text-xs sm:text-sm font-medium text-teal-700 shadow-sm hover:bg-teal-50 transition-colors"
+              >
+                <span>Kelola Indikator</span>
+              </Link>
+            </>
+          )}
           <Link
             href="/pj-ppm-intern/staff-detail"
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs sm:text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
@@ -434,7 +438,8 @@ export default async function PjPpmInternPage() {
         emptyText="Belum ada data anak magang di unit atau kemenko yang diampu."
       />
 
-      {/* Dedicated Card for Publishing Internship Periods */}
+      {/* Dedicated Card for Publishing Internship Periods (PJ PPM Intern & Admin only) */}
+      {profile.role !== "the_meridian" && (
       <Card className="border-teal-100 shadow-2xs">
         <CardHeader className="pb-3">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-slate-900">
@@ -522,6 +527,7 @@ export default async function PjPpmInternPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Historical Rapor List Grouped & Collapsible by Month */}
       <Card>

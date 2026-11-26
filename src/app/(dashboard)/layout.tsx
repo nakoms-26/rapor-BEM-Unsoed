@@ -40,6 +40,8 @@ export default async function DashboardLayout({
     pushNav({ href: "/admin", label: "Admin", iconKey: "clipboard", category: "kementerian" });
     pushNav({ href: "/admin/staff-recap", label: "Recap Staff Kabinet", iconKey: "chart", category: "kementerian" });
     pushNav({ href: "/admin/menteri-detail", label: "Rapor Menteri", iconKey: "userCheck", category: "kementerian" });
+    pushNav({ href: "/pj-ppm-intern/input", label: "Input Internship", iconKey: "clipboard", category: "internship" });
+    pushNav({ href: "/pj-ppm-intern", label: "Monitoring Internship", iconKey: "chart", category: "internship" });
   }
 
   if (profile.role === "pj_kementerian") {
@@ -111,7 +113,6 @@ export default async function DashboardLayout({
     const hasAnyAssignment = (pjAssignments ?? []).length > 0;
     const hasUnitAssignment = (pjAssignments ?? []).some((a) => a.scope === "unit");
 
-    pushNav({ href: "/pj-ppm-intern/input", label: "Input Internship", iconKey: "clipboard", category: "internship" });
     pushNav({ href: "/pj-ppm-intern", label: "Monitoring Internship", iconKey: "chart", category: "internship" });
 
     if (hasUnitAssignment) {
